@@ -6,14 +6,14 @@ require (
 	github.com/donnyhardyanto/dxlib v1.4.0
 	github.com/google/uuid v1.6.0
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
-	golang.org/x/crypto v0.26.0
-	golang.org/x/image v0.19.0
-
+	golang.org/x/crypto v0.27.0
+	golang.org/x/image v0.20.0
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -31,7 +31,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.6 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/vault/api v1.14.0 // indirect
+	github.com/hashicorp/vault/api v1.15.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/knetic/go-namedparameterquery v0.0.0-20150709205813-b7327e472dfd // indirect
@@ -44,13 +44,13 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sijms/go-ora/v2 v2.8.19 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	go.opentelemetry.io/otel v1.29.0 // indirect
-	go.opentelemetry.io/otel/metric v1.29.0 // indirect
-	go.opentelemetry.io/otel/trace v1.29.0 // indirect
-	golang.org/x/net v0.28.0 // indirect
+	go.opentelemetry.io/otel v1.30.0 // indirect
+	go.opentelemetry.io/otel/metric v1.30.0 // indirect
+	go.opentelemetry.io/otel/trace v1.30.0 // indirect
+	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 )
 
