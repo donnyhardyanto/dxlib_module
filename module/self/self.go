@@ -175,8 +175,8 @@ func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *dxlibLog.DXLog, menuitem
 }
 
 type MenuItem struct {
-	ID       int64       // Assuming ID is of type int64
-	ParentID *int64      // Assuming ParentID is a pointer to int64 to allow nil
+	Id       int64       // Assuming Id is of type int64
+	ParentId *int64      // Assuming ParentID is a pointer to int64 to allow nil
 	Data     utils.JSON  // Any additional data for the menu item
 	Children []*MenuItem // Children menu items
 }
