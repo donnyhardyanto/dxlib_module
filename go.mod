@@ -1,6 +1,6 @@
 module github.com/donnyhardyanto/dxlib_module
 
-go 1.23.0
+go 1.23.1
 
 require (
 	github.com/donnyhardyanto/dxlib v1.5.0
