@@ -11,7 +11,6 @@ func (g *DxmGeneral) AnnouncementList(aepr *api.DXAPIEndPointRequest) (err error
 
 func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = g.Announcements.DoCreate(aepr, map[string]any{
-		`image`:   aepr.ParameterValues[`image`].Value.(string),
 		`title`:   aepr.ParameterValues[`title`].Value.(string),
 		`content`: aepr.ParameterValues[`content`].Value.(string),
 	})
@@ -31,10 +30,16 @@ func (g *DxmGeneral) AnnouncementDelete(aepr *api.DXAPIEndPointRequest) (err err
 }
 
 func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData[`user`].(utils.JSON)
-	userUid := user[`uid`].(string)
-	filename := userUid + ".png"
-	//_, filename, err := aepr.GetParameterValueAsString("filename")
+	id := aepr.ParameterValues[`id`].Value.(int64)
+
+	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	if err != nil {
+		return err
+	}
+
+	idAsString := utils.Int64ToString(id)
+
+	filename := idAsString + ".png"
 
 	err = g.AnnouncementPicture.Update(aepr, filename)
 	if err != nil {
@@ -44,9 +49,17 @@ func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData[`user`].(utils.JSON)
-	userUid := user[`uid`].(string)
-	filename := userUid + ".png"
+	id := aepr.ParameterValues[`id`].Value.(int64)
+
+	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	if err != nil {
+		return err
+	}
+
+	idAsString := utils.Int64ToString(id)
+
+	filename := idAsString + ".png"
+
 	err = g.AnnouncementPicture.DownloadSource(aepr, filename)
 	if err != nil {
 		return err
@@ -56,10 +69,17 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRe
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadSmall(aepr *api.DXAPIEndPointRequest) (err error) {
-	//	_, filename, err := aepr.GetParameterValueAsString("filename")
-	user := aepr.LocalData[`user`].(utils.JSON)
-	userUid := user[`uid`].(string)
-	filename := userUid + ".png"
+	id := aepr.ParameterValues[`id`].Value.(int64)
+
+	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	if err != nil {
+		return err
+	}
+
+	idAsString := utils.Int64ToString(id)
+
+	filename := idAsString + ".png"
+
 	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, `small`, filename)
 	if err != nil {
 		return err
@@ -68,9 +88,17 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSmall(aepr *api.DXAPIEndPointReq
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadMiddle(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData[`user`].(utils.JSON)
-	userUid := user[`uid`].(string)
-	filename := userUid + ".png"
+	id := aepr.ParameterValues[`id`].Value.(int64)
+
+	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	if err != nil {
+		return err
+	}
+
+	idAsString := utils.Int64ToString(id)
+
+	filename := idAsString + ".png"
+
 	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, `middle`, filename)
 	if err != nil {
 		return err
@@ -79,9 +107,17 @@ func (g *DxmGeneral) AnnouncementPictureDownloadMiddle(aepr *api.DXAPIEndPointRe
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadBig(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData[`user`].(utils.JSON)
-	userUid := user[`uid`].(string)
-	filename := userUid + ".png"
+	id := aepr.ParameterValues[`id`].Value.(int64)
+
+	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	if err != nil {
+		return err
+	}
+
+	idAsString := utils.Int64ToString(id)
+
+	filename := idAsString + ".png"
+
 	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, `big`, filename)
 	if err != nil {
 		return err
