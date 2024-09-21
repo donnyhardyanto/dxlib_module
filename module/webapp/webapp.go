@@ -16,9 +16,9 @@ func (w *DxmWebapp) DefineTables(databaseNameId string) {
 	w.App = table.Manager.NewTable(databaseNameId, "webapp.app",
 		"webapp.app",
 		"webapp.app", `nameid`, `id`)
-	w.Page = table.Manager.NewTable(databaseNameId, "webapp.pages",
-		"webapp.pages",
-		"webapp.pages", `nameid`, `id`)
+	w.Page = table.Manager.NewTable(databaseNameId, "webapp.page",
+		"webapp.page",
+		"webapp.page", `nameid`, `id`)
 }
 
 func (w *DxmWebapp) AppList(aepr *api.DXAPIEndPointRequest) (err error) {
