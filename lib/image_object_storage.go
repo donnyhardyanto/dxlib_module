@@ -7,6 +7,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/object_storage"
 	"golang.org/x/image/draw"
 	"image"
+	"image/jpeg"
 	"image/png"
 	"io"
 	"net/http"
@@ -115,6 +116,11 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 			err = png.Encode(&resizedBuf, resizedImg)
 			if err != nil {
 				return fmt.Errorf("RESIZED_IMAGE_PNG_ENCODE_FAILED:(%dx%d) %v", processedImage.Width, processedImage.Height, err.Error())
+			}
+		case "jpg":
+			err = jpeg.Encode(&resizedBuf, resizedImg, nil)
+			if err != nil {
+				return fmt.Errorf("RESIZED_IMAGE_JPG_ENCODE_FAILED:(%dx%d) %v", processedImage.Width, processedImage.Height, err.Error())
 			}
 		default:
 			return fmt.Errorf("IMAGE_FORMAT_NOT_SUPPORTED:'%s'", formatName)
