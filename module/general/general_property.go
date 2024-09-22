@@ -12,7 +12,7 @@ import (
 type DxmGeneral struct {
 	dxlibModule.DXModule
 	Property            *table.DXTable
-	Announcements       *table.DXTable
+	Announcement        *table.DXTable
 	AnnouncementPicture *lib.ImageObjectStorage
 }
 
@@ -20,9 +20,9 @@ func (g *DxmGeneral) DefineTables(databaseNameId string) {
 	g.Property = table.Manager.NewTable(databaseNameId, "general.property",
 		"general.property",
 		"general.property", `nameid`, `id`)
-	g.Announcements = table.Manager.NewTable(databaseNameId, "general.announcements",
-		"general.announcements",
-		"general.announcements", `uid`, `id`)
+	g.Announcement = table.Manager.NewTable(databaseNameId, "general.announcement",
+		"general.announcement",
+		"general.announcement", `uid`, `id`)
 }
 
 func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (string, error) {

@@ -6,11 +6,11 @@ import (
 )
 
 func (g *DxmGeneral) AnnouncementList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcements.List(aepr)
+	return g.Announcement.List(aepr)
 }
 
 func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, err = g.Announcements.DoCreate(aepr, map[string]any{
+	_, err = g.Announcement.DoCreate(aepr, map[string]any{
 		`title`:   aepr.ParameterValues[`title`].Value.(string),
 		`content`: aepr.ParameterValues[`content`].Value.(string),
 	})
@@ -18,21 +18,21 @@ func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err err
 }
 
 func (g *DxmGeneral) AnnouncementRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcements.Read(aepr)
+	return g.Announcement.Read(aepr)
 }
 
 func (g *DxmGeneral) AnnouncementEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcements.Edit(aepr)
+	return g.Announcement.Edit(aepr)
 }
 
 func (g *DxmGeneral) AnnouncementDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcements.SoftDelete(aepr)
+	return g.Announcement.SoftDelete(aepr)
 }
 
 func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 	id := aepr.ParameterValues[`id`].Value.(int64)
 
-	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	_, _, err = g.Announcement.MustGetById(&aepr.Log, id)
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (
 func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRequest) (err error) {
 	id := aepr.ParameterValues[`id`].Value.(int64)
 
-	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	_, _, err = g.Announcement.MustGetById(&aepr.Log, id)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRe
 func (g *DxmGeneral) AnnouncementPictureDownloadSmall(aepr *api.DXAPIEndPointRequest) (err error) {
 	id := aepr.ParameterValues[`id`].Value.(int64)
 
-	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	_, _, err = g.Announcement.MustGetById(&aepr.Log, id)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSmall(aepr *api.DXAPIEndPointReq
 func (g *DxmGeneral) AnnouncementPictureDownloadMiddle(aepr *api.DXAPIEndPointRequest) (err error) {
 	id := aepr.ParameterValues[`id`].Value.(int64)
 
-	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	_, _, err = g.Announcement.MustGetById(&aepr.Log, id)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadMiddle(aepr *api.DXAPIEndPointRe
 func (g *DxmGeneral) AnnouncementPictureDownloadBig(aepr *api.DXAPIEndPointRequest) (err error) {
 	id := aepr.ParameterValues[`id`].Value.(int64)
 
-	_, _, err = g.Announcements.MustGetById(&aepr.Log, id)
+	_, _, err = g.Announcement.MustGetById(&aepr.Log, id)
 	if err != nil {
 		return err
 	}
