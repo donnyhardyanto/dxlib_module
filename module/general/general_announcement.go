@@ -87,7 +87,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSmall(aepr *api.DXAPIEndPointReq
 	return nil
 }
 
-func (g *DxmGeneral) AnnouncementPictureDownloadMiddle(aepr *api.DXAPIEndPointRequest) (err error) {
+func (g *DxmGeneral) AnnouncementPictureDownloadMedium(aepr *api.DXAPIEndPointRequest) (err error) {
 	id := aepr.ParameterValues[`id`].Value.(int64)
 
 	_, _, err = g.Announcement.MustGetById(&aepr.Log, id)
@@ -99,7 +99,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadMiddle(aepr *api.DXAPIEndPointRe
 
 	filename := idAsString + ".png"
 
-	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, `middle`, filename)
+	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, `medium`, filename)
 	if err != nil {
 		return err
 	}

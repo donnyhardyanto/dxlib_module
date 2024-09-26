@@ -600,11 +600,11 @@ func (s *DxmSelf) SelfAvatarDownloadSmall(aepr *api.DXAPIEndPointRequest) (err e
 	return nil
 }
 
-func (s *DxmSelf) SelfAvatarDownloadMiddle(aepr *api.DXAPIEndPointRequest) (err error) {
+func (s *DxmSelf) SelfAvatarDownloadMedium(aepr *api.DXAPIEndPointRequest) (err error) {
 	user := aepr.LocalData[`user`].(utils.JSON)
 	userUid := user[`uid`].(string)
 	filename := userUid + ".png"
-	err = s.Avatar.DownloadProcessedImage(aepr, `middle`, filename)
+	err = s.Avatar.DownloadProcessedImage(aepr, `medium`, filename)
 	if err != nil {
 		return err
 	}
