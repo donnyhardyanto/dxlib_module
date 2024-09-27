@@ -3,6 +3,11 @@ package self
 import (
 	"encoding/hex"
 	"encoding/json"
+	"net/http"
+	"sort"
+	"strings"
+	"time"
+
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
@@ -16,10 +21,6 @@ import (
 	"github.com/donnyhardyanto/dxlib_module/module/user_management"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/ed25519"
-	"net/http"
-	"sort"
-	"strings"
-	"time"
 )
 
 type DxmSelf struct {
@@ -175,8 +176,8 @@ func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *dxlibLog.DXLog, menuitem
 }
 
 type MenuItem struct {
-	Id       int64       // Assuming Id is of type int64
-	ParentId *int64      // Assuming ParentID is a pointer to int64 to allow nil
+	ID       int64       // Assuming ID is of type int64
+	ParentID *int64      // Assuming ParentID is a pointer to int64 to allow nil
 	Data     utils.JSON  // Any additional data for the menu item
 	Children []*MenuItem // Children menu items
 }
@@ -600,11 +601,11 @@ func (s *DxmSelf) SelfAvatarDownloadSmall(aepr *api.DXAPIEndPointRequest) (err e
 	return nil
 }
 
-func (s *DxmSelf) SelfAvatarDownloadMedium(aepr *api.DXAPIEndPointRequest) (err error) {
+func (s *DxmSelf) SelfAvatarDownloadMiddle(aepr *api.DXAPIEndPointRequest) (err error) {
 	user := aepr.LocalData[`user`].(utils.JSON)
 	userUid := user[`uid`].(string)
 	filename := userUid + ".png"
-	err = s.Avatar.DownloadProcessedImage(aepr, `medium`, filename)
+	err = s.Avatar.DownloadProcessedImage(aepr, `middle`, filename)
 	if err != nil {
 		return err
 	}
@@ -619,6 +620,24 @@ func (s *DxmSelf) SelfAvatarDownloadBig(aepr *api.DXAPIEndPointRequest) (err err
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (s *DxmSelf) SelfProfile(aepr *api.DXAPIEndPointRequest) (err error) {
+	userId := aepr.LocalData[`user_id`]
+	_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
+		`id`: userId,
+	}, nil)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, `USER_NOT_FOUND`)
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		"user": user,
+	})
 	return nil
 }
 
