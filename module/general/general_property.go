@@ -26,7 +26,7 @@ func (g *DxmGeneral) DefineTables(databaseNameId string) {
 }
 
 func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (string, error) {
-	_, v, err := g.Property.MustSelectOne(l, utils.JSON{
+	_, v, err := g.Property.ShouldSelectOne(l, utils.JSON{
 		"nameid": propertyId,
 	}, nil)
 	if err != nil {
@@ -41,7 +41,7 @@ func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (
 }
 
 func (g *DxmGeneral) PropertyGetAsInteger(l *dxlibLog.DXLog, propertyId string) (int, error) {
-	_, v, err := g.Property.MustSelectOne(l, utils.JSON{
+	_, v, err := g.Property.ShouldSelectOne(l, utils.JSON{
 		"nameid": propertyId,
 	}, nil)
 	if err != nil {

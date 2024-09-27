@@ -27,7 +27,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING")
 	}
 
-	_, _, err = um.Organization.MustGetById(&aepr.Log, organizationId)
+	_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_ID_MISSING")
 	}
 
-	_, _, err = um.Role.MustGetById(&aepr.Log, roleId)
+	_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
 	if err != nil {
 		return err
 	}
