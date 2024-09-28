@@ -641,6 +641,21 @@ func (s *DxmSelf) SelfProfile(aepr *api.DXAPIEndPointRequest) (err error) {
 	return nil
 }
 
+func (s *DxmSelf) SelfProfileEdit(aepr *api.DXAPIEndPointRequest) (err error) {
+	userId := aepr.LocalData[`user_id`].(int64)
+	_, newValues, err := aepr.GetParameterValueAsJSON("new")
+	if err != nil {
+		return err
+	}
+	err = user_management.ModuleUserManagement.User.DoEdit(aepr, userId, newValues)
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
+	return nil
+}
+
 var ModuleSelf DxmSelf
 
 func init() {
