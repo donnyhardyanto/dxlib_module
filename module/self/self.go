@@ -624,17 +624,11 @@ func (s *DxmSelf) SelfAvatarDownloadBig(aepr *api.DXAPIEndPointRequest) (err err
 }
 
 func (s *DxmSelf) SelfProfile(aepr *api.DXAPIEndPointRequest) (err error) {
-	userId := aepr.LocalData[`user_id`]
-	_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
-		`id`: userId,
-	}, nil)
+	userId := aepr.LocalData[`user_id`].(int64)
+	_, user, err := user_management.ModuleUserManagement.User.ShouldGetById(&aepr.Log, userId)
 	if err != nil {
 		return err
 	}
-	if user == nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, `USER_NOT_FOUND`)
-	}
-
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		"user": user,
 	})
