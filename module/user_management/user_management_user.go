@@ -272,7 +272,7 @@ func (um *DxmUserManagement) passwordHashVerify(tryPassword string, hashedPasswo
 func (um *DxmUserManagement) UserPasswordVerify(l *dxlibLog.DXLog, userId int64, tryPassword string) (verificationResult bool, err error) {
 	_, userPasswordRow, err := um.UserPassword.SelectOne(l, utils.JSON{
 		`user_id`: userId,
-	}, nil)
+	}, map[string]string{"id": "DESC"})
 	if err != nil {
 		return false, err
 	}
