@@ -14,7 +14,7 @@ func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) 
 		`name`:    aepr.ParameterValues[`name`].Value.(string),
 		`type`:    aepr.ParameterValues[`type`].Value.(string),
 		`address`: aepr.ParameterValues[`address`].Value.(string),
-		`state`:   aepr.ParameterValues[`state`].Value.(string),
+		`status`:  aepr.ParameterValues[`status`].Value.(string),
 	}
 
 	_, _, err = aepr.AssignParameterNullableInt64(&o, `parent_id`)

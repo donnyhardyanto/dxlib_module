@@ -83,7 +83,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			`email`:       aepr.ParameterValues[`email`].Value.(string),
 			`fullname`:    aepr.ParameterValues[`fullname`].Value.(string),
 			`phonenumber`: aepr.ParameterValues[`phonenumber`].Value.(string),
-			`state`:       aepr.ParameterValues[`state`].Value.(string),
+			`status`:      aepr.ParameterValues[`status`].Value.(string),
 			`attribute`:   attribute,
 		})
 		if err2 != nil {
