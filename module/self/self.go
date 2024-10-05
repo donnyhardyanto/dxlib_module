@@ -485,7 +485,7 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `SESSION_NOT_FOUND`)
 	}
 	userId := utilsJSON.MustGetInt64(sessionObject, `user_id`)
-	user := sessionObject[`user`]
+	user := sessionObject[`user`].(utils.JSON)
 
 	if user == nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `USER_NOT_FOUND`)
@@ -494,6 +494,11 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	aepr.LocalData[`session_key`] = sessionKey
 	aepr.LocalData[`user_id`] = userId
 	aepr.LocalData[`user`] = user
+	aepr.CurrentUser.Id = utils.Int64ToString(userId)
+	aepr.CurrentUser.Name, err = utilsJSON.GetString(user, `fullname`)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
