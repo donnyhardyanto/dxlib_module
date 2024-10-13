@@ -34,9 +34,9 @@ func (f *FirebaseCloudMessaging) DefineTables(databaseNameId string) {
 	f.FCMApplication = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_application",
 		"push_notification.fcm_application",
 		"push_notification.fcm_application", `nameid`, `id`)
-	f.FCMUserToken = table.Manager.NewTable(f.DatabaseNameId, "push_notification.user_fcm_token",
-		"push_notification.user_fcm_token",
-		"push_notification.user_fcm_token", `id`, `id`)
+	f.FCMUserToken = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_user_token",
+		"push_notification.fcm_user_token",
+		"push_notification.fcm_user_token", `id`, `id`)
 	f.FCMMessage = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_message",
 		"push_notification.fcm_message",
 		"push_notification.v_fcm_message", `id`, `id`)
