@@ -19,13 +19,31 @@ import (
 )
 
 type DxmPushNotification struct {
-	FCM *FirebaseCloudMessaging
+	FCM     *FirebaseCloudMessaging
+	EMail   *EmailMessaging
+	SMS     *SMSMessaging
+	Whatapp *WhatappMessaging
 }
 
 type FirebaseCloudMessaging struct {
 	FCMApplication *table.DXTable
 	FCMUserToken   *table.DXTable
 	FCMMessage     *table.DXTable
+	DatabaseNameId string
+}
+
+type EmailMessaging struct {
+	EMailMessage   *table.DXTable
+	DatabaseNameId string
+}
+
+type SMSMessaging struct {
+	SMSMessage     *table.DXTable
+	DatabaseNameId string
+}
+
+type WhatappMessaging struct {
+	WAMessage      *table.DXTable
 	DatabaseNameId string
 }
 
@@ -107,6 +125,50 @@ func (f *FirebaseCloudMessaging) MessageRead(aepr *api.DXAPIEndPointRequest) (er
 
 func (f *FirebaseCloudMessaging) MessageHardDelete(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMMessage.HardDelete(aepr)
+}
+
+func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, userId string, token string) (err error) {
+	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
+	var dtx *database.DXDatabaseTx
+	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
+	if err != nil {
+		return err
+	}
+	defer dtx.Finish(&aepr.Log, err)
+
+	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
+	if err != nil {
+		return err
+	}
+	fcmApplicationId := fcmApplication["id"].(int64)
+
+	var userTokenId int64
+	_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, utils.JSON{
+		"fcm_application_id": fcmApplicationId,
+		"user_id":            userId,
+		"fcm_token":          token,
+	}, nil)
+	if err != nil {
+		return err
+	}
+	if userToken == nil {
+		userTokenId, err = f.FCMUserToken.TxInsert(dtx, utils.JSON{
+			"fcm_application_id": fcmApplicationId,
+			"user_id":            userId,
+			"fcm_token":          token,
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		userTokenId = userToken["id"].(int64)
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		`status`: http.StatusText(http.StatusOK),
+		`id`:     userTokenId,
+	})
+	return nil
 }
 
 func (f *FirebaseCloudMessaging) SentToDevice(aepr *api.DXAPIEndPointRequest, applicationNameId string, userId string, token string, msg fcm.Message) (err error) {
@@ -229,11 +291,6 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 	}
 	wg.Wait()
 	return nil
-}
-
-func (f *FirebaseCloudMessaging) fetchPendingMessages(applicationId int64) (messages []utils.JSON, err error) {
-
-	return messages, nil
 }
 
 func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
