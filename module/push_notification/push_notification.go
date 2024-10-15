@@ -88,13 +88,13 @@ func (f *FirebaseCloudMessaging) UserTokenList(aepr *api.DXAPIEndPointRequest) (
 	return f.FCMUserToken.List(aepr)
 }
 
-func (f *FirebaseCloudMessaging) UserTokenCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+/*func (f *FirebaseCloudMessaging) UserTokenCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = f.FCMUserToken.DoCreate(aepr, map[string]interface{}{
 		`fcm_token`: aepr.ParameterValues[`fcm_token`].Value.(string),
 		`user_id`:   aepr.ParameterValues[`user_id`].Value.(string),
 	})
 	return err
-}
+}*/
 
 func (f *FirebaseCloudMessaging) UserTokenRead(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMUserToken.Read(aepr)
@@ -108,7 +108,7 @@ func (f *FirebaseCloudMessaging) MessageList(aepr *api.DXAPIEndPointRequest) (er
 	return f.FCMMessage.List(aepr)
 }
 
-func (f *FirebaseCloudMessaging) MessageCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+/*func (f *FirebaseCloudMessaging) MessageCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = f.FCMMessage.DoCreate(aepr, map[string]interface{}{
 		`application_id`: aepr.ParameterValues[`application_id`].Value.(string),
 		`user_id`:        aepr.ParameterValues[`user_id`].Value.(string),
@@ -117,7 +117,7 @@ func (f *FirebaseCloudMessaging) MessageCreate(aepr *api.DXAPIEndPointRequest) (
 		`data`:           aepr.ParameterValues[`data`].Value.(utils.JSON),
 	})
 	return err
-}
+}*/
 
 func (f *FirebaseCloudMessaging) MessageRead(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMMessage.Read(aepr)
@@ -127,7 +127,7 @@ func (f *FirebaseCloudMessaging) MessageHardDelete(aepr *api.DXAPIEndPointReques
 	return f.FCMMessage.HardDelete(aepr)
 }
 
-func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, userId string, token string) (err error) {
+func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, userId int64, token string) (err error) {
 	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
 	var dtx *database.DXDatabaseTx
 	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
@@ -171,7 +171,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	return nil
 }
 
-func (f *FirebaseCloudMessaging) SentToDevice(aepr *api.DXAPIEndPointRequest, applicationNameId string, userId string, token string, msg fcm.Message) (err error) {
+func (f *FirebaseCloudMessaging) SentToDevice(aepr *api.DXAPIEndPointRequest, applicationNameId string, userId int64, token string, msg fcm.Message) (err error) {
 	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
 	var dtx *database.DXDatabaseTx
 	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
