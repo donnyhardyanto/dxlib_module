@@ -25,8 +25,9 @@ import (
 
 type DxmSelf struct {
 	dxlibModule.DXModule
-	Avatar             *lib.ImageObjectStorage
-	OnAuthenticateUser func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organizations []utils.JSON, err error)
+	Avatar                *lib.ImageObjectStorage
+	OnAuthenticateUser    func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organizations []utils.JSON, err error)
+	OnCreateSessionObject func(aepr *api.DXAPIEndPointRequest, user utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
 }
 
 /*
@@ -424,6 +425,13 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		`user_role_memberships`:         userRoleMemberships,
 		`user_effective_privilege_ids`:  userEffectivePrivilegeIds,
 		`menu_tree_root`:                menuTreeRoot,
+	}
+
+	if s.OnCreateSessionObject != nil {
+		sessionObject, err = s.OnCreateSessionObject(aepr, user, sessionObject)
+		if err != nil {
+			return err
+		}
 	}
 	sessionKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
 	if err != nil {
