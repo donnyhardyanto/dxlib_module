@@ -1,12 +1,12 @@
 package general
 
 import (
+	"encoding/json"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib_module/lib"
-	"strconv"
 )
 
 type DxmGeneral struct {
@@ -32,7 +32,9 @@ func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (
 	if err != nil {
 		return "", err
 	}
-	vv, ok := v["value"].(string)
+	aType := v["type"].(string)
+	aValueJSON := v["value"].(utils.JSON)
+	vv, ok := aValueJSON[aType].(string)
 	if !ok {
 		err := l.ErrorAndCreateErrorf("PropertyGetAsString: value is not string: %v", v["value"])
 		return "", err
@@ -40,7 +42,23 @@ func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (
 	return vv, nil
 }
 
-func (g *DxmGeneral) PropertyGetAsInteger(l *dxlibLog.DXLog, propertyId string) (int, error) {
+/*
+	func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (string, error) {
+		_, v, err := g.Property.ShouldSelectOne(l, utils.JSON{
+			"nameid": propertyId,
+		}, nil)
+		if err != nil {
+			return "", err
+		}
+		vv, ok := v["value"].(string)
+		if !ok {
+			err := l.ErrorAndCreateErrorf("PropertyGetAsString: value is not string: %v", v["value"])
+			return "", err
+		}
+		return vv, nil
+	}
+*/
+/*func (g *DxmGeneral) PropertyGetAsInteger(l *dxlibLog.DXLog, propertyId string) (int, error) {
 	_, v, err := g.Property.ShouldSelectOne(l, utils.JSON{
 		"nameid": propertyId,
 	}, nil)
@@ -58,6 +76,38 @@ func (g *DxmGeneral) PropertyGetAsInteger(l *dxlibLog.DXLog, propertyId string) 
 		return 0, err
 	}
 	return vvi, nil
+}
+*/
+func (g *DxmGeneral) PropertyGetAsInteger(l *dxlibLog.DXLog, propertyId string) (int, error) {
+	_, v, err := g.Property.ShouldSelectOne(l, utils.JSON{
+		"nameid": propertyId,
+	}, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	aType, ok := v["type"].(string)
+	if !ok {
+		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: type is not string: %v", v["type"])
+	}
+
+	aValueJSON, ok := v["value"].([]byte)
+	if !ok {
+		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: value is not json.RawMessage: %v", v["value"])
+	}
+
+	var jsonValue map[string]interface{}
+	err = json.Unmarshal(aValueJSON, &jsonValue)
+	if err != nil {
+		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: failed to unmarshal JSON: %v", err)
+	}
+
+	vv, ok := jsonValue[aType].(float64)
+	if !ok {
+		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: value is not a number: %v", jsonValue[aType])
+	}
+
+	return int(vv), nil
 }
 
 var ModuleGeneral DxmGeneral
