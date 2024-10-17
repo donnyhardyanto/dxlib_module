@@ -485,7 +485,14 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	}
 
 	sessionKey := authHeader[len(bearerSchema):]
-	sessionObject, err := user_management.ModuleUserManagement.SessionRedis.Get(sessionKey)
+
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
+	if err != nil {
+		return err
+	}
+	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
+
+	sessionObject, err := user_management.ModuleUserManagement.SessionRedis.GetEx(sessionKey, sessionKeyTTLAsDuration)
 	if err != nil {
 		return err
 	}
