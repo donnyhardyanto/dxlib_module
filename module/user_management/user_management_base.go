@@ -1,27 +1,35 @@
 package user_management
 
 import (
+	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/database"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/donnyhardyanto/dxlib/utils"
 )
 
 type DxmUserManagement struct {
 	dxlibModule.DXModule
-	SessionRedis               *redis.DXRedis
-	PreKeyRedis                *redis.DXRedis
-	User                       *table.DXTable
-	UserPassword               *table.DXTable
-	Role                       *table.DXTable
-	Organization               *table.DXTable
-	UserOrganizationMembership *table.DXTable
-	Privilege                  *table.DXTable
-	RolePrivilege              *table.DXTable
-	UserRoleMembership         *table.DXTable
-	MenuItem                   *table.DXTable
+	SessionRedis                         *redis.DXRedis
+	PreKeyRedis                          *redis.DXRedis
+	User                                 *table.DXTable
+	UserPassword                         *table.DXTable
+	Role                                 *table.DXTable
+	Organization                         *table.DXTable
+	UserOrganizationMembership           *table.DXTable
+	Privilege                            *table.DXTable
+	RolePrivilege                        *table.DXTable
+	UserRoleMembership                   *table.DXTable
+	MenuItem                             *table.DXTable
+	DatabaseNameId                       string
+	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
+	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
+	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
 }
 
-func (um *DxmUserManagement) DefineTables(databaseNameId string) {
+func (um *DxmUserManagement) Init(databaseNameId string) {
+	um.DatabaseNameId = databaseNameId
 	um.User = table.Manager.NewTable(databaseNameId, "user_management.user",
 		"user_management.user",
 		"user_management.user", `loginid`, `id`)

@@ -165,8 +165,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
-		`status`: http.StatusText(http.StatusOK),
-		`id`:     userTokenId,
+		`id`: userTokenId,
 	})
 	return nil
 }
@@ -208,7 +207,6 @@ func (f *FirebaseCloudMessaging) SentToDevice(aepr *api.DXAPIEndPointRequest, ap
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
-		`status`:         http.StatusText(http.StatusOK),
 		`fcm_message_id`: fcmMessageId,
 	})
 	return nil
@@ -254,7 +252,6 @@ func (f *FirebaseCloudMessaging) SentToUser(aepr *api.DXAPIEndPointRequest, appl
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
-		`status`:          http.StatusText(http.StatusOK),
 		`fcm_message_ids`: fcmMessageIds,
 	})
 

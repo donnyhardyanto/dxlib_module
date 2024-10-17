@@ -119,7 +119,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
-		ModuleUserManagement.User.FieldNameForRowId: userId,
+		um.User.FieldNameForRowId: userId,
 	})
 
 	return nil
