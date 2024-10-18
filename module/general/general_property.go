@@ -32,14 +32,29 @@ func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (
 	if err != nil {
 		return "", err
 	}
-	aType := v["type"].(string)
-	aValueJSON := v["value"].(utils.JSON)
-	vv, ok := aValueJSON[aType].(string)
+
+	aType, ok := v["type"].(string)
 	if !ok {
-		err := l.ErrorAndCreateErrorf("PropertyGetAsString: value is not string: %v", v["value"])
-		return "", err
+		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: type is not string: %v", v["type"])
 	}
-	return vv, nil
+
+	aValueJSON, ok := v["value"].([]byte)
+	if !ok {
+		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: value is not json.RawMessage: %v", v["value"])
+	}
+
+	var jsonValue map[string]interface{}
+	err = json.Unmarshal(aValueJSON, &jsonValue)
+	if err != nil {
+		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: failed to unmarshal JSON: %v", err)
+	}
+
+	vv, ok := jsonValue[aType].(string)
+	if !ok {
+		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: value is not a number: %v", jsonValue[aType])
+	}
+
+	return string(vv), nil
 }
 
 /*
