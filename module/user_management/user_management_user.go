@@ -122,6 +122,8 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		um.User.FieldNameForRowId: userId,
 	})
 
+	fmt.Println(err)
+
 	return nil
 
 }
