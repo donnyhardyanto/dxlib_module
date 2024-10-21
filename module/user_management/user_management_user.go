@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
@@ -13,8 +14,11 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils/crypto/datablock"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
 	security "github.com/donnyhardyanto/dxlib/utils/security"
+	"github.com/donnyhardyanto/dxlib_module/module/general"
 	"github.com/teris-io/shortid"
+	"gopkg.in/gomail.v2"
 	"net/http"
+	"strings"
 )
 
 func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -117,6 +121,40 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	if err != nil {
 		return err
 	}
+
+	go func() {
+		templateEmailCreateUser, err := general.ModuleGeneral.PropertyGetAsString(&aepr.Log, `EMAIL-TEMPLATE-CREATE-USER`)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		propertyConfigSmtp, err := general.ModuleGeneral.PropertyGetAsString(&aepr.Log, `SMTP-CONFIG`)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		var smtpConfig map[string]any
+		err = json.Unmarshal([]byte(propertyConfigSmtp), &smtpConfig)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		err = SendEmail(
+			"Informasi Akun Anda - Selamat Datang di PGN Partner",
+			aepr.ParameterValues[`fullname`].Value.(string),
+			loginId,
+			userPassword,
+			templateEmailCreateUser,
+			smtpConfig,
+			aepr.ParameterValues[`email`].Value.(string),
+		)
+		if err != nil {
+			return
+		}
+	}()
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		um.User.FieldNameForRowId: userId,
@@ -330,4 +368,35 @@ func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString 
 	}
 
 	return lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, nil
+}
+
+func SendEmail(subject, name, username, password, textBody string, smtpConfig map[string]any, emails ...string) error {
+	textBody = strings.ReplaceAll(textBody, "<name>", name)
+	textBody = strings.ReplaceAll(textBody, "<username>", username)
+	textBody = strings.ReplaceAll(textBody, "<password>", password)
+
+	smtpServer := smtpConfig["smtp_server"].(string)
+	smtpUsername := smtpConfig["smtp_username"].(string)
+	smtpPassword := smtpConfig["smtp_password"].(string)
+	smtpPort := smtpConfig["smtp_username"].(int)
+	smtpSenderEmail := smtpConfig["smtp_sender_email"].(string)
+	d := gomail.NewDialer(smtpServer, smtpPort, smtpUsername, smtpPassword)
+	s, err := d.Dial()
+	if err != nil {
+		fmt.Println("email sender error : ", err)
+		return err
+	}
+	for _, email := range emails {
+		m := gomail.NewMessage()
+		m.SetHeader("From", smtpSenderEmail)
+		m.SetAddressHeader("To", email, "Halo "+name)
+		m.SetHeader("Subject", subject)
+		m.SetBody("text/plain", textBody)
+		if err := gomail.Send(s, m); err != nil {
+			fmt.Printf("Could not send email to %q: %v", email, err)
+			return err
+		}
+		m.Reset()
+	}
+	return nil
 }
