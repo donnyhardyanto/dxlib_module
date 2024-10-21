@@ -59,6 +59,40 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 		"user_management.v_menu_item", `composite_nameid`, `id`)
 }
 
+func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64, err error) {
+	_, privilege, err := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
+	if err != nil {
+		return 0, err
+	}
+	privilegeId := privilege[`id`].(int64)
+	id, err = um.RolePrivilege.TxInsert(dtx, utils.JSON{
+		`role_id`:      roleId,
+		`privilege_id`: privilegeId,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64) {
+	_, privilege, err := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
+	if err != nil {
+		dtx.Log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.Privilege.TxShouldGetByNameId`, err)
+		return 0
+	}
+	privilegeId := privilege[`id`].(int64)
+	id, err = um.RolePrivilege.TxInsert(dtx, utils.JSON{
+		`role_id`:      roleId,
+		`privilege_id`: privilegeId,
+	})
+	if err != nil {
+		dtx.Log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.TxInsert`, err)
+		return 0
+	}
+	return id
+}
+
 var ModuleUserManagement DxmUserManagement
 
 func init() {
