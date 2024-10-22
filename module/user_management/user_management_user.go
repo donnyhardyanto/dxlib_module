@@ -17,8 +17,10 @@ import (
 	"github.com/donnyhardyanto/dxlib_module/module/general"
 	"github.com/teris-io/shortid"
 	"gopkg.in/gomail.v2"
+	"math/rand"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -368,6 +370,69 @@ func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString 
 	}
 
 	return lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, nil
+}
+
+func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
+	_, user, err := um.User.SelectOne(&aepr.Log, utils.JSON{
+		`user_id`: userId,
+	}, map[string]string{"id": "DESC"})
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("USER_NOT_FOUND")
+	}
+
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	rand.Seed(time.Now().UnixNano())
+	b := make([]byte, 10)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	userPasswordNew := string(b)
+
+	err = um.UserPasswordCreate(userId, userPasswordNew)
+	if err != nil {
+		return err
+	}
+	aepr.Log.Infof("User password changed")
+
+	go func() {
+		templateEmailResetPassword, err := general.ModuleGeneral.PropertyGetAsString(&aepr.Log, `EMAIL-TEMPLATE-RESET-PASSWORD`)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		propertyConfigSmtp, err := general.ModuleGeneral.PropertyGetAsString(&aepr.Log, `SMTP-CONFIG`)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		var smtpConfig map[string]any
+		err = json.Unmarshal([]byte(propertyConfigSmtp), &smtpConfig)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		err = SendEmail(
+			"Informasi Akun di Reset Password",
+			user[`fullname`].(string),
+			user[`loginId`].(string),
+			userPasswordNew,
+			templateEmailResetPassword,
+			smtpConfig,
+			user[`email`].(string),
+		)
+		if err != nil {
+			return
+		}
+	}()
+
+	return nil
 }
 
 func SendEmail(subject, name, username, password, textBody string, smtpConfig map[string]any, emails ...string) error {
