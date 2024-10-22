@@ -95,7 +95,7 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 	}
 
 	for i, row := range list {
-		userId := row["user_id"].(int64)
+		userId := row["id"].(int64)
 		_, userOrganizationMemberships, err := um.UserOrganizationMembership.Select(&aepr.Log, nil, utils.JSON{
 			"user_id": userId,
 		}, nil, nil)
