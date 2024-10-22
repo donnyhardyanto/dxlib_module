@@ -103,6 +103,13 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 			return err
 		}
 		list[i]["organizations"] = userOrganizationMemberships
+		_, userRoleMemberships, err := um.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
+			"user_id": userId,
+		}, nil, nil)
+		if err != nil {
+			return err
+		}
+		list[i]["roles"] = userRoleMemberships
 	}
 
 	data := utils.JSON{
