@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/database/protected/db"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/datablock"
@@ -24,7 +25,97 @@ import (
 )
 
 func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.User.List(aepr)
+	isExistFilterWhere, filterWhere, err := aepr.GetParameterValueAsString("filter_where")
+	if err != nil {
+		return err
+	}
+	if !isExistFilterWhere {
+		filterWhere = ""
+	}
+	isExistFilterOrderBy, filterOrderBy, err := aepr.GetParameterValueAsString("filter_order_by")
+	if err != nil {
+		return err
+	}
+	if !isExistFilterOrderBy {
+		filterOrderBy = ""
+	}
+
+	isExistFilterKeyValues, filterKeyValues, err := aepr.GetParameterValueAsJSON("filter_key_values")
+	if err != nil {
+		return err
+	}
+	if !isExistFilterKeyValues {
+		filterKeyValues = nil
+	}
+
+	_, rowPerPage, err := aepr.GetParameterValueAsInt64("row_per_page")
+	if err != nil {
+		return err
+	}
+
+	_, pageIndex, err := aepr.GetParameterValueAsInt64("page_index")
+	if err != nil {
+		return err
+	}
+
+	_, isDeletedIncluded, err := aepr.GetParameterValueAsBool("is_deleted", false)
+	if err != nil {
+		return err
+	}
+
+	t := um.User
+	if !isDeletedIncluded {
+		if filterWhere != "" {
+			filterWhere = fmt.Sprintf("(%s) and ", filterWhere)
+		}
+
+		switch t.Database.DatabaseType.String() {
+		case "sqlserver":
+			filterWhere = filterWhere + "(is_deleted=0)"
+		case "postgres":
+			filterWhere = filterWhere + "(is_deleted=false)"
+		default:
+			filterWhere = filterWhere + "(is_deleted=0)"
+		}
+	}
+
+	if !t.Database.Connected {
+		err := t.Database.Connect()
+		if err != nil {
+			aepr.Log.Errorf("error at reconnect db at table %s list (%s) ", t.NameId, err.Error())
+			return err
+		}
+	}
+
+	rowsInfo, list, totalRows, totalPage, _, err := db.NamedQueryPaging(t.Database.Connection, "", rowPerPage, pageIndex, "*", t.ListViewNameId,
+		filterWhere, "", filterOrderBy, filterKeyValues)
+	if err != nil {
+		aepr.Log.Errorf("Error at paging table %s (%s) ", t.NameId, err.Error())
+		return err
+	}
+
+	for i, row := range list {
+		userId := row["user_id"].(int64)
+		_, userOrganizationMemberships, err := um.UserOrganizationMembership.Select(&aepr.Log, nil, utils.JSON{
+			"user_id": userId,
+		}, nil, nil)
+		if err != nil {
+			return err
+		}
+		list[i]["organizations"] = userOrganizationMemberships
+	}
+
+	data := utils.JSON{
+		"list": utils.JSON{
+			"rows":       list,
+			"total_rows": totalRows,
+			"total_page": totalPage,
+			"rows_info":  rowsInfo,
+		},
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, data)
+	return nil
 }
 
 func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -443,7 +534,10 @@ func SendEmail(subject, name, username, password, textBody string, smtpConfig ma
 	smtpServer := smtpConfig["smtp_server"].(string)
 	smtpUsername := smtpConfig["smtp_username"].(string)
 	smtpPassword := smtpConfig["smtp_password"].(string)
-	smtpPort := smtpConfig["smtp_username"].(int)
+	smtpPort, ok := smtpConfig["smtp_port"].(int)
+	if !ok {
+		return errors.New("SMTP_PORT_NOT_FOUND_IN_CONFIG")
+	}
 	smtpSenderEmail := smtpConfig["smtp_sender_email"].(string)
 	d := gomail.NewDialer(smtpServer, smtpPort, smtpUsername, smtpPassword)
 	s, err := d.Dial()
