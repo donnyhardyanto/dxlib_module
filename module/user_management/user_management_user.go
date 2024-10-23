@@ -133,7 +133,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 
 	_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
 	if err != nil {
-		return err
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND")
 	}
 
 	roleId, ok := aepr.ParameterValues["role_id"].Value.(int64)
@@ -143,7 +143,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 
 	_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
 	if err != nil {
-		return err
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND")
 	}
 
 	attribute, ok := aepr.ParameterValues[`attribute`].Value.(string)

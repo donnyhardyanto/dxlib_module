@@ -517,6 +517,51 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	return nil
 }
 
+func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
+	authHeader := aepr.Request.Header.Get("Authorization")
+	if authHeader == "" {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `AUTHORIZATION_HEADER_NOT_FOUND`)
+	}
+
+	const bearerSchema = "Bearer "
+	if !strings.HasPrefix(authHeader, bearerSchema) {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_AUTHORIZATION_HEADER`)
+	}
+
+	sessionKey := authHeader[len(bearerSchema):]
+
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
+	if err != nil {
+		return err
+	}
+	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
+
+	sessionObject, err := user_management.ModuleUserManagement.SessionRedis.GetEx(sessionKey, sessionKeyTTLAsDuration)
+	if err != nil {
+		return err
+	}
+	if sessionObject == nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `SESSION_NOT_FOUND`)
+	}
+	userId := utilsJSON.MustGetInt64(sessionObject, `user_id`)
+	user := sessionObject[`user`].(utils.JSON)
+
+	if user == nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `USER_NOT_FOUND`)
+	}
+
+	aepr.LocalData[`session_object`] = sessionObject
+	aepr.LocalData[`session_key`] = sessionKey
+	aepr.LocalData[`user_id`] = userId
+	aepr.LocalData[`user`] = user
+	aepr.CurrentUser.Id = utils.Int64ToString(userId)
+	aepr.CurrentUser.Name, err = utilsJSON.GetString(user, `fullname`)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *DxmSelf) SelfLogout(aepr *api.DXAPIEndPointRequest) (err error) {
 	sessionKey, ok := aepr.LocalData[`session_key`].(string)
 	if !ok {

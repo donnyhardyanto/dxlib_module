@@ -88,14 +88,6 @@ func (f *FirebaseCloudMessaging) UserTokenList(aepr *api.DXAPIEndPointRequest) (
 	return f.FCMUserToken.List(aepr)
 }
 
-/*func (f *FirebaseCloudMessaging) UserTokenCreate(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, err = f.FCMUserToken.DoCreate(aepr, map[string]interface{}{
-		`fcm_token`: aepr.ParameterValues[`fcm_token`].Value.(string),
-		`user_id`:   aepr.ParameterValues[`user_id`].Value.(string),
-	})
-	return err
-}*/
-
 func (f *FirebaseCloudMessaging) UserTokenRead(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMUserToken.Read(aepr)
 }
@@ -107,17 +99,6 @@ func (f *FirebaseCloudMessaging) UserTokenHardDelete(aepr *api.DXAPIEndPointRequ
 func (f *FirebaseCloudMessaging) MessageList(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMMessage.List(aepr)
 }
-
-/*func (f *FirebaseCloudMessaging) MessageCreate(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, err = f.FCMMessage.DoCreate(aepr, map[string]interface{}{
-		`application_id`: aepr.ParameterValues[`application_id`].Value.(string),
-		`user_id`:        aepr.ParameterValues[`user_id`].Value.(string),
-		`title`:          aepr.ParameterValues[`title`].Value.(string),
-		`body`:           aepr.ParameterValues[`body`].Value.(string),
-		`data`:           aepr.ParameterValues[`data`].Value.(utils.JSON),
-	})
-	return err
-}*/
 
 func (f *FirebaseCloudMessaging) MessageRead(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMMessage.Read(aepr)
