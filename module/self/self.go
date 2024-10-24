@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -517,6 +518,15 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	return nil
 }
 
+func hasCommonString(arr1, arr2 []string) bool {
+	for _, str := range arr1 {
+		if slices.Contains(arr2, str) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
 	authHeader := aepr.Request.Header.Get("Authorization")
 	if authHeader == "" {
@@ -556,8 +566,15 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 	aepr.LocalData[`user`] = user
 	aepr.CurrentUser.Id = utils.Int64ToString(userId)
 	aepr.CurrentUser.Name, err = utilsJSON.GetString(user, `fullname`)
-	if err != nil {
-		return err
+	allowed := false
+	userEffectivePrivilegeIds := sessionObject[`user_effective_privilege_ids`].(map[string]int64)
+	for k, _ := range userEffectivePrivilegeIds {
+		if slices.Contains(aepr.EndPoint.Privileges, k) {
+			allowed = true
+		}
+	}
+	if !allowed {
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, `USER_ROLE_PRIVILEGE_FORBIDDEN`)
 	}
 	return nil
 }
