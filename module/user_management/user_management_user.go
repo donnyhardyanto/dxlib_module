@@ -171,6 +171,20 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 
 	loginId := aepr.ParameterValues["loginid"].Value.(string)
 
+	p := utils.JSON{
+		`loginid`:     loginId,
+		`email`:       aepr.ParameterValues[`email`].Value.(string),
+		`fullname`:    aepr.ParameterValues[`fullname`].Value.(string),
+		`phonenumber`: aepr.ParameterValues[`phonenumber`].Value.(string),
+		`status`:      aepr.ParameterValues[`status`].Value.(string),
+		`attribute`:   attribute,
+	}
+
+	data_id_number, ok := aepr.ParameterValues[`data_id_number`].Value.(string)
+	if !ok {
+		data_id_number = ""
+	}
+
 	var userId int64
 	err = um.User.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, utils.JSON{
@@ -182,21 +196,15 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		if user != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS:%v", loginId)
 		}
-		userId, err2 = um.User.TxInsert(tx, map[string]any{
-			`loginid`:     loginId,
-			`email`:       aepr.ParameterValues[`email`].Value.(string),
-			`fullname`:    aepr.ParameterValues[`fullname`].Value.(string),
-			`phonenumber`: aepr.ParameterValues[`phonenumber`].Value.(string),
-			`status`:      aepr.ParameterValues[`status`].Value.(string),
-			`attribute`:   attribute,
-		})
+		userId, err2 = um.User.TxInsert(tx, p)
 		if err2 != nil {
 			return err2
 		}
 
 		_, err2 = um.UserOrganizationMembership.TxInsert(tx, map[string]any{
-			"user_id":         userId,
-			"organization_id": organizationId,
+			"user_id":           userId,
+			"organization_id":   organizationId,
+			"membership_number": data_id_number,
 		})
 		if err2 != nil {
 			return err2
