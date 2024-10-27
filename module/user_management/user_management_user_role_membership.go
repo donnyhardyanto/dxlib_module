@@ -23,8 +23,8 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 
 	var userRoleMembershipId int64
 	userRoleMembershipId, err = um.UserRoleMembership.TxInsert(dtx, map[string]any{
-		`user_id`: aepr.ParameterValues[`user_id`].Value.(string),
-		`role_id`: aepr.ParameterValues[`role_id`].Value.(string),
+		`user_id`: aepr.ParameterValues[`user_id`].Value.(int64),
+		`role_id`: aepr.ParameterValues[`role_id`].Value.(int64),
 	})
 	if err != nil {
 		return err

@@ -130,7 +130,6 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	if !ok {
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING")
 	}
-
 	_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
 	if err != nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND")
@@ -140,15 +139,9 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	if !ok {
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_ID_MISSING")
 	}
-
 	_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
 	if err != nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND")
-	}
-
-	attribute, ok := aepr.ParameterValues[`attribute`].Value.(string)
-	if !ok {
-		attribute = ""
 	}
 
 	passwordI, ok := aepr.ParameterValues["password_i"].Value.(string)
@@ -169,20 +162,49 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	lvPayloadPassword := lvPayloadElements[0]
 	userPassword := string(lvPayloadPassword.Value)
 
+	attribute, ok := aepr.ParameterValues[`attribute`].Value.(string)
+	if !ok {
+		attribute = ""
+	}
+
 	loginId := aepr.ParameterValues["loginid"].Value.(string)
+	email := aepr.ParameterValues["email"].Value.(string)
+	fullname := aepr.ParameterValues["fullname"].Value.(string)
+	phonenumber := aepr.ParameterValues["phonenumber"].Value.(string)
+	status := UserStatusActive
 
 	p := utils.JSON{
 		`loginid`:     loginId,
-		`email`:       aepr.ParameterValues[`email`].Value.(string),
-		`fullname`:    aepr.ParameterValues[`fullname`].Value.(string),
-		`phonenumber`: aepr.ParameterValues[`phonenumber`].Value.(string),
-		`status`:      aepr.ParameterValues[`status`].Value.(string),
+		`email`:       email,
+		`fullname`:    fullname,
+		`phonenumber`: phonenumber,
+		`status`:      status,
 		`attribute`:   attribute,
 	}
 
-	membership_number, ok := aepr.ParameterValues[`membership_number`].Value.(string)
+	identityNumber, ok := aepr.ParameterValues[`identity_number`].Value.(string)
+	if ok {
+		p[`identity_number`] = identityNumber
+	}
+
+	identityType, ok := aepr.ParameterValues[`identity_type`].Value.(string)
+	if ok {
+		p[`identity_type`] = identityType
+	}
+
+	gender, ok := aepr.ParameterValues[`gender`].Value.(string)
+	if ok {
+		p[`gender`] = gender
+	}
+
+	addressOnIdentityCard, ok := aepr.ParameterValues[`gender`].Value.(string)
+	if ok {
+		p[`address_on_identity_card`] = addressOnIdentityCard
+	}
+
+	membershipNumber, ok := aepr.ParameterValues[`membership_number`].Value.(string)
 	if !ok {
-		membership_number = ""
+		membershipNumber = ""
 	}
 
 	var userId int64
@@ -204,7 +226,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		_, err2 = um.UserOrganizationMembership.TxInsert(tx, map[string]any{
 			"user_id":           userId,
 			"organization_id":   organizationId,
-			"membership_number": membership_number,
+			"membership_number": membershipNumber,
 		})
 		if err2 != nil {
 			return err2
@@ -279,7 +301,51 @@ func (um *DxmUserManagement) UserRead(aepr *api.DXAPIEndPointRequest) (err error
 }
 
 func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.User.Edit(aepr)
+	t := um.User
+	_, id, err := aepr.GetParameterValueAsInt64(t.FieldNameForRowId)
+	if err != nil {
+		return err
+	}
+
+	_, newKeyValues, err := aepr.GetParameterValueAsJSON("new")
+	if err != nil {
+		return err
+	}
+
+	p1 := utils.JSON{}
+	membershipNumber, ok := newKeyValues["membership_number"].(string)
+	if ok {
+		p1["membership_number"] = membershipNumber
+		delete(newKeyValues, "membership_number")
+	}
+
+	err = t.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *database.DXDatabaseTx) (err2 error) {
+		_, err2 = um.User.TxUpdate(dtx, newKeyValues, utils.JSON{
+			t.FieldNameForRowId: id,
+		})
+		if err2 != nil {
+			return err2
+		}
+		if len(p1) > 0 {
+			_, err2 = um.UserOrganizationMembership.TxUpdate(dtx, p1, utils.JSON{
+				"user_id": id,
+			})
+			if err2 != nil {
+				return err2
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		t.FieldNameForRowId: id,
+	})
+
+	return nil
+
 }
 
 func (um *DxmUserManagement) UserDelete(aepr *api.DXAPIEndPointRequest) (err error) {

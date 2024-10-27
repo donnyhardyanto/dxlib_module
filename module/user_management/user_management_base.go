@@ -9,6 +9,11 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
+const (
+	UserStatusActive = "ACTIVE"
+	UserStatusLocked = "LOCKED"
+)
+
 type DxmUserManagement struct {
 	dxlibModule.DXModule
 	SessionRedis                         *redis.DXRedis
