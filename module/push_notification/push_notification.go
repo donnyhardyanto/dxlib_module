@@ -47,7 +47,7 @@ type WhatappMessaging struct {
 	DatabaseNameId string
 }
 
-func (f *FirebaseCloudMessaging) DefineTables(databaseNameId string) {
+func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.DatabaseNameId = databaseNameId
 	f.FCMApplication = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_application",
 		"push_notification.fcm_application",

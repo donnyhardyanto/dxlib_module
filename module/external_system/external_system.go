@@ -9,7 +9,7 @@ type DxmExternalSystem struct {
 	ExternalSystem *table.DXTable
 }
 
-func (w *DxmExternalSystem) DefineTables(databaseNameId string) {
+func (w *DxmExternalSystem) Init(databaseNameId string) {
 	w.ExternalSystem = table.Manager.NewTable(databaseNameId, "configuration.external_system",
 		"configuration.external_system",
 		"configuration.external_system", `nameid`, `id`)

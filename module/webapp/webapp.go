@@ -12,7 +12,7 @@ type DxmWebapp struct {
 	Page *table.DXTable
 }
 
-func (w *DxmWebapp) DefineTables(databaseNameId string) {
+func (w *DxmWebapp) Init(databaseNameId string) {
 	w.App = table.Manager.NewTable(databaseNameId, "webapp.app",
 		"webapp.app",
 		"webapp.app", `nameid`, `id`)
