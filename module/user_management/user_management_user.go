@@ -319,12 +319,20 @@ func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error
 		delete(newKeyValues, "membership_number")
 	}
 
+	for k, v := range newKeyValues {
+		if v == nil {
+			delete(newKeyValues, k)
+		}
+	}
+
 	err = t.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *database.DXDatabaseTx) (err2 error) {
-		_, err2 = um.User.TxUpdate(dtx, newKeyValues, utils.JSON{
-			t.FieldNameForRowId: id,
-		})
-		if err2 != nil {
-			return err2
+		if len(newKeyValues) > 0 {
+			_, err2 = um.User.TxUpdate(dtx, newKeyValues, utils.JSON{
+				t.FieldNameForRowId: id,
+			})
+			if err2 != nil {
+				return err2
+			}
 		}
 		if len(p1) > 0 {
 			_, err2 = um.UserOrganizationMembership.TxUpdate(dtx, p1, utils.JSON{
