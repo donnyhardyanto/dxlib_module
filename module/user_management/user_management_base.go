@@ -37,7 +37,7 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.DatabaseNameId = databaseNameId
 	um.User = table.Manager.NewTable(databaseNameId, "user_management.user",
 		"user_management.user",
-		"user_management.user", `loginid`, `id`)
+		"user_management.v_user", `loginid`, `id`)
 	um.UserPassword = table.Manager.NewTable(databaseNameId, "user_management.user_password",
 		"user_management.user_password",
 		"user_management.user_password", `id`, `id`)
