@@ -180,9 +180,9 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		`attribute`:   attribute,
 	}
 
-	data_id_number, ok := aepr.ParameterValues[`data_id_number`].Value.(string)
+	membership_number, ok := aepr.ParameterValues[`membership_number`].Value.(string)
 	if !ok {
-		data_id_number = ""
+		membership_number = ""
 	}
 
 	var userId int64
@@ -204,7 +204,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		_, err2 = um.UserOrganizationMembership.TxInsert(tx, map[string]any{
 			"user_id":           userId,
 			"organization_id":   organizationId,
-			"membership_number": data_id_number,
+			"membership_number": membership_number,
 		})
 		if err2 != nil {
 			return err2
