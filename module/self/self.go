@@ -468,8 +468,22 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
+	sessionObject := aepr.LocalData[`session_object`].(utils.JSON)
+	user_id := aepr.LocalData["user_id"].(int64)
+
+	_, user, err := user_management.ModuleUserManagement.User.ShouldGetById(&aepr.Log, user_id)
+	if err != nil {
+		return err
+	}
+	if s.OnCreateSessionObject != nil {
+		sessionObject, err = s.OnCreateSessionObject(aepr, user, sessionObject)
+		if err != nil {
+			return err
+		}
+	}
+
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
-		"session_object": aepr.LocalData[`session_object`],
+		"session_object": sessionObject,
 	})
 	return err
 }

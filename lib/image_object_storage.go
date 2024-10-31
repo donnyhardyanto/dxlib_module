@@ -110,15 +110,17 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		// Encode the resized image
 		var resizedBuf bytes.Buffer
 
-		switch formatName {
-		case "png":
-			err = png.Encode(&resizedBuf, resizedImg)
-			if err != nil {
-				return fmt.Errorf("RESIZED_IMAGE_PNG_ENCODE_FAILED:(%dx%d) %v", processedImage.Width, processedImage.Height, err.Error())
-			}
-		default:
-			return fmt.Errorf("IMAGE_FORMAT_NOT_SUPPORTED:'%s'", formatName)
+		/*switch formatName {
+		case "jpeg":
+
+		case "png":*/
+		err = png.Encode(&resizedBuf, resizedImg)
+		if err != nil {
+			return fmt.Errorf("RESIZED_IMAGE_PNG_ENCODE_FAILED:(%dx%d) %v", processedImage.Width, processedImage.Height, err.Error())
 		}
+		/*default:
+			return fmt.Errorf("IMAGE_FORMAT_NOT_SUPPORTED:'%s'", formatName)
+		}*/
 		// Upload the resized image
 		uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(resizedBuf.Bytes()), filename, filename, "image/"+formatName)
 		if err != nil {
