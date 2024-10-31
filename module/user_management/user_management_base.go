@@ -46,7 +46,7 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 		"user_management.role", `nameid`, `id`)
 	um.Organization = table.Manager.NewTable(databaseNameId, "user_management.organization",
 		"user_management.organization",
-		"user_management.organization", `name`, `id`)
+		"user_management.organization", `code`, `id`)
 	um.UserOrganizationMembership = table.Manager.NewTable(databaseNameId, "user_management.user_organization_membership",
 		"user_management.user_organization_membership",
 		"user_management.v_user_organization_membership", `id`, `id`)

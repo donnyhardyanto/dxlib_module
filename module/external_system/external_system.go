@@ -3,6 +3,8 @@ package external_system
 import (
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/donnyhardyanto/dxlib/utils"
+	"net/http"
 )
 
 type DxmExternalSystem struct {
@@ -19,10 +21,18 @@ func (w *DxmExternalSystem) ExternalSystemList(aepr *api.DXAPIEndPointRequest) (
 }
 
 func (w *DxmExternalSystem) ExternalSystemCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+	configuration, ok := aepr.ParameterValues[`configuration`].Value.(utils.JSON)
+	if !ok {
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "CONFIGURATION_IS_NOT_JSON")
+	}
+	configurationAsString, err := utils.JSONToString(configuration)
+	if err != nil {
+		return err
+	}
 	_, err = w.ExternalSystem.DoCreate(aepr, map[string]any{
 		`nameid`:        aepr.ParameterValues[`nameid`].Value.(string),
 		`type`:          aepr.ParameterValues[`type`].Value.(string),
-		`configuration`: aepr.ParameterValues[`configuration`].Value.(string),
+		`configuration`: configurationAsString,
 	})
 	return err
 }
