@@ -27,6 +27,16 @@ func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) 
 		return err
 	}
 
+	_, _, err = aepr.AssignParameterNullableString(&o, `email`)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = aepr.AssignParameterNullableString(&o, `phoneumber`)
+	if err != nil {
+		return err
+	}
+
 	_, _, err = aepr.AssignParameterNullableString(&o, `attribute1`)
 	if err != nil {
 		return err
