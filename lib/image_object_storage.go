@@ -7,6 +7,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/object_storage"
 	"golang.org/x/image/draw"
 	"image"
+	_ "image/jpeg"
 	"image/png"
 	"io"
 	"net/http"
