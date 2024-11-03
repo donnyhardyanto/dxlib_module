@@ -4,7 +4,7 @@ go 1.23.2
 
 require (
 	firebase.google.com/go/v4 v4.15.0
-	github.com/donnyhardyanto/dxlib v1.24.0
+	github.com/donnyhardyanto/dxlib v1.26.0
 	github.com/google/uuid v1.6.0
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 	golang.org/x/crypto v0.28.0
