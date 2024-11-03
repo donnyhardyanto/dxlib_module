@@ -55,7 +55,7 @@ func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (
 		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: value is not a number: %v", jsonValue[aType])
 	}
 
-	return string(vv), nil
+	return vv, nil
 }
 
 func (g *DxmGeneral) PropertyTxSetAsString(dtx *database.DXDatabaseTx, propertyId string, value string) (err error) {

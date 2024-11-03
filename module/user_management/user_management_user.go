@@ -552,6 +552,16 @@ func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString 
 	return lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, nil
 }
 
+func generateRandomString(n int) string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[r.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
 func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 	_, user, err := um.User.SelectOne(&aepr.Log, utils.JSON{
@@ -564,13 +574,7 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 		return errors.New("USER_NOT_FOUND")
 	}
 
-	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	rand.Seed(time.Now().UnixNano())
-	b := make([]byte, 10)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	userPasswordNew := string(b)
+	userPasswordNew := generateRandomString(10)
 
 	err = um.UserPasswordCreate(userId, userPasswordNew)
 	if err != nil {

@@ -469,9 +469,9 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 
 func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	sessionObject := aepr.LocalData[`session_object`].(utils.JSON)
-	user_id := aepr.LocalData["user_id"].(int64)
+	userId := aepr.LocalData["user_id"].(int64)
 
-	_, user, err := user_management.ModuleUserManagement.User.ShouldGetById(&aepr.Log, user_id)
+	_, user, err := user_management.ModuleUserManagement.User.ShouldGetById(&aepr.Log, userId)
 	if err != nil {
 		return err
 	}
@@ -582,7 +582,7 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 	aepr.CurrentUser.Name, err = utilsJSON.GetString(user, `fullname`)
 	allowed := false
 	userEffectivePrivilegeIds := sessionObject[`user_effective_privilege_ids`].(map[string]int64)
-	for k, _ := range userEffectivePrivilegeIds {
+	for k := range userEffectivePrivilegeIds {
 		if slices.Contains(aepr.EndPoint.Privileges, k) {
 			allowed = true
 		}
