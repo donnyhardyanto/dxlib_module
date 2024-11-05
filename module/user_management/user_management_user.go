@@ -565,8 +565,8 @@ func generateRandomString(n int) string {
 func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 	_, user, err := um.User.SelectOne(&aepr.Log, utils.JSON{
-		`user_id`: userId,
-	}, map[string]string{"id": "DESC"})
+		`id`: userId,
+	}, nil)
 	if err != nil {
 		return err
 	}
@@ -605,13 +605,14 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 		err = SendEmail(
 			"Informasi Akun di Reset Password",
 			user[`fullname`].(string),
-			user[`loginId`].(string),
+			user[`loginid`].(string),
 			userPasswordNew,
 			templateEmailResetPassword,
 			smtpConfig,
 			user[`email`].(string),
 		)
 		if err != nil {
+			aepr.Log.Errorf("SEND_MAIL_ERROR:%s", err.Error())
 			return
 		}
 	}()
