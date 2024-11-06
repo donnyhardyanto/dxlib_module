@@ -489,6 +489,8 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err error) {
+	aepr.Log.Debugf("Middleware: %s", aepr.EndPoint.Uri)
+
 	authHeader := aepr.Request.Header.Get("Authorization")
 	if authHeader == "" {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `AUTHORIZATION_HEADER_NOT_FOUND`)
