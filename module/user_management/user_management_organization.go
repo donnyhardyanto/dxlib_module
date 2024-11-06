@@ -32,7 +32,7 @@ func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) 
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `phoneumber`)
+	_, _, err = aepr.AssignParameterNullableString(&o, `phonenumber`)
 	if err != nil {
 		return err
 	}

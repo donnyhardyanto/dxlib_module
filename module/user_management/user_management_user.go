@@ -628,12 +628,14 @@ func SendEmail(subject, name, username, password, textBody string, smtpConfig ma
 	smtpServer := smtpConfig["smtp_server"].(string)
 	smtpUsername := smtpConfig["smtp_username"].(string)
 	smtpPassword := smtpConfig["smtp_password"].(string)
-	smtpPort, ok := smtpConfig["smtp_port"].(int)
+	smtpPortAsFloat, ok := smtpConfig["smtp_port"].(float64)
 	if !ok {
 		return errors.New("SMTP_PORT_NOT_FOUND_IN_CONFIG")
 	}
+	smtpPort := int(smtpPortAsFloat)
 	smtpSenderEmail := smtpConfig["smtp_sender_email"].(string)
 	d := gomail.NewDialer(smtpServer, smtpPort, smtpUsername, smtpPassword)
+	d.SSL = true
 	s, err := d.Dial()
 	if err != nil {
 		fmt.Println("email sender error : ", err)
