@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/database/protected/db"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
@@ -269,6 +270,11 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		err = json.Unmarshal([]byte(propertyConfigSmtp), &smtpConfig)
 		if err != nil {
 			fmt.Println("Error:", err)
+			return
+		}
+
+		isNoSendEmail, ok := app.App.LocalData["user-create-no-send-email"].(bool)
+		if ok && isNoSendEmail {
 			return
 		}
 
