@@ -489,7 +489,8 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err error) {
-	aepr.Log.Debugf("Middleware: %s", aepr.EndPoint.Uri)
+	aepr.Log.Debugf("Middleware Start: %s", aepr.EndPoint.Uri)
+	defer aepr.Log.Debugf("Middleware Done: %s", aepr.EndPoint.Uri)
 
 	authHeader := aepr.Request.Header.Get("Authorization")
 	if authHeader == "" {
