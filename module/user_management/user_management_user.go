@@ -233,9 +233,10 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			return err2
 		}
 
-		_, err2 = um.UserRoleMembership.TxInsert(tx, map[string]any{
-			"user_id": userId,
-			"role_id": roleId,
+		userRoleMembershipId, err2 := um.UserRoleMembership.TxInsert(tx, map[string]any{
+			"user_id":         userId,
+			"organization_id": organizationId,
+			"role_id":         roleId,
 		})
 		if err2 != nil {
 			return err2
@@ -246,6 +247,19 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			return err2
 		}
 
+		if um.OnUserAfterCreate != nil {
+			err2 = um.OnUserAfterCreate(aepr, tx, user)
+		}
+
+		_, userRoleMembership, err := um.UserRoleMembership.TxSelectOne(tx, utils.JSON{
+			`id`: userRoleMembershipId,
+		}, nil)
+		if err != nil {
+			return err
+		}
+		if um.OnUserRoleMembershipAfterCreate != nil {
+			err2 = um.OnUserRoleMembershipAfterCreate(aepr, tx, userRoleMembership, organizationId)
+		}
 		return nil
 	})
 
@@ -303,7 +317,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 }
 
 func (um *DxmUserManagement) UserRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.User.Read(aepr)
+	return um.User.RequestRead(aepr)
 }
 
 func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -363,7 +377,7 @@ func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error
 }
 
 func (um *DxmUserManagement) UserDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.User.SoftDelete(aepr)
+	return um.User.RequestSoftDelete(aepr)
 }
 
 func (um *DxmUserManagement) UserPasswordCreate(userId int64, password string) (err error) {

@@ -5,7 +5,7 @@ import (
 )
 
 func (um *DxmUserManagement) RoleList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.List(aepr)
+	return um.Role.RequestPagingList(aepr)
 }
 
 func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -18,17 +18,17 @@ func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err err
 }
 
 func (um *DxmUserManagement) RoleRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.Read(aepr)
+	return um.Role.RequestRead(aepr)
 }
 
 func (um *DxmUserManagement) RoleReadByNameId(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.ReadByNameId(aepr)
+	return um.Role.RequestReadByNameId(aepr)
 }
 
 func (um *DxmUserManagement) RoleEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.Edit(aepr)
+	return um.Role.RequestEdit(aepr)
 }
 
 func (um *DxmUserManagement) RoleDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.SoftDelete(aepr)
+	return um.Role.RequestSoftDelete(aepr)
 }

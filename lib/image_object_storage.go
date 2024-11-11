@@ -68,7 +68,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 	if bs == nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `FAILED_TO_GET_BODY_STREAM:%s`, ios.ObjectStorageSourceNameId)
 	}
-	// Read the entire request body into a buffer
+	// RequestRead the entire request body into a buffer
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, bs)
 	if err != nil {

@@ -9,10 +9,30 @@ import (
 )
 
 func (um *DxmUserManagement) UserRoleMembershipList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.UserRoleMembership.List(aepr)
+	return um.UserRoleMembership.RequestPagingList(aepr)
 }
 
 func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, userId, err := aepr.GetParameterValueAsInt64(`user_id`)
+	if err != nil {
+		return err
+	}
+	_, roleId, err := aepr.GetParameterValueAsInt64(`role_id`)
+	if err != nil {
+		return err
+	}
+	_, organizationId, err := aepr.GetParameterValueAsInt64(`organization_id`)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = um.OrganizationRoles.ShouldSelectOne(&aepr.Log, utils.JSON{
+		`organization_id`: organizationId,
+		`role_id`:         roleId,
+	}, nil)
+	if err != nil {
+		return err
+	}
 
 	dbTaskDispatcher := database.Manager.Databases[um.DatabaseNameId]
 	dtx, err := dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
@@ -23,8 +43,9 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 
 	var userRoleMembershipId int64
 	userRoleMembershipId, err = um.UserRoleMembership.TxInsert(dtx, map[string]any{
-		`user_id`: aepr.ParameterValues[`user_id`].Value.(int64),
-		`role_id`: aepr.ParameterValues[`role_id`].Value.(int64),
+		`user_id`:         userId,
+		`organization_id`: organizationId,
+		`role_id`:         roleId,
 	})
 	if err != nil {
 		return err
@@ -37,7 +58,7 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 	}
 
 	if um.OnUserRoleMembershipAfterCreate != nil {
-		err = um.OnUserRoleMembershipAfterCreate(aepr, dtx, userRoleMembership)
+		err = um.OnUserRoleMembershipAfterCreate(aepr, dtx, userRoleMembership, 0)
 		if err != nil {
 			return err
 		}

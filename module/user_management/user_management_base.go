@@ -22,13 +22,15 @@ type DxmUserManagement struct {
 	UserPassword                         *table.DXTable
 	Role                                 *table.DXTable
 	Organization                         *table.DXTable
+	OrganizationRoles                    *table.DXTable
 	UserOrganizationMembership           *table.DXTable
 	Privilege                            *table.DXTable
 	RolePrivilege                        *table.DXTable
 	UserRoleMembership                   *table.DXTable
 	MenuItem                             *table.DXTable
 	DatabaseNameId                       string
-	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
+	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, user utils.JSON) (err error)
+	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON, organizationId int64) (err error)
 	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
 	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
 }
@@ -47,6 +49,9 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.Organization = table.Manager.NewTable(databaseNameId, "user_management.organization",
 		"user_management.organization",
 		"user_management.organization", `code`, `id`)
+	um.OrganizationRoles = table.Manager.NewTable(databaseNameId, "user_management.organization_roles",
+		"user_management.organization_roles",
+		"user_management.organization_roles", `id`, `id`)
 	um.UserOrganizationMembership = table.Manager.NewTable(databaseNameId, "user_management.user_organization_membership",
 		"user_management.user_organization_membership",
 		"user_management.v_user_organization_membership", `id`, `id`)

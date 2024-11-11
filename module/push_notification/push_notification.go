@@ -61,7 +61,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 }
 
 func (f *FirebaseCloudMessaging) ApplicationList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMApplication.List(aepr)
+	return f.FCMApplication.RequestPagingList(aepr)
 }
 
 func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -73,39 +73,39 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 }
 
 func (f *FirebaseCloudMessaging) ApplicationRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMApplication.Read(aepr)
+	return f.FCMApplication.RequestRead(aepr)
 }
 
 func (f *FirebaseCloudMessaging) ApplicationEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMApplication.Edit(aepr)
+	return f.FCMApplication.RequestEdit(aepr)
 }
 
 func (f *FirebaseCloudMessaging) ApplicationDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMApplication.SoftDelete(aepr)
+	return f.FCMApplication.RequestSoftDelete(aepr)
 }
 
 func (f *FirebaseCloudMessaging) UserTokenList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMUserToken.List(aepr)
+	return f.FCMUserToken.RequestPagingList(aepr)
 }
 
 func (f *FirebaseCloudMessaging) UserTokenRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMUserToken.Read(aepr)
+	return f.FCMUserToken.RequestRead(aepr)
 }
 
 func (f *FirebaseCloudMessaging) UserTokenHardDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMUserToken.HardDelete(aepr)
+	return f.FCMUserToken.RequestHardDelete(aepr)
 }
 
 func (f *FirebaseCloudMessaging) MessageList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMMessage.List(aepr)
+	return f.FCMMessage.RequestPagingList(aepr)
 }
 
 func (f *FirebaseCloudMessaging) MessageRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMMessage.Read(aepr)
+	return f.FCMMessage.RequestRead(aepr)
 }
 
 func (f *FirebaseCloudMessaging) MessageHardDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMMessage.HardDelete(aepr)
+	return f.FCMMessage.RequestHardDelete(aepr)
 }
 
 func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, userId int64, token string) (err error) {

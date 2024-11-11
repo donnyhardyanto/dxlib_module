@@ -3,7 +3,7 @@ package user_management
 import "github.com/donnyhardyanto/dxlib/api"
 
 func (um *DxmUserManagement) PrivilegeList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Privilege.List(aepr)
+	return um.Privilege.RequestPagingList(aepr)
 }
 
 func (um *DxmUserManagement) PrivilegeCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -16,13 +16,13 @@ func (um *DxmUserManagement) PrivilegeCreate(aepr *api.DXAPIEndPointRequest) (er
 }
 
 func (um *DxmUserManagement) PrivilegeRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Privilege.Read(aepr)
+	return um.Privilege.RequestRead(aepr)
 }
 
 func (um *DxmUserManagement) PrivilegeEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Privilege.Edit(aepr)
+	return um.Privilege.RequestEdit(aepr)
 }
 
 func (um *DxmUserManagement) PrivilegeDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Privilege.SoftDelete(aepr)
+	return um.Privilege.RequestSoftDelete(aepr)
 }

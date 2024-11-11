@@ -22,7 +22,7 @@ func (w *DxmWebapp) Init(databaseNameId string) {
 }
 
 func (w *DxmWebapp) AppList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.App.List(aepr)
+	return w.App.RequestPagingList(aepr)
 }
 
 func (w *DxmWebapp) AppCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -33,19 +33,19 @@ func (w *DxmWebapp) AppCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (w *DxmWebapp) AppRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.App.Read(aepr)
+	return w.App.RequestRead(aepr)
 }
 
 func (w *DxmWebapp) AppEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.App.Edit(aepr)
+	return w.App.RequestEdit(aepr)
 }
 
 func (w *DxmWebapp) AppDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.App.SoftDelete(aepr)
+	return w.App.RequestSoftDelete(aepr)
 }
 
 func (w *DxmWebapp) PageList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.Page.List(aepr)
+	return w.Page.RequestPagingList(aepr)
 }
 
 func (w *DxmWebapp) PageCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -58,15 +58,15 @@ func (w *DxmWebapp) PageCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (w *DxmWebapp) PageRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.Page.Read(aepr)
+	return w.Page.RequestRead(aepr)
 }
 
 func (w *DxmWebapp) PageEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.Page.Edit(aepr)
+	return w.Page.RequestEdit(aepr)
 }
 
 func (w *DxmWebapp) PageDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.Page.SoftDelete(aepr)
+	return w.Page.RequestSoftDelete(aepr)
 }
 
 var ModuleWebapp DxmWebapp

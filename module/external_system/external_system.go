@@ -17,7 +17,7 @@ func (w *DxmExternalSystem) Init(databaseNameId string) {
 		"configuration.external_system", `nameid`, `id`)
 }
 func (w *DxmExternalSystem) ExternalSystemList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.ExternalSystem.List(aepr)
+	return w.ExternalSystem.RequestPagingList(aepr)
 }
 
 func (w *DxmExternalSystem) ExternalSystemCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -38,15 +38,15 @@ func (w *DxmExternalSystem) ExternalSystemCreate(aepr *api.DXAPIEndPointRequest)
 }
 
 func (w *DxmExternalSystem) ExternalSystemRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.ExternalSystem.Read(aepr)
+	return w.ExternalSystem.RequestRead(aepr)
 }
 
 func (w *DxmExternalSystem) ExternalSystemEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.ExternalSystem.Edit(aepr)
+	return w.ExternalSystem.RequestEdit(aepr)
 }
 
 func (w *DxmExternalSystem) ExternalSystemDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.ExternalSystem.SoftDelete(aepr)
+	return w.ExternalSystem.RequestSoftDelete(aepr)
 }
 
 var ModuleExternalSystem DxmExternalSystem

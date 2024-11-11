@@ -6,7 +6,7 @@ import (
 )
 
 func (g *DxmGeneral) AnnouncementList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcement.List(aepr)
+	return g.Announcement.RequestPagingList(aepr)
 }
 
 func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -18,15 +18,15 @@ func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err err
 }
 
 func (g *DxmGeneral) AnnouncementRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcement.Read(aepr)
+	return g.Announcement.RequestRead(aepr)
 }
 
 func (g *DxmGeneral) AnnouncementEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcement.Edit(aepr)
+	return g.Announcement.RequestEdit(aepr)
 }
 
 func (g *DxmGeneral) AnnouncementDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcement.SoftDelete(aepr)
+	return g.Announcement.RequestSoftDelete(aepr)
 }
 
 func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (err error) {

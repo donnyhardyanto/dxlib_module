@@ -6,7 +6,7 @@ import (
 )
 
 func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Organization.List(aepr)
+	return um.Organization.RequestPagingList(aepr)
 }
 
 func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -67,17 +67,17 @@ func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) 
 }
 
 func (um *DxmUserManagement) OrganizationRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Organization.Read(aepr)
+	return um.Organization.RequestRead(aepr)
 }
 
 func (um *DxmUserManagement) OrganizationReadByName(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Organization.ReadByNameId(aepr)
+	return um.Organization.RequestReadByNameId(aepr)
 }
 
 func (um *DxmUserManagement) OrganizationEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Organization.Edit(aepr)
+	return um.Organization.RequestEdit(aepr)
 }
 
 func (um *DxmUserManagement) OrganizationDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Organization.SoftDelete(aepr)
+	return um.Organization.RequestSoftDelete(aepr)
 }
