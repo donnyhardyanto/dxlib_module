@@ -80,6 +80,10 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 		}
 	}
 
+	if t.Database == nil {
+		t.Database = database.Manager.Databases[t.DatabaseNameId]
+	}
+
 	if !t.Database.Connected {
 		err := t.Database.Connect()
 		if err != nil {
@@ -209,6 +213,9 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	}
 
 	var userId int64
+	var userOrganizationMembershipId int64
+	var userRoleMembeshipId int64
+
 	err = um.User.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, utils.JSON{
 			"loginid": loginId,
@@ -224,7 +231,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			return err2
 		}
 
-		_, err2 = um.UserOrganizationMembership.TxInsert(tx, map[string]any{
+		userOrganizationMembershipId, err2 = um.UserOrganizationMembership.TxInsert(tx, map[string]any{
 			"user_id":           userId,
 			"organization_id":   organizationId,
 			"membership_number": membershipNumber,
@@ -233,7 +240,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			return err2
 		}
 
-		userRoleMembershipId, err2 := um.UserRoleMembership.TxInsert(tx, map[string]any{
+		userRoleMembeshipId, err2 = um.UserRoleMembership.TxInsert(tx, map[string]any{
 			"user_id":         userId,
 			"organization_id": organizationId,
 			"role_id":         roleId,
@@ -252,7 +259,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		}
 
 		_, userRoleMembership, err := um.UserRoleMembership.TxSelectOne(tx, utils.JSON{
-			`id`: userRoleMembershipId,
+			`id`: userRoleMembeshipId,
 		}, nil)
 		if err != nil {
 			return err
@@ -307,13 +314,12 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	}()
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
-		um.User.FieldNameForRowId: userId,
+		"id":                              userId,
+		"user_organization_membership_id": userOrganizationMembershipId,
+		"user_role_membership_id":         userRoleMembeshipId,
 	})
 
-	fmt.Println(err)
-
 	return nil
-
 }
 
 func (um *DxmUserManagement) UserRead(aepr *api.DXAPIEndPointRequest) (err error) {
