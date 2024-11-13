@@ -608,6 +608,15 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 	}
 	aepr.Log.Infof("User password changed")
 
+	_, err = um.User.Update(utils.JSON{
+		"must_change_password": true,
+	}, utils.JSON{
+		"id": userId,
+	})
+	if err != nil {
+		return err
+	}
+
 	go func() {
 		templateEmailResetPassword, err := general.ModuleGeneral.PropertyGetAsString(&aepr.Log, `EMAIL-TEMPLATE-RESET-PASSWORD`)
 		if err != nil {

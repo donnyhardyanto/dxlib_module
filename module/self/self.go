@@ -660,6 +660,14 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	}
 	aepr.Log.Infof("User password changed")
 
+	_, err = user_management.ModuleUserManagement.User.Update(utils.JSON{
+		`must_change_password`: false,
+	}, utils.JSON{
+		`id`: userId,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
