@@ -193,6 +193,47 @@ func (g *DxmGeneral) PropertyTxSetAsInt64(dtx *database.DXDatabaseTx, propertyId
 	return err
 }
 
+func (g *DxmGeneral) PropertyTxSetAsJSON(dtx *database.DXDatabaseTx, propertyId string, value map[string]any) (err error) {
+	_, err = g.Property.TxInsert(dtx, utils.JSON{
+		"nameid": propertyId,
+		"type":   "JSON",
+		"value":  MustJsonMarshal(utils.JSON{"JSON": value}),
+	})
+	return err
+}
+
+func (g *DxmGeneral) PropertyGetAsJSON(l *dxlibLog.DXLog, propertyId string) (map[string]any, error) {
+	_, v, err := g.Property.ShouldSelectOne(l, utils.JSON{
+		"nameid": propertyId,
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	aType, ok := v["type"].(string)
+	if !ok {
+		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON: type is not string: %v", v["type"])
+	}
+
+	aValueJSON, ok := v["value"].([]byte)
+	if !ok {
+		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON: value is not json.RawMessage: %v", v["value"])
+	}
+
+	var jsonValue map[string]interface{}
+	err = json.Unmarshal(aValueJSON, &jsonValue)
+	if err != nil {
+		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON: failed to unmarshal JSON: %v", err)
+	}
+
+	vv, ok := jsonValue[aType].(map[string]any)
+	if !ok {
+		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON: value is not a JSON: %v", jsonValue[aType])
+	}
+
+	return vv, nil
+}
+
 var ModuleGeneral DxmGeneral
 
 func init() {
