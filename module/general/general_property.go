@@ -18,6 +18,7 @@ type DxmGeneral struct {
 }
 
 func (g *DxmGeneral) Init(databaseNameId string) {
+	g.DatabaseNameId = databaseNameId
 	g.Property = table.Manager.NewTable(databaseNameId, "general.property",
 		"general.property",
 		"general.property", `nameid`, `id`)
@@ -194,12 +195,32 @@ func (g *DxmGeneral) PropertyTxSetAsInt64(dtx *database.DXDatabaseTx, propertyId
 }
 
 func (g *DxmGeneral) PropertyTxSetAsJSON(dtx *database.DXDatabaseTx, propertyId string, value map[string]any) (err error) {
-	_, err = g.Property.TxInsert(dtx, utils.JSON{
+	_, property, err := g.Property.TxSelectOne(dtx, utils.JSON{
 		"nameid": propertyId,
-		"type":   "JSON",
-		"value":  MustJsonMarshal(utils.JSON{"JSON": value}),
-	})
-	return err
+	}, nil)
+	if err != nil {
+		return err
+	}
+	if property == nil {
+		_, err = g.Property.TxInsert(dtx, utils.JSON{
+			"nameid": propertyId,
+			"type":   "JSON",
+			"value":  MustJsonMarshal(utils.JSON{"JSON": value}),
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = g.Property.TxUpdate(dtx, utils.JSON{
+			"value": MustJsonMarshal(utils.JSON{"JSON": value}),
+		}, utils.JSON{
+			"nameid": propertyId,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (g *DxmGeneral) PropertyGetAsJSON(l *dxlibLog.DXLog, propertyId string) (map[string]any, error) {
