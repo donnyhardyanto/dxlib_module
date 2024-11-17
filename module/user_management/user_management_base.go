@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	UserStatusActive = "ACTIVE"
-	UserStatusLocked = "LOCKED"
+	UserStatusActive  = "ACTIVE"
+	UserStatusSuspend = "SUSPEND"
+	UserStatusDeleted = "DELETED"
 )
 
 type DxmUserManagement struct {
@@ -28,8 +29,8 @@ type DxmUserManagement struct {
 	RolePrivilege                        *table.DXTable
 	UserRoleMembership                   *table.DXTable
 	MenuItem                             *table.DXTable
-	DatabaseNameId                       string
-	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, user utils.JSON) (err error)
+	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
+	OnUserResetPassword                  func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
 	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON, organizationId int64) (err error)
 	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
 	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)

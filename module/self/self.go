@@ -1,8 +1,10 @@
 package self
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/donnyhardyanto/dxlib/database"
 	"net/http"
 	"slices"
 	"sort"
@@ -635,35 +637,43 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	userId := aepr.LocalData[`user_id`].(int64)
 	var verificationResult bool
 
-	_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
-		`id`: userId,
-	}, nil)
-	if err != nil {
-		return err
-	}
-	if user == nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, `USER_NOT_FOUND`)
-	}
+	d := database.Manager.Databases[s.DatabaseNameId]
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
 
-	verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
-	if err != nil {
-		return err
-	}
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
+			`id`: userId,
+		}, nil)
+		if err != nil {
+			return err
+		}
+		if user == nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, `USER_NOT_FOUND`)
+		}
 
-	if !verificationResult {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_CREDENTIAL`)
-	}
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
+		if err != nil {
+			return err
+		}
 
-	err = user_management.ModuleUserManagement.UserPasswordCreate(userId, userPasswordNew)
-	if err != nil {
-		return err
-	}
-	aepr.Log.Infof("User password changed")
+		if !verificationResult {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_CREDENTIAL`)
+		}
 
-	_, err = user_management.ModuleUserManagement.User.Update(utils.JSON{
-		`must_change_password`: false,
-	}, utils.JSON{
-		`id`: userId,
+		err = user_management.ModuleUserManagement.UserPasswordTxCreate(tx, userId, userPasswordNew)
+		if err != nil {
+			return err
+		}
+		aepr.Log.Infof("User password changed")
+
+		_, err = user_management.ModuleUserManagement.User.Update(utils.JSON{
+			`must_change_password`: false,
+		}, utils.JSON{
+			`id`: userId,
+		})
+		if err != nil {
+			return err
+		}
+		return nil
 	})
 	if err != nil {
 		return err

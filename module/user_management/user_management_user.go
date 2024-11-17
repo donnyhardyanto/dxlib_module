@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/database/protected/db"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
@@ -16,12 +14,9 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils/crypto/datablock"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
 	security "github.com/donnyhardyanto/dxlib/utils/security"
-	"github.com/donnyhardyanto/dxlib_module/module/general"
 	"github.com/teris-io/shortid"
-	"gopkg.in/gomail.v2"
 	"math/rand"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -214,7 +209,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 
 	var userId int64
 	var userOrganizationMembershipId int64
-	var userRoleMembeshipId int64
+	var userRoleMembershipId int64
 
 	err = um.User.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, utils.JSON{
@@ -240,7 +235,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			return err2
 		}
 
-		userRoleMembeshipId, err2 = um.UserRoleMembership.TxInsert(tx, map[string]any{
+		userRoleMembershipId, err2 = um.UserRoleMembership.TxInsert(tx, map[string]any{
 			"user_id":         userId,
 			"organization_id": organizationId,
 			"role_id":         roleId,
@@ -255,11 +250,11 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		}
 
 		if um.OnUserAfterCreate != nil {
-			err2 = um.OnUserAfterCreate(aepr, tx, user)
+			err2 = um.OnUserAfterCreate(aepr, tx, user, userPassword)
 		}
 
 		_, userRoleMembership, err := um.UserRoleMembership.TxSelectOne(tx, utils.JSON{
-			`id`: userRoleMembeshipId,
+			`id`: userRoleMembershipId,
 		}, nil)
 		if err != nil {
 			return err
@@ -274,49 +269,10 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		return err
 	}
 
-	go func() {
-		templateEmailCreateUser, err := general.ModuleGeneral.PropertyGetAsString(&aepr.Log, `EMAIL-TEMPLATE-CREATE-USER`)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-
-		propertyConfigSmtp, err := general.ModuleGeneral.PropertyGetAsString(&aepr.Log, `SMTP-CONFIG`)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-
-		var smtpConfig map[string]any
-		err = json.Unmarshal([]byte(propertyConfigSmtp), &smtpConfig)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-
-		isNoSendEmail, ok := app.App.LocalData["user-create-no-send-email"].(bool)
-		if ok && isNoSendEmail {
-			return
-		}
-
-		err = SendEmail(
-			"Informasi Akun Anda - Selamat Datang di PGN Partner",
-			aepr.ParameterValues[`fullname`].Value.(string),
-			loginId,
-			userPassword,
-			templateEmailCreateUser,
-			smtpConfig,
-			aepr.ParameterValues[`email`].Value.(string),
-		)
-		if err != nil {
-			return
-		}
-	}()
-
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		"id":                              userId,
 		"user_organization_membership_id": userOrganizationMembershipId,
-		"user_role_membership_id":         userRoleMembeshipId,
+		"user_role_membership_id":         userRoleMembershipId,
 	})
 
 	return nil
@@ -383,17 +339,103 @@ func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error
 }
 
 func (um *DxmUserManagement) UserDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.User.RequestSoftDelete(aepr)
+	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
+
+	d := database.Manager.Databases[um.DatabaseNameId]
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+		_, err = um.User.TxUpdate(tx, utils.JSON{
+			"is_deleted": true,
+			"status":     UserStatusDeleted,
+		}, utils.JSON{
+			"id": userId,
+		})
+
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (um *DxmUserManagement) UserPasswordCreate(userId int64, password string) (err error) {
-	l := dxlibLog.Log
+func (um *DxmUserManagement) UserDisable(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 
+	d := database.Manager.Databases[um.DatabaseNameId]
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+		_, err = um.User.TxUpdate(tx, utils.JSON{
+			"status": UserStatusSuspend,
+		}, utils.JSON{
+			"id":         userId,
+			"is_deleted": true,
+		})
+
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (um *DxmUserManagement) UserEnable(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
+
+	d := database.Manager.Databases[um.DatabaseNameId]
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+		_, err = um.User.TxUpdate(tx, utils.JSON{
+			"status": UserStatusActive,
+		}, utils.JSON{
+			"id":         userId,
+			"is_deleted": false,
+		})
+
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
+
+	d := database.Manager.Databases[um.DatabaseNameId]
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+		_, err = um.User.TxUpdate(tx, utils.JSON{
+			"status": UserStatusActive,
+		}, utils.JSON{
+			"id":         userId,
+			"is_deleted": false,
+		})
+
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (um *DxmUserManagement) UserPasswordTxCreate(tx *database.DXDatabaseTx, userId int64, password string) (err error) {
 	hashedPasswordAsHexString, err := um.passwordHashCreate(password)
 	if err != nil {
 		return err
 	}
-	_, err = um.UserPassword.Insert(&l, utils.JSON{
+	_, err = um.UserPassword.TxInsert(tx, utils.JSON{
 		"user_id": userId,
 		"value":   hashedPasswordAsHexString,
 	})
@@ -602,91 +644,33 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 
 	userPasswordNew := generateRandomString(10)
 
-	err = um.UserPasswordCreate(userId, userPasswordNew)
-	if err != nil {
-		return err
-	}
-	aepr.Log.Infof("User password changed")
+	d := database.Manager.Databases[um.DatabaseNameId]
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
 
-	_, err = um.User.Update(utils.JSON{
-		"must_change_password": true,
-	}, utils.JSON{
-		"id": userId,
-	})
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		templateEmailResetPassword, err := general.ModuleGeneral.PropertyGetAsString(&aepr.Log, `EMAIL-TEMPLATE-RESET-PASSWORD`)
+		err = um.UserPasswordTxCreate(tx, userId, userPasswordNew)
 		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-
-		propertyConfigSmtp, err := general.ModuleGeneral.PropertyGetAsString(&aepr.Log, `SMTP-CONFIG`)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-
-		var smtpConfig map[string]any
-		err = json.Unmarshal([]byte(propertyConfigSmtp), &smtpConfig)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-
-		err = SendEmail(
-			"Informasi Akun di Reset Password",
-			user[`fullname`].(string),
-			user[`loginid`].(string),
-			userPasswordNew,
-			templateEmailResetPassword,
-			smtpConfig,
-			user[`email`].(string),
-		)
-		if err != nil {
-			aepr.Log.Errorf("SEND_MAIL_ERROR:%s", err.Error())
-			return
-		}
-	}()
-
-	return nil
-}
-
-func SendEmail(subject, name, username, password, textBody string, smtpConfig map[string]any, emails ...string) error {
-	textBody = strings.ReplaceAll(textBody, "<name>", name)
-	textBody = strings.ReplaceAll(textBody, "<username>", username)
-	textBody = strings.ReplaceAll(textBody, "<password>", password)
-
-	smtpServer := smtpConfig["smtp_server"].(string)
-	smtpUsername := smtpConfig["smtp_username"].(string)
-	smtpPassword := smtpConfig["smtp_password"].(string)
-	smtpPortAsFloat, ok := smtpConfig["smtp_port"].(float64)
-	if !ok {
-		return errors.New("SMTP_PORT_NOT_FOUND_IN_CONFIG")
-	}
-	smtpPort := int(smtpPortAsFloat)
-	smtpSenderEmail := smtpConfig["smtp_sender_email"].(string)
-	d := gomail.NewDialer(smtpServer, smtpPort, smtpUsername, smtpPassword)
-	d.SSL = true
-	s, err := d.Dial()
-	if err != nil {
-		fmt.Println("email sender error : ", err)
-		return err
-	}
-	for _, email := range emails {
-		m := gomail.NewMessage()
-		m.SetHeader("From", smtpSenderEmail)
-		m.SetAddressHeader("To", email, "Halo "+name)
-		m.SetHeader("Subject", subject)
-		m.SetBody("text/plain", textBody)
-		if err := gomail.Send(s, m); err != nil {
-			fmt.Printf("Could not send email to %q: %v", email, err)
 			return err
 		}
-		m.Reset()
-	}
+		aepr.Log.Infof("User password changed")
+
+		_, err = um.User.TxUpdate(tx, utils.JSON{
+			"must_change_password": true,
+		}, utils.JSON{
+			"id": userId,
+		})
+		if err != nil {
+			return err
+		}
+
+		if um.OnUserResetPassword != nil {
+			err = um.OnUserResetPassword(aepr, tx, user, userPasswordNew)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
 	return nil
 }
