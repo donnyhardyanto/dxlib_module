@@ -5,17 +5,23 @@ import (
 	"github.com/donnyhardyanto/dxlib/table"
 )
 
-type DxmAuditLog struct {
+type DxmAudit struct {
 	dxlibModule.DXModule
 	EventLog        *table.DXTable
 	UserActivityLog *table.DXTable
 }
 
-func (al *DxmAuditLog) Init(databaseNameId string) {
+func (al *DxmAudit) Init(databaseNameId string) {
 	al.EventLog = table.Manager.NewTable(databaseNameId, "log.event",
 		"log.event",
 		"log.event", `id`, `id`)
 	al.UserActivityLog = table.Manager.NewTable(databaseNameId, "audit.user_activity_log",
 		"audit.user_activity_log",
 		"audit.user_activity_log", `id`, `id`)
+}
+
+var ModuleAudit DxmAudit
+
+func init() {
+	ModuleAudit = DxmAudit{}
 }

@@ -33,6 +33,10 @@ type DxmSelf struct {
 	OnCreateSessionObject func(aepr *api.DXAPIEndPointRequest, user utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
 }
 
+func (s *DxmSelf) Init(databaseNameId string) {
+	s.DatabaseNameId = databaseNameId
+}
+
 /*
   - Hash password
     Stored Data Format:
