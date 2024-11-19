@@ -250,6 +250,12 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		}
 
 		if um.OnUserAfterCreate != nil {
+			_, user, err2 = um.User.TxSelectOne(tx, utils.JSON{
+				"id": userId,
+			}, nil)
+			if err2 != nil {
+				return err2
+			}
 			err2 = um.OnUserAfterCreate(aepr, tx, user, userPassword)
 		}
 
