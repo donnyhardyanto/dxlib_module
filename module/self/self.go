@@ -525,6 +525,18 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	}
 	userId := utilsJSON.MustGetInt64(sessionObject, `user_id`)
 	user := sessionObject[`user`].(utils.JSON)
+	userUid, err := utilsJSON.GetString(user, `uid`)
+	if err != nil {
+		return err
+	}
+	userLoginId, err := utilsJSON.GetString(user, `loginid`)
+	if err != nil {
+		return err
+	}
+	userFullName, err := utilsJSON.GetString(user, `fullname`)
+	if err != nil {
+		return err
+	}
 
 	if user == nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `USER_NOT_FOUND`)
@@ -534,10 +546,10 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	aepr.LocalData[`user_id`] = userId
 	aepr.LocalData[`user`] = user
 	aepr.CurrentUser.Id = utils.Int64ToString(userId)
-	aepr.CurrentUser.Name, err = utilsJSON.GetString(user, `fullname`)
-	if err != nil {
-		return err
-	}
+	aepr.CurrentUser.Uid = userUid
+	aepr.CurrentUser.LoginId = userLoginId
+	aepr.CurrentUser.FullName = userFullName
+
 	return nil
 }
 
@@ -583,12 +595,31 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `USER_NOT_FOUND`)
 	}
 
+	userUid, err := utilsJSON.GetString(user, `uid`)
+	if err != nil {
+		return err
+	}
+	userLoginId, err := utilsJSON.GetString(user, `loginid`)
+	if err != nil {
+		return err
+	}
+	userFullName, err := utilsJSON.GetString(user, `fullname`)
+	if err != nil {
+		return err
+	}
+
+	if user == nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `USER_NOT_FOUND`)
+	}
 	aepr.LocalData[`session_object`] = sessionObject
 	aepr.LocalData[`session_key`] = sessionKey
 	aepr.LocalData[`user_id`] = userId
 	aepr.LocalData[`user`] = user
 	aepr.CurrentUser.Id = utils.Int64ToString(userId)
-	aepr.CurrentUser.Name, err = utilsJSON.GetString(user, `fullname`)
+	aepr.CurrentUser.Uid = userUid
+	aepr.CurrentUser.LoginId = userLoginId
+	aepr.CurrentUser.FullName = userFullName
+
 	allowed := false
 	userEffectivePrivilegeIds := sessionObject[`user_effective_privilege_ids`].(map[string]int64)
 	for k := range userEffectivePrivilegeIds {
@@ -711,7 +742,6 @@ func (s *DxmSelf) SelfAvatarDownloadSource(aepr *api.DXAPIEndPointRequest) (err 
 }
 
 func (s *DxmSelf) SelfAvatarDownloadSmall(aepr *api.DXAPIEndPointRequest) (err error) {
-	//	_, filename, err := aepr.GetParameterValueAsString("filename")
 	user := aepr.LocalData[`user`].(utils.JSON)
 	userUid := user[`uid`].(string)
 	filename := userUid + ".png"
