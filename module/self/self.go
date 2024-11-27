@@ -747,6 +747,7 @@ func (s *DxmSelf) SelfAvatarDownloadSmall(aepr *api.DXAPIEndPointRequest) (err e
 	filename := userUid + ".png"
 	err = s.Avatar.DownloadProcessedImage(aepr, `small`, filename)
 	if err != nil {
+		aepr.SuppressLogDump = true
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, `SELF_AVATAR_NOT_FOUND`)
 	}
 	return nil
@@ -758,6 +759,7 @@ func (s *DxmSelf) SelfAvatarDownloadMedium(aepr *api.DXAPIEndPointRequest) (err 
 	filename := userUid + ".png"
 	err = s.Avatar.DownloadProcessedImage(aepr, `medium`, filename)
 	if err != nil {
+		aepr.SuppressLogDump = true
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, `SELF_AVATAR_NOT_FOUND`)
 	}
 	return nil
@@ -769,6 +771,7 @@ func (s *DxmSelf) SelfAvatarDownloadBig(aepr *api.DXAPIEndPointRequest) (err err
 	filename := userUid + ".png"
 	err = s.Avatar.DownloadProcessedImage(aepr, `big`, filename)
 	if err != nil {
+		aepr.SuppressLogDump = true
 		return err
 	}
 	return nil
