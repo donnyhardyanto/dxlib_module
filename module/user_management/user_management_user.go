@@ -367,7 +367,7 @@ func (um *DxmUserManagement) UserDelete(aepr *api.DXAPIEndPointRequest) (err err
 	return nil
 }
 
-func (um *DxmUserManagement) UserDisable(aepr *api.DXAPIEndPointRequest) (err error) {
+func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 
 	d := database.Manager.Databases[um.DatabaseNameId]
@@ -376,7 +376,7 @@ func (um *DxmUserManagement) UserDisable(aepr *api.DXAPIEndPointRequest) (err er
 			"status": UserStatusSuspend,
 		}, utils.JSON{
 			"id":         userId,
-			"is_deleted": true,
+			"is_deleted": false,
 		})
 
 		if err != nil {
@@ -390,7 +390,7 @@ func (um *DxmUserManagement) UserDisable(aepr *api.DXAPIEndPointRequest) (err er
 	return nil
 }
 
-func (um *DxmUserManagement) UserEnable(aepr *api.DXAPIEndPointRequest) (err error) {
+func (um *DxmUserManagement) UserActivate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 
 	d := database.Manager.Databases[um.DatabaseNameId]
