@@ -371,16 +371,16 @@ func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err er
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 
 	d := database.Manager.Databases[um.DatabaseNameId]
-	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
-		_, err = um.User.TxUpdate(tx, utils.JSON{
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+		_, err2 = um.User.TxUpdate(tx, utils.JSON{
 			"status": UserStatusSuspend,
 		}, utils.JSON{
 			"id":         userId,
 			"is_deleted": false,
 		})
 
-		if err != nil {
-			return err
+		if err2 != nil {
+			return err2
 		}
 		return nil
 	})

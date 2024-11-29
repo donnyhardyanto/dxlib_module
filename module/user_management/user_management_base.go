@@ -1,12 +1,16 @@
 package user_management
 
 import (
+	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
+	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
+	"strings"
 )
 
 const (
@@ -21,6 +25,7 @@ type DxmUserManagement struct {
 	PreKeyRedis                          *redis.DXRedis
 	User                                 *table.DXTable
 	UserPassword                         *table.DXTable
+	UserMessage                          *table.DXTable
 	Role                                 *table.DXTable
 	Organization                         *table.DXTable
 	OrganizationRoles                    *table.DXTable
@@ -68,40 +73,44 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.MenuItem = table.Manager.NewTable(databaseNameId, "user_management.menu_item",
 		"user_management.menu_item",
 		"user_management.v_menu_item", `composite_nameid`, `id`)
+	um.UserMessage = table.Manager.NewTable(databaseNameId, "user_management.user_message",
+		"user_management.user_message",
+		"user_management.user_message", `id`, `id`)
+
 }
 
-func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64, err error) {
-	_, privilege, err := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
-	if err != nil {
-		return 0, err
+func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
+	for key, value := range templateData {
+		placeholder := fmt.Sprintf("<%s>", key)
+		aValue := fmt.Sprint("%v", value)
+		templateBody = strings.ReplaceAll(templateBody, placeholder, aValue)
+		templateTitle = strings.ReplaceAll(templateTitle, placeholder, aValue)
 	}
-	privilegeId := privilege[`id`].(int64)
-	id, err = um.RolePrivilege.TxInsert(dtx, utils.JSON{
-		`role_id`:      roleId,
-		`privilege_id`: privilegeId,
-	})
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
-}
 
-func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64) {
-	_, privilege, err := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
+	msgBody := templateBody
+	msgTitle := templateTitle
+
+	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(l, userId, msgTitle, msgBody, attachedData,
+		func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
+			_, err2 = um.UserMessage.TxInsert(dtx, utils.JSON{
+				`fcm_message_id`:     fcmMessageId,
+				`fcm_application_id`: fcmApplicationId,
+				`user_id`:            userId,
+				`title`:              msgTitle,
+				`body`:               msgBody,
+				`data`:               attachedData,
+			})
+			if err2 != nil {
+				return err2
+			}
+			return nil
+		})
+
 	if err != nil {
-		dtx.Log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.Privilege.TxShouldGetByNameId`, err)
-		return 0
+		return err
 	}
-	privilegeId := privilege[`id`].(int64)
-	id, err = um.RolePrivilege.TxInsert(dtx, utils.JSON{
-		`role_id`:      roleId,
-		`privilege_id`: privilegeId,
-	})
-	if err != nil {
-		dtx.Log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.TxInsert`, err)
-		return 0
-	}
-	return id
+
+	return nil
 }
 
 var ModuleUserManagement DxmUserManagement
