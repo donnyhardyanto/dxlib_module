@@ -28,9 +28,10 @@ import (
 
 type DxmSelf struct {
 	dxlibModule.DXModule
-	Avatar                *lib.ImageObjectStorage
-	OnAuthenticateUser    func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organizations []utils.JSON, err error)
-	OnCreateSessionObject func(aepr *api.DXAPIEndPointRequest, user utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
+	UserOrganizationMembershipType user_management.UserOrganizationMembershipType
+	Avatar                         *lib.ImageObjectStorage
+	OnAuthenticateUser             func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organizations []utils.JSON, err error)
+	OnCreateSessionObject          func(aepr *api.DXAPIEndPointRequest, user utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
 }
 
 func (s *DxmSelf) Init(databaseNameId string) {
@@ -315,6 +316,9 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	var user utils.JSON
 	var userOrganizationMemberships []utils.JSON
+	var userLoggedOrganizationId int64
+	var userLoggedOrganizationUid string
+	var userLoggedOrganization utils.JSON
 	var verificationResult bool
 	if s.OnAuthenticateUser != nil {
 		verificationResult, user, userOrganizationMemberships, err = s.OnAuthenticateUser(aepr, userLoginId, userPassword, organizationUId)
@@ -347,6 +351,18 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us,
 			map[string]string{"order_index": "asc"}, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_CREDENTIAL`)
+		}
+
+		userLoggedOrganizationId = userOrganizationMemberships[0][`organization_id`].(int64)
+		userLoggedOrganizationUid = userOrganizationMemberships[0][`organization_uid`].(string)
+		
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
 		if err != nil {
 			return err
 		}
@@ -428,6 +444,9 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		`session_key`:                   sessionKey,
 		`user_id`:                       user[`id`],
 		`user`:                          user,
+		"organization_id":               userLoggedOrganizationId,
+		"organization_uid":              userLoggedOrganizationUid,
+		"organization":                  userLoggedOrganization,
 		`user_organization_memberships`: userOrganizationMemberships,
 		`user_role_memberships`:         userRoleMemberships,
 		`user_effective_privilege_ids`:  userEffectivePrivilegeIds,
@@ -551,15 +570,6 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	aepr.CurrentUser.FullName = userFullName
 
 	return nil
-}
-
-func hasCommonString(arr1, arr2 []string) bool {
-	for _, str := range arr1 {
-		if slices.Contains(arr2, str) {
-			return true
-		}
-	}
-	return false
 }
 
 func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -807,5 +817,7 @@ func (s *DxmSelf) SelfProfileEdit(aepr *api.DXAPIEndPointRequest) (err error) {
 var ModuleSelf DxmSelf
 
 func init() {
-	ModuleSelf = DxmSelf{}
+	ModuleSelf = DxmSelf{
+		UserOrganizationMembershipType: user_management.UserOrganizationMembershipTypeMultipleOrganizationPerUser,
+	}
 }

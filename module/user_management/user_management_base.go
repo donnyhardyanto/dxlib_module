@@ -19,8 +19,16 @@ const (
 	UserStatusDeleted = "DELETED"
 )
 
+type UserOrganizationMembershipType string
+
+const (
+	UserOrganizationMembershipTypeSingleOrganizationPerUser   UserOrganizationMembershipType = "SINGLE_ORGANIZATION_PER_USER"
+	UserOrganizationMembershipTypeMultipleOrganizationPerUser UserOrganizationMembershipType = "MULTIPLE_ORGANIZATION_PER_USER"
+)
+
 type DxmUserManagement struct {
 	dxlibModule.DXModule
+	UserOrganizationMembershipType       UserOrganizationMembershipType
 	SessionRedis                         *redis.DXRedis
 	PreKeyRedis                          *redis.DXRedis
 	User                                 *table.DXTable
@@ -76,7 +84,6 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.UserMessage = table.Manager.NewTable(databaseNameId, "user_management.user_message",
 		"user_management.user_message",
 		"user_management.user_message", `id`, `id`)
-
 }
 
 func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
@@ -116,5 +123,7 @@ func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userI
 var ModuleUserManagement DxmUserManagement
 
 func init() {
-	ModuleUserManagement = DxmUserManagement{}
+	ModuleUserManagement = DxmUserManagement{
+		UserOrganizationMembershipType: UserOrganizationMembershipTypeMultipleOrganizationPerUser,
+	}
 }

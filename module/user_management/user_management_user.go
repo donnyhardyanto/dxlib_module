@@ -394,16 +394,16 @@ func (um *DxmUserManagement) UserActivate(aepr *api.DXAPIEndPointRequest) (err e
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 
 	d := database.Manager.Databases[um.DatabaseNameId]
-	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
-		_, err = um.User.TxUpdate(tx, utils.JSON{
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+		_, err2 = um.User.TxUpdate(tx, utils.JSON{
 			"status": UserStatusActive,
 		}, utils.JSON{
 			"id":         userId,
 			"is_deleted": false,
 		})
 
-		if err != nil {
-			return err
+		if err2 != nil {
+			return err2
 		}
 		return nil
 	})
@@ -417,16 +417,16 @@ func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err e
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 
 	d := database.Manager.Databases[um.DatabaseNameId]
-	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
-		_, err = um.User.TxUpdate(tx, utils.JSON{
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+		_, err2 = um.User.TxUpdate(tx, utils.JSON{
 			"status": UserStatusActive,
 		}, utils.JSON{
 			"id":         userId,
 			"is_deleted": false,
 		})
 
-		if err != nil {
-			return err
+		if err2 != nil {
+			return err2
 		}
 		return nil
 	})
