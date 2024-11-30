@@ -345,15 +345,33 @@ func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error
 }
 
 func (um *DxmUserManagement) UserDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
+	_, userId, err := aepr.GetParameterValueAsInt64("id")
 
 	d := database.Manager.Databases[um.DatabaseNameId]
 	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+		_, user, err2 := um.User.TxSelectOne(tx, utils.JSON{
+			"id": userId,
+		}, nil)
+		if err2 != nil {
+			return err2
+		}
+		if user == nil {
+			return errors.New("USER_NOT_FOUND")
+		}
+		userIsDeleted, ok := user["is_deleted"].(bool)
+		if !ok {
+			return errors.New("USER_IS_DELETED_NOT_FOUND")
+		}
+		if userIsDeleted {
+			return errors.New("USER_IS_DELETED")
+		}
+
 		_, err = um.User.TxUpdate(tx, utils.JSON{
 			"is_deleted": true,
 			"status":     UserStatusDeleted,
 		}, utils.JSON{
-			"id": userId,
+			"id":         userId,
+			"is_deleted": false,
 		})
 
 		if err != nil {
@@ -364,14 +382,32 @@ func (um *DxmUserManagement) UserDelete(aepr *api.DXAPIEndPointRequest) (err err
 	if err != nil {
 		return err
 	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
 	return nil
 }
 
 func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
+	_, userId, err := aepr.GetParameterValueAsInt64("id")
 
 	d := database.Manager.Databases[um.DatabaseNameId]
 	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+		_, user, err2 := um.User.TxSelectOne(tx, utils.JSON{
+			"id": userId,
+		}, nil)
+		if err2 != nil {
+			return err2
+		}
+		if user == nil {
+			return errors.New("USER_NOT_FOUND")
+		}
+		userIsDeleted, ok := user["is_deleted"].(bool)
+		if !ok {
+			return errors.New("USER_IS_DELETED_NOT_FOUND")
+		}
+		if userIsDeleted {
+			return errors.New("USER_IS_DELETED")
+		}
 		_, err2 = um.User.TxUpdate(tx, utils.JSON{
 			"status": UserStatusSuspend,
 		}, utils.JSON{
@@ -387,14 +423,32 @@ func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err er
 	if err != nil {
 		return err
 	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
 	return nil
 }
 
 func (um *DxmUserManagement) UserActivate(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
+	_, userId, err := aepr.GetParameterValueAsInt64("id")
 
 	d := database.Manager.Databases[um.DatabaseNameId]
 	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+		_, user, err2 := um.User.TxSelectOne(tx, utils.JSON{
+			"id": userId,
+		}, nil)
+		if err2 != nil {
+			return err2
+		}
+		if user == nil {
+			return errors.New("USER_NOT_FOUND")
+		}
+		userIsDeleted, ok := user["is_deleted"].(bool)
+		if !ok {
+			return errors.New("USER_IS_DELETED_NOT_FOUND")
+		}
+		if userIsDeleted {
+			return errors.New("USER_IS_DELETED")
+		}
 		_, err2 = um.User.TxUpdate(tx, utils.JSON{
 			"status": UserStatusActive,
 		}, utils.JSON{
@@ -410,19 +464,39 @@ func (um *DxmUserManagement) UserActivate(aepr *api.DXAPIEndPointRequest) (err e
 	if err != nil {
 		return err
 	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
 	return nil
 }
 
 func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
+	_, userId, err := aepr.GetParameterValueAsInt64("id")
 
 	d := database.Manager.Databases[um.DatabaseNameId]
 	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+		_, user, err2 := um.User.TxSelectOne(tx, utils.JSON{
+			"id": userId,
+		}, nil)
+		if err2 != nil {
+			return err2
+		}
+		if user == nil {
+			return errors.New("USER_NOT_FOUND")
+		}
+		userIsDeleted, ok := user["is_deleted"].(bool)
+		if !ok {
+			return errors.New("USER_IS_DELETED_NOT_FOUND")
+		}
+		if !userIsDeleted {
+			return errors.New("USER_IS_NOT_DELETED")
+		}
+
 		_, err2 = um.User.TxUpdate(tx, utils.JSON{
-			"status": UserStatusActive,
+			"status":     UserStatusActive,
+			"is_deleted": false,
 		}, utils.JSON{
 			"id":         userId,
-			"is_deleted": false,
+			"is_deleted": true,
 		})
 
 		if err2 != nil {
@@ -433,6 +507,8 @@ func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err e
 	if err != nil {
 		return err
 	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
 	return nil
 }
 
