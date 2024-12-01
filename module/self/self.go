@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"net/http"
 	"slices"
 	"sort"
@@ -361,7 +362,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 
 		userLoggedOrganizationId = userOrganizationMemberships[0][`organization_id`].(int64)
 		userLoggedOrganizationUid = userOrganizationMemberships[0][`organization_uid`].(string)
-		
+
 		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
 		if err != nil {
 			return err
@@ -812,6 +813,26 @@ func (s *DxmSelf) SelfProfileEdit(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
+}
+
+func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, applicationNameId, err := aepr.GetParameterValueAsString(`application_nameid`)
+	if err != nil {
+		return err
+	}
+	_, fcmToken, err := aepr.GetParameterValueAsString(`fcm_token`)
+	if err != nil {
+		return err
+	}
+	userId := aepr.LocalData[`user_id`].(int64)
+	err = push_notification.ModulePushNotification.FCM.RegisterUserToken(aepr, applicationNameId, userId, fcmToken)
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	return nil
+
 }
 
 var ModuleSelf DxmSelf
