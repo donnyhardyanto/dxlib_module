@@ -824,8 +824,12 @@ func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
+	_, deviceType, err := aepr.GetParameterValueAsString("device_type")
+	if err != nil {
+		return err
+	}
 	userId := aepr.LocalData[`user_id`].(int64)
-	err = push_notification.ModulePushNotification.FCM.RegisterUserToken(aepr, applicationNameId, userId, fcmToken)
+	err = push_notification.ModulePushNotification.FCM.RegisterUserToken(aepr, applicationNameId, deviceType, userId, fcmToken)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,8 @@ package push_notification
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"firebase.google.com/go/v4/messaging"
 	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
@@ -61,30 +63,50 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		"push_notification.v_fcm_message", `id`, `id`)
 }
 
-func (f *FirebaseCloudMessaging) ApplicationList(aepr *api.DXAPIEndPointRequest) (err error) {
+/*func (f *FirebaseCloudMessaging) ApplicationRequestPagingList(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMApplication.RequestPagingList(aepr)
-}
+}*/
 
 func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, nameId, err := aepr.GetParameterValueAsString("nameid")
+	if err != nil {
+		return err
+	}
+	_, serviceAccountData, err := aepr.GetParameterValueAsJSON("service_account_data")
+	if err != nil {
+		return err
+	}
+
+	serviceAccountDataAsBytes, err := json.Marshal(serviceAccountData)
+	if err != nil {
+		return errors.New(fmt.Sprintf("ERROR_CONVERTING_SERVICE_ACCOUNT_DATA:%w", err))
+	}
+
 	_, err = f.FCMApplication.DoCreate(aepr, map[string]interface{}{
-		`nameid`:               aepr.ParameterValues[`nameid`].Value.(string),
-		`service_account_data`: aepr.ParameterValues[`service_account_data`].Value.(utils.JSON),
+		`nameid`:               nameId,
+		`service_account_data`: serviceAccountDataAsBytes,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	return nil
 }
 
-func (f *FirebaseCloudMessaging) ApplicationRead(aepr *api.DXAPIEndPointRequest) (err error) {
+/*func (f *FirebaseCloudMessaging) ApplicationRead(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMApplication.RequestRead(aepr)
-}
+}*/
 
-func (f *FirebaseCloudMessaging) ApplicationEdit(aepr *api.DXAPIEndPointRequest) (err error) {
+/*func (f *FirebaseCloudMessaging) ApplicationEdit(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMApplication.RequestEdit(aepr)
-}
+}*/
 
-func (f *FirebaseCloudMessaging) ApplicationDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMApplication.RequestSoftDelete(aepr)
-}
-
+/*
+	func (f *FirebaseCloudMessaging) ApplicationDelete(aepr *api.DXAPIEndPointRequest) (err error) {
+		return f.FCMApplication.RequestSoftDelete(aepr)
+	}
+*/
 func (f *FirebaseCloudMessaging) UserTokenList(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMUserToken.RequestPagingList(aepr)
 }
@@ -109,7 +131,7 @@ func (f *FirebaseCloudMessaging) MessageHardDelete(aepr *api.DXAPIEndPointReques
 	return f.FCMMessage.RequestHardDelete(aepr)
 }
 
-func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, userId int64, token string) (err error) {
+func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, deviceToken string, userId int64, token string) (err error) {
 	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
 	var dtx *database.DXDatabaseTx
 	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
@@ -129,6 +151,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 		"fcm_application_id": fcmApplicationId,
 		"user_id":            userId,
 		"fcm_token":          token,
+		"device_type":        deviceToken,
 	}, nil)
 	if err != nil {
 		return err
@@ -138,6 +161,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 			"fcm_application_id": fcmApplicationId,
 			"user_id":            userId,
 			"fcm_token":          token,
+			"device_type":        deviceToken,
 		})
 		if err != nil {
 			return err
