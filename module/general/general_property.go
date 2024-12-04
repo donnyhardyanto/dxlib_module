@@ -40,20 +40,13 @@ func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (
 		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: type is not string: %v", v["type"])
 	}
 
-	aValueJSON, ok := v["value"].([]byte)
-	if !ok {
-		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: value is not json.RawMessage: %v", v["value"])
-	}
-
-	var jsonValue map[string]interface{}
-	err = json.Unmarshal(aValueJSON, &jsonValue)
+	value, err := utils.GetJSONFromKV(v, "value")
 	if err != nil {
-		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: failed to unmarshal JSON: %v", err)
+		return "", l.ErrorAndCreateErrorf("PropertyGetAsString:CAN_NOT_GET_JSON_VALUE:%v", err)
 	}
-
-	vv, ok := jsonValue[aType].(string)
+	vv, ok := value[aType].(string)
 	if !ok {
-		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: value is not a number: %v", jsonValue[aType])
+		return "", l.ErrorAndCreateErrorf("PropertyGetAsString: value is not a number: %v", value[aType])
 	}
 
 	return vv, nil
@@ -117,20 +110,13 @@ func (g *DxmGeneral) PropertyGetAsInteger(l *dxlibLog.DXLog, propertyId string) 
 		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: type is not string: %v", v["type"])
 	}
 
-	aValueJSON, ok := v["value"].([]byte)
-	if !ok {
-		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: value is not json.RawMessage: %v", v["value"])
-	}
-
-	var jsonValue map[string]interface{}
-	err = json.Unmarshal(aValueJSON, &jsonValue)
+	value, err := utils.GetJSONFromKV(v, "value")
 	if err != nil {
-		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: failed to unmarshal JSON: %v", err)
+		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger:CAN_NOT_GET_JSON_VALUE:%v", err)
 	}
-
-	vv, ok := jsonValue[aType].(float64)
+	vv, ok := value[aType].(float64)
 	if !ok {
-		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: value is not a number: %v", jsonValue[aType])
+		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: value is not a number: %v", value[aType])
 	}
 
 	return int(vv), nil
@@ -158,20 +144,13 @@ func (g *DxmGeneral) PropertyGetAsInt64(l *dxlibLog.DXLog, propertyId string) (i
 		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: type is not string: %v", v["type"])
 	}
 
-	aValueJSON, ok := v["value"].([]byte)
-	if !ok {
-		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: value is not json.RawMessage: %v", v["value"])
-	}
-
-	var jsonValue map[string]interface{}
-	err = json.Unmarshal(aValueJSON, &jsonValue)
+	value, err := utils.GetJSONFromKV(v, "value")
 	if err != nil {
-		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: failed to unmarshal JSON: %v", err)
+		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger:CAN_NOT_GET_JSON_VALUE:%v", err)
 	}
-
-	vv, ok := jsonValue[aType].(float64)
+	vv, ok := value[aType].(float64)
 	if !ok {
-		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: value is not a number: %v", jsonValue[aType])
+		return 0, l.ErrorAndCreateErrorf("PropertyGetAsInteger: value is not a number: %v", value[aType])
 	}
 
 	return int64(vv), nil
@@ -236,20 +215,13 @@ func (g *DxmGeneral) PropertyGetAsJSON(l *dxlibLog.DXLog, propertyId string) (ma
 		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON: type is not string: %v", v["type"])
 	}
 
-	aValueJSON, ok := v["value"].([]byte)
-	if !ok {
-		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON: value is not json.RawMessage: %v", v["value"])
-	}
-
-	var jsonValue map[string]interface{}
-	err = json.Unmarshal(aValueJSON, &jsonValue)
+	value, err := utils.GetJSONFromKV(v, "value")
 	if err != nil {
-		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON: failed to unmarshal JSON: %v", err)
+		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON:CAN_NOT_GET_JSON_VALUE:%v", err)
 	}
-
-	vv, ok := jsonValue[aType].(map[string]any)
+	vv, ok := value[aType].(map[string]any)
 	if !ok {
-		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON: value is not a JSON: %v", jsonValue[aType])
+		return nil, l.ErrorAndCreateErrorf("PropertyGetAsJSON: value is not a JSON: %v", value[aType])
 	}
 
 	return vv, nil
