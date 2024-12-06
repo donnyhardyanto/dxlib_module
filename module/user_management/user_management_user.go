@@ -174,12 +174,14 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	status := UserStatusActive
 
 	p := utils.JSON{
-		`loginid`:     loginId,
-		`email`:       email,
-		`fullname`:    fullname,
-		`phonenumber`: phonenumber,
-		`status`:      status,
-		`attribute`:   attribute,
+		`loginid`:              loginId,
+		`email`:                email,
+		`fullname`:             fullname,
+		`phonenumber`:          phonenumber,
+		`status`:               status,
+		`attribute`:            attribute,
+		"must_change_password": false,
+		"is_avatar_exist":      false,
 	}
 
 	identityNumber, ok := aepr.ParameterValues[`identity_number`].Value.(string)
