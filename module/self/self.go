@@ -232,6 +232,8 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	}
 	preKeyTTLAsDuration := time.Duration(preKeyTTLAsInt) * time.Second
 	err = user_management.ModuleUserManagement.PreKeyRedis.Set(preKeyString, utils.JSON{
+		"captcha_id":     captchaID,
+		"captcha_text":   captchaText,
 		"shared_key_1":   sharedKey1AsHexString,
 		"shared_key_2":   sharedKey2AsHexString,
 		"a0_public_key":  edA0PublicKeyAsHexString,
@@ -243,8 +245,6 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 		"b1_private_key": ecdhB1PrivateKeyAsHexString,
 		"b2_public_key":  ecdhB2PublicKeyAsHexString,
 		"b2_private_key": ecdhB2PrivateKeyAsHexString,
-		"captcha_id":     captchaID,
-		"captcha_text":   captchaText,
 	}, preKeyTTLAsDuration)
 	if err != nil {
 		return err
@@ -265,7 +265,9 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	xVarHeaderValue := string(rAsBytes)
 
 	img, err := captcha.GenerateImage(captchaText)
-
+	if err != nil {
+		return err
+	}
 	aepr.WriteResponseAsBytes(http.StatusOK, map[string]string{
 		"X-Var":               xVarHeaderValue,
 		"Content-Type":        "image/png",
