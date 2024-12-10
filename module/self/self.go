@@ -4,11 +4,13 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"net/http"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -147,6 +149,129 @@ func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		"b1": ecdhB1PublicKeyAsHexString,
 		"b2": ecdhB2PublicKeyAsHexString,
 	})
+	return nil
+}
+
+func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, edA0PublicKeyAsHexString, err := aepr.GetParameterValueAsString(`a0`)
+	if err != nil {
+		return err
+	}
+
+	_, ecdhA1PublicKeyAsHexString, err := aepr.GetParameterValueAsString(`a1`)
+	if err != nil {
+		return err
+	}
+	_, ecdhA2PublicKeyAsHexString, err := aepr.GetParameterValueAsString(`a2`)
+	if err != nil {
+		return err
+	}
+
+	if edA0PublicKeyAsHexString == `` {
+		return aepr.WriteResponseAndNewErrorf(400, `PARAMETER_IS_EMPTY:ED_A0_PUBLIC_KEY`)
+	}
+	if ecdhA1PublicKeyAsHexString == `` {
+		return aepr.WriteResponseAndNewErrorf(400, `PARAMETER_IS_EMPTY:ECDH_A1_PUBLIC_KEY`)
+	}
+	if ecdhA2PublicKeyAsHexString == `` {
+		return aepr.WriteResponseAndNewErrorf(400, `PARAMETER_IS_EMPTY:ECDH_A2_PUBLIC_KEY`)
+	}
+
+	ecdhA1PublicKeyAsBytes, err := hex.DecodeString(ecdhA1PublicKeyAsHexString)
+	if err != nil {
+		return err
+	}
+	ecdhA2PublicKeyAsByes, err := hex.DecodeString(ecdhA2PublicKeyAsHexString)
+	if err != nil {
+		return err
+	}
+
+	edB0PublicKeyAsBytes, edB0PrivateKeyAsBytes, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		return err
+	}
+	ecdhB1PublicKeyAsBytes, ecdhB1PrivateKeyAsBytes, err := x25519.GenerateKeyPair()
+	if err != nil {
+		return err
+	}
+	ecdhB2PublicKeyAsBytes, ecdhB2PrivateKeyAsBytes, err := x25519.GenerateKeyPair()
+	if err != nil {
+		return err
+	}
+	edB0PublicKeyAsHexString := hex.EncodeToString(edB0PublicKeyAsBytes[:])
+	edB0PrivateKeyAsHexString := hex.EncodeToString(edB0PrivateKeyAsBytes[:])
+	ecdhB1PublicKeyAsHexString := hex.EncodeToString(ecdhB1PublicKeyAsBytes[:])
+	ecdhB1PrivateKeyAsHexString := hex.EncodeToString(ecdhB1PrivateKeyAsBytes[:])
+	ecdhB2PublicKeyAsHexString := hex.EncodeToString(ecdhB2PublicKeyAsBytes[:])
+	ecdhB2PrivateKeyAsHexString := hex.EncodeToString(ecdhB2PrivateKeyAsBytes[:])
+
+	sharedKey1AsBytes, err := x25519.ComputeSharedSecret(ecdhB1PrivateKeyAsBytes[:], ecdhA1PublicKeyAsBytes)
+	if err != nil {
+		return err
+	}
+	sharedKey1AsHexString := hex.EncodeToString(sharedKey1AsBytes)
+
+	sharedKey2AsBytes, err := x25519.ComputeSharedSecret(ecdhB2PrivateKeyAsBytes[:], ecdhA2PublicKeyAsByes)
+	if err != nil {
+		return err
+	}
+	sharedKey2AsHexString := hex.EncodeToString(sharedKey2AsBytes)
+
+	captcha := captcha.NewCaptcha()
+	captchaID, captchaText := captcha.GenerateID()
+
+	uuidA, err := uuid.NewV7()
+	if err != nil {
+		return err
+	}
+	preKeyString := `PREKEY_` + uuidA.String()
+
+	preKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `PREKEY_TTL_SECOND`)
+	if err != nil {
+		return err
+	}
+	preKeyTTLAsDuration := time.Duration(preKeyTTLAsInt) * time.Second
+	err = user_management.ModuleUserManagement.PreKeyRedis.Set(preKeyString, utils.JSON{
+		"shared_key_1":   sharedKey1AsHexString,
+		"shared_key_2":   sharedKey2AsHexString,
+		"a0_public_key":  edA0PublicKeyAsHexString,
+		"a1_public_key":  ecdhA1PublicKeyAsHexString,
+		"a2_public_key":  ecdhA2PublicKeyAsHexString,
+		"b0_public_key":  edB0PublicKeyAsHexString,
+		"b0_private_key": edB0PrivateKeyAsHexString,
+		"b1_public_key":  ecdhB1PublicKeyAsHexString,
+		"b1_private_key": ecdhB1PrivateKeyAsHexString,
+		"b2_public_key":  ecdhB2PublicKeyAsHexString,
+		"b2_private_key": ecdhB2PrivateKeyAsHexString,
+		"captcha_id":     captchaID,
+		"captcha_text":   captchaText,
+	}, preKeyTTLAsDuration)
+	if err != nil {
+		return err
+	}
+
+	r := utils.JSON{
+		"i":  preKeyString,
+		"b0": edB0PublicKeyAsHexString,
+		"b1": ecdhB1PublicKeyAsHexString,
+		"b2": ecdhB2PublicKeyAsHexString,
+		"c1": captchaID,
+		"d1": preKeyTTLAsInt,
+	}
+	rAsBytes, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+	xVarHeaderValue := string(rAsBytes)
+
+	img, err := captcha.GenerateImage(captchaText)
+
+	aepr.WriteResponseAsBytes(http.StatusOK, map[string]string{
+		"X-Var":               xVarHeaderValue,
+		"Content-Type":        "image/png",
+		"Content-Length":      strconv.Itoa(len(img)),
+		"Content-Disposition": `attachment; filename="captcha.png"`,
+	}, img)
 	return nil
 }
 
@@ -313,6 +438,218 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	if len(lvPayloadElements) > 2 {
 		lvPayloadOrganizationUId := lvPayloadElements[2]
 		organizationUId = string(lvPayloadOrganizationUId.Value)
+	}
+
+	var user utils.JSON
+	var userOrganizationMemberships []utils.JSON
+	var userLoggedOrganizationId int64
+	var userLoggedOrganizationUid string
+	var userLoggedOrganization utils.JSON
+	var verificationResult bool
+	if s.OnAuthenticateUser != nil {
+		verificationResult, user, userOrganizationMemberships, err = s.OnAuthenticateUser(aepr, userLoginId, userPassword, organizationUId)
+		if err != nil {
+			return err
+		}
+		if !verificationResult {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_CREDENTIAL`)
+		}
+	} else {
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
+			`loginid`: userLoginId,
+		}, nil)
+		if err != nil {
+			return err
+		}
+		if user == nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_CREDENTIAL`)
+		}
+
+		userId := user[`id`].(int64)
+
+		us := utils.JSON{
+			"user_id": userId,
+		}
+
+		if organizationUId != `` {
+			us[`organization_uid`] = organizationUId
+		}
+
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us,
+			map[string]string{"order_index": "asc"}, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_CREDENTIAL`)
+		}
+
+		userLoggedOrganizationId = userOrganizationMemberships[0][`organization_id`].(int64)
+		userLoggedOrganizationUid = userOrganizationMemberships[0][`organization_uid`].(string)
+
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
+		if err != nil {
+			return err
+		}
+
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPassword)
+		if err != nil {
+			return err
+		}
+
+		if !verificationResult {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_CREDENTIAL`)
+		}
+	}
+
+	a, err := uuid.NewV7()
+	if err != nil {
+		return err
+	}
+	b, err := uuid.NewRandom()
+	if err != nil {
+		return err
+	}
+	c := a.String() + b.String()
+	sessionKey := strings.ReplaceAll(c, "-", "")
+
+	userId, ok := user[`id`].(int64)
+	if !ok {
+		return aepr.WriteResponseAndNewErrorf(500, `SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER`)
+	}
+	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
+		"user_id": userId,
+	}, map[string]string{"id": "ASC"}, nil)
+	if err != nil {
+		return err
+	}
+
+	userEffectivePrivilegeIds := map[string]int64{}
+	for _, roleMembership := range userRoleMemberships {
+		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
+			"role_id": roleMembership[`role_id`],
+		}, nil, nil)
+		if err != nil {
+			return err
+		}
+		for _, v1 := range rolePrivileges {
+			privilegeNameId := v1[`privilege_nameid`].(string)
+			privilegeId := v1[`privilege_id`].(int64)
+			if privilegeNameId == `EVERYTHING` {
+				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil)
+				if err != nil {
+					return err
+				}
+				for _, v2 := range rolePrivileges {
+					privilegeNameId := v2[`nameid`].(string)
+					privilegeId := v2[`id`].(int64)
+					if privilegeNameId != `EVERYTHING` {
+						_, exists := userEffectivePrivilegeIds[privilegeNameId]
+						if !exists {
+							userEffectivePrivilegeIds[privilegeNameId] = privilegeId
+						}
+					}
+
+				}
+			} else {
+				_, exists := userEffectivePrivilegeIds[privilegeNameId]
+				if !exists {
+					userEffectivePrivilegeIds[privilegeNameId] = privilegeId
+				}
+			}
+		}
+	}
+
+	menuTreeRoot, err := s.fetchMenuTree(&aepr.Log, userEffectivePrivilegeIds)
+	if err != nil {
+		return err
+	}
+
+	sessionObject := utils.JSON{
+		`session_key`:                   sessionKey,
+		`user_id`:                       user[`id`],
+		`user`:                          user,
+		"organization_id":               userLoggedOrganizationId,
+		"organization_uid":              userLoggedOrganizationUid,
+		"organization":                  userLoggedOrganization,
+		`user_organization_memberships`: userOrganizationMemberships,
+		`user_role_memberships`:         userRoleMemberships,
+		`user_effective_privilege_ids`:  userEffectivePrivilegeIds,
+		`menu_tree_root`:                menuTreeRoot,
+	}
+
+	if s.OnCreateSessionObject != nil {
+		sessionObject, err = s.OnCreateSessionObject(aepr, user, sessionObject)
+		if err != nil {
+			return err
+		}
+	}
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
+	if err != nil {
+		return err
+	}
+	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
+
+	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	if err != nil {
+		return err
+	}
+
+	sessionObjectJSON, err := json.Marshal(sessionObject)
+	if err != nil {
+		return err
+	}
+
+	sessionObjectJSONString := string(sessionObjectJSON)
+
+	lvSessionObject, err := lv.NewLV([]byte(sessionObjectJSONString))
+	if err != nil {
+		return err
+	}
+	dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		"d": dataBlockEnvelopeAsHexString,
+	})
+	return err
+}
+
+func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, preKeyIndex, err := aepr.GetParameterValueAsString(`i`)
+	if err != nil {
+		return err
+	}
+	_, dataAsHexString, err := aepr.GetParameterValueAsString(`d`)
+	if err != nil {
+		return err
+	}
+
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, storedCaptchaId, storedCapchaText, err := user_management.ModuleUserManagement.PreKeyUnpackCaptcha(preKeyIndex, dataAsHexString)
+	if err != nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `UNPACK_ERROR:%v`, err.Error())
+	}
+
+	lvPayloadLoginId := lvPayloadElements[0]
+	lvPayloadPassword := lvPayloadElements[1]
+	lvPayloadOrganizationUId := lvPayloadElements[2]
+	lvPayloadCaptchaId := lvPayloadElements[3]
+	lvPayloadCaptchaText := lvPayloadElements[4]
+
+	userLoginId := string(lvPayloadLoginId.Value)
+	userPassword := string(lvPayloadPassword.Value)
+	organizationUId := string(lvPayloadOrganizationUId.Value)
+	captchaId := string(lvPayloadCaptchaId.Value)
+	captchaText := string(lvPayloadCaptchaText.Value)
+
+	if captchaId != storedCaptchaId {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `INVALID_CAPTCHA`)
+	}
+	if captchaText != storedCapchaText {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `INVALID_CAPTCHA`)
 	}
 
 	var user utils.JSON

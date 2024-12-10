@@ -704,6 +704,54 @@ func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString 
 	return lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, nil
 }
 
+func (um *DxmUserManagement) PreKeyUnpackCaptcha(preKeyIndex string, datablockAsString string) (
+	lvPayloadElements []*lv.LV, sharedKey2AsBytes []byte, edB0PrivateKeyAsBytes []byte, captchaId string, captchaText string, err error,
+) {
+	if preKeyIndex == `` || datablockAsString == `` {
+		return nil, nil, nil, "", "", errors.New(`PARAMETER_IS_EMPTY`)
+	}
+
+	preKeyData, err := um.PreKeyRedis.Get(preKeyIndex)
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+	if preKeyData == nil {
+		return nil, nil, nil, "", "", errors.New(`PREKEY_NOT_FOUND`)
+	}
+
+	sharedKey1AsHexString := preKeyData[`shared_key_1`].(string)
+	sharedKey2AsHexString := preKeyData[`shared_key_2`].(string)
+	edA0PublicKeyAsHexString := preKeyData[`a0_public_key`].(string)
+	edB0PrivateKeyAsHexString := preKeyData[`b0_private_key`].(string)
+	captchaId = preKeyData[`captcha_id`].(string)
+	captchaText = preKeyData[`captcha_text`].(string)
+
+	sharedKey1AsBytes, err := hex.DecodeString(sharedKey1AsHexString)
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+	sharedKey2AsBytes, err = hex.DecodeString(sharedKey2AsHexString)
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+	edA0PublicKeyAsBytes, err := hex.DecodeString(edA0PublicKeyAsHexString)
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+
+	edB0PrivateKeyAsBytes, err = hex.DecodeString(edB0PrivateKeyAsHexString)
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+
+	lvPayloadElements, err = datablock.UnpackLVPayload(preKeyIndex, edA0PublicKeyAsBytes, sharedKey1AsBytes, datablockAsString)
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+
+	return lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, captchaId, captchaText, nil
+}
+
 func generateRandomString(n int) string {
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
