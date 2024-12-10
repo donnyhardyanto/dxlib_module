@@ -48,6 +48,11 @@ func NewImageObjectStorage(objectStorageSourceNameId string, processedImages map
 	}
 }
 
+func calculateAspectRatioHeight(originalWidth, originalHeight, targetWidth int) int {
+	ratio := float64(originalHeight) / float64(originalWidth)
+	return int(float64(targetWidth) * ratio)
+}
+
 func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename string) (err error) {
 
 	// Check the request size
@@ -98,14 +103,20 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 
 	fmt.Printf("Image format (using Image.DecodeConfig): %s\n", format)
 
+	bounds := img.Bounds()
+	originalWidth := bounds.Dx()
+	originalHeight := bounds.Dy()
+
 	for _, processedImage := range ios.ProcessedImages {
 		objectStorage, ok := object_storage.Manager.ObjectStorages[processedImage.ObjectStorageNameId]
 		if !ok {
 			return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, `OBJECT_STORAGE_NAME_NOT_FOUND:%s`, processedImage.ObjectStorageNameId)
 		}
 
+		targetHeight := calculateAspectRatioHeight(originalWidth, originalHeight, processedImage.Width)
+		resizedImg := image.NewRGBA(image.Rect(0, 0, processedImage.Width, targetHeight))
+
 		// Resize the image
-		resizedImg := image.NewRGBA(image.Rect(0, 0, processedImage.Width, processedImage.Height))
 		draw.CatmullRom.Scale(resizedImg, resizedImg.Bounds(), img, img.Bounds(), draw.Over, nil)
 
 		// Encode the resized image
