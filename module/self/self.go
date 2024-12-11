@@ -942,7 +942,7 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 	user := sessionObject[`user`].(utils.JSON)
 
 	if user == nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `USER_NOT_FOUND`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `MIDDEWARE_PRIVILEGE_CHECK:USER_NOT_FOUND`)
 	}
 
 	userUid, err := utilsJSON.GetString(user, `uid`)
@@ -958,9 +958,6 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 		return err
 	}
 
-	if user == nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `USER_NOT_FOUND`)
-	}
 	aepr.LocalData[`session_object`] = sessionObject
 	aepr.LocalData[`session_key`] = sessionKey
 	aepr.LocalData[`user_id`] = userId
