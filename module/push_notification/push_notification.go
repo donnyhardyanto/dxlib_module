@@ -240,7 +240,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 	_, userTokens, err := f.FCMUserToken.TxSelect(dtx, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
 		"user_id":            userId,
-	}, nil)
+	}, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 		_, userTokens, err := f.FCMUserToken.TxSelect(dtx, utils.JSON{
 			"fcm_application_id": fcmApplicationId,
 			"user_id":            userId,
-		}, nil)
+		}, nil, nil)
 		if err != nil {
 			return err
 		}
