@@ -3,7 +3,7 @@ module github.com/donnyhardyanto/dxlib_module
 go 1.23.3
 
 require (
-	firebase.google.com/go/v4 v4.15.0
+	firebase.google.com/go/v4 v4.15.1
 	github.com/donnyhardyanto/dxlib v1.35.0
 	github.com/google/uuid v1.6.0
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
