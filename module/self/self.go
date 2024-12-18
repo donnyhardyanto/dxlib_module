@@ -537,6 +537,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 		for _, v1 := range rolePrivileges {
 			privilegeNameId := v1[`privilege_nameid`].(string)
+
 			privilegeId := v1[`privilege_id`].(int64)
 			if privilegeNameId == `EVERYTHING` {
 				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil)
@@ -579,6 +580,16 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		`user_role_memberships`:         userRoleMemberships,
 		`user_effective_privilege_ids`:  userEffectivePrivilegeIds,
 		`menu_tree_root`:                menuTreeRoot,
+	}
+
+	allowed := false
+	for k := range userEffectivePrivilegeIds {
+		if slices.Contains(aepr.EndPoint.Privileges, k) {
+			allowed = true
+		}
+	}
+	if !allowed {
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, `USER_ROLE_PRIVILEGE_FORBIDDEN`)
 	}
 
 	if s.OnCreateSessionObject != nil {
@@ -793,6 +804,16 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		`menu_tree_root`:                menuTreeRoot,
 	}
 
+	allowed := false
+	for k := range userEffectivePrivilegeIds {
+		if slices.Contains(aepr.EndPoint.Privileges, k) {
+			allowed = true
+		}
+	}
+	if !allowed {
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, `USER_ROLE_PRIVILEGE_FORBIDDEN`)
+	}
+
 	if s.OnCreateSessionObject != nil {
 		sessionObject, err = s.OnCreateSessionObject(aepr, user, sessionObject)
 		if err != nil {
@@ -968,10 +989,17 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 	aepr.CurrentUser.FullName = userFullName
 
 	allowed := false
-	userEffectivePrivilegeIds := sessionObject[`user_effective_privilege_ids`].(map[string]int64)
-	for k := range userEffectivePrivilegeIds {
-		if slices.Contains(aepr.EndPoint.Privileges, k) {
-			allowed = true
+	userEffectivePrivilegeIds := sessionObject[`user_effective_privilege_ids`].(map[string]any)
+	if aepr.EndPoint.Privileges == nil {
+		allowed = true
+	}
+	if len(aepr.EndPoint.Privileges) == 0 {
+		allowed = true
+	} else {
+		for k, _ := range userEffectivePrivilegeIds {
+			if slices.Contains(aepr.EndPoint.Privileges, k) {
+				allowed = true
+			}
 		}
 	}
 	if !allowed {
