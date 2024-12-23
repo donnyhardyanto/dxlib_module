@@ -60,6 +60,9 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.Role = table.Manager.NewTable(databaseNameId, "user_management.role",
 		"user_management.role",
 		"user_management.role", `nameid`, `id`)
+	um.Role.FieldTypeMapping = map[string]string{
+		"organization_types": "array-string",
+	}
 	um.Organization = table.Manager.NewTable(databaseNameId, "user_management.organization",
 		"user_management.organization",
 		"user_management.organization", `code`, `id`)
