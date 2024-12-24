@@ -121,7 +121,7 @@ func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 	preKeyString := `PREKEY_` + uuidA.String()
 
-	preKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `PREKEY_TTL_SECOND`)
+	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInteger(&aepr.Log, `PREKEY_TTL_SECOND`)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	}
 	preKeyString := `PREKEY_` + uuidA.String()
 
-	preKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `PREKEY_TTL_SECOND`)
+	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInteger(&aepr.Log, `PREKEY_TTL_SECOND`)
 	if err != nil {
 		return err
 	}
@@ -598,7 +598,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 	}
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
 	if err != nil {
 		return err
 	}
@@ -820,7 +820,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 	}
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
 	if err != nil {
 		return err
 	}
@@ -890,7 +890,7 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 
 	sessionKey := authHeader[len(bearerSchema):]
 
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
 	if err != nil {
 		return err
 	}
@@ -946,7 +946,7 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 
 	sessionKey := authHeader[len(bearerSchema):]
 
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.PropertyGetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInteger(&aepr.Log, `SESSION_TTL_SECOND`)
 	if err != nil {
 		return err
 	}

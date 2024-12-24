@@ -1,25 +1,30 @@
 package general
 
 import (
-	"encoding/json"
-	"github.com/donnyhardyanto/dxlib/database"
-	dxlibLog "github.com/donnyhardyanto/dxlib/log"
+	// "encoding/json"
+	//	"github.com/donnyhardyanto/dxlib/database"
+	//	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/table"
-	"github.com/donnyhardyanto/dxlib/utils"
+	//	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib_module/lib"
 )
 
 type DxmGeneral struct {
 	dxlibModule.DXModule
-	Property            *table.DXTable
+	//	Property            *table.DXTable
+	Property            *table.DXPropertyTable
 	Announcement        *table.DXTable
 	AnnouncementPicture *lib.ImageObjectStorage
 }
 
 func (g *DxmGeneral) Init(databaseNameId string) {
 	g.DatabaseNameId = databaseNameId
-	g.Property = table.Manager.NewTable(databaseNameId, "general.property",
+	/*	g.Property = table.Manager.NewTable(databaseNameId, "general.property",
+		"general.property",
+		"general.property", `nameid`, `id`)
+	*/
+	g.Property = table.Manager.NewPropertyTable(databaseNameId, "general.property",
 		"general.property",
 		"general.property", `nameid`, `id`)
 	g.Announcement = table.Manager.NewTable(databaseNameId, "general.announcement",
@@ -27,7 +32,7 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		"general.announcement", `uid`, `id`)
 }
 
-func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (string, error) {
+/*func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (string, error) {
 	_, v, err := g.Property.ShouldSelectOne(l, utils.JSON{
 		"nameid": propertyId,
 	}, nil)
@@ -60,7 +65,7 @@ func (g *DxmGeneral) PropertyTxSetAsString(dtx *database.DXDatabaseTx, propertyI
 	})
 	return err
 }
-
+*/
 /*
 	func (g *DxmGeneral) PropertyGetAsString(l *dxlibLog.DXLog, propertyId string) (string, error) {
 		_, v, err := g.Property.ShouldSelectOne(l, utils.JSON{
@@ -97,7 +102,7 @@ func (g *DxmGeneral) PropertyTxSetAsString(dtx *database.DXDatabaseTx, propertyI
 	return vvi, nil
 }
 */
-func (g *DxmGeneral) PropertyGetAsInteger(l *dxlibLog.DXLog, propertyId string) (int, error) {
+/*func (g *DxmGeneral) PropertyGetAsInteger(l *dxlibLog.DXLog, propertyId string) (int, error) {
 	_, v, err := g.Property.ShouldSelectOne(l, utils.JSON{
 		"nameid": propertyId,
 	}, nil)
@@ -226,7 +231,7 @@ func (g *DxmGeneral) PropertyGetAsJSON(l *dxlibLog.DXLog, propertyId string) (ma
 
 	return vv, nil
 }
-
+*/
 var ModuleGeneral DxmGeneral
 
 func init() {
