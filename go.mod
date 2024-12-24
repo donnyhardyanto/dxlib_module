@@ -1,6 +1,6 @@
 module github.com/donnyhardyanto/dxlib_module
 
-go 1.23.3
+go 1.23.4
 
 require (
 	firebase.google.com/go/v4 v4.15.1
@@ -89,7 +89,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.32.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.32.0 // indirect
 	go.opentelemetry.io/otel/trace v1.33.0 // indirect
-	golang.org/x/net v0.32.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
