@@ -295,7 +295,7 @@ func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *dxlibLog.DXLog, menuitem
 	if parentId != nil {
 		_, parentMenuItem, err := user_management.ModuleUserManagement.MenuItem.SelectOne(l, utils.JSON{
 			"id": parentId,
-		}, map[string]string{"id": "ASC"})
+		}, nil, map[string]string{"id": "ASC"})
 		if err != nil {
 			return err
 		}
@@ -351,7 +351,7 @@ func pruneMenuItems(menuItem *utils.JSON) {
 func (s *DxmSelf) fetchMenuTree(l *dxlibLog.DXLog, userEffectivePrivilegeIds map[string]int64) ([]*utils.JSON, error) {
 	// select all menu items available
 	allMenuItems := map[int64]utils.JSON{}
-	_, menuItems, err := user_management.ModuleUserManagement.MenuItem.Select(l, nil, nil, map[string]string{"id": "ASC"}, nil)
+	_, menuItems, err := user_management.ModuleUserManagement.MenuItem.Select(l, nil, nil, nil, map[string]string{"id": "ASC"}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -459,7 +459,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
 			`loginid`: userLoginId,
-		}, nil)
+		}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -478,7 +478,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us,
-			map[string]string{"order_index": "asc"}, nil)
+			map[string]string{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -522,7 +522,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
 		"user_id": userId,
-	}, map[string]string{"id": "ASC"}, nil)
+	}, nil, map[string]string{"id": "ASC"}, nil)
 	if err != nil {
 		return err
 	}
@@ -531,7 +531,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	for _, roleMembership := range userRoleMemberships {
 		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
 			"role_id": roleMembership[`role_id`],
-		}, nil, nil)
+		}, nil, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -540,7 +540,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 
 			privilegeId := v1[`privilege_id`].(int64)
 			if privilegeNameId == `EVERYTHING` {
-				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil)
+				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil)
 				if err != nil {
 					return err
 				}
@@ -682,7 +682,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
 			`loginid`: userLoginId,
-		}, nil)
+		}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -701,7 +701,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us,
-			map[string]string{"order_index": "asc"}, nil)
+			map[string]string{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -745,7 +745,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
 		"user_id": userId,
-	}, map[string]string{"id": "ASC"}, nil)
+	}, map[string]string{"id": "ASC"}, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -754,7 +754,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	for _, roleMembership := range userRoleMemberships {
 		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
 			"role_id": roleMembership[`role_id`],
-		}, nil, nil)
+		}, nil, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -762,7 +762,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			privilegeNameId := v1[`privilege_nameid`].(string)
 			privilegeId := v1[`privilege_id`].(int64)
 			if privilegeNameId == `EVERYTHING` {
-				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil)
+				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil)
 				if err != nil {
 					return err
 				}
@@ -1052,7 +1052,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
 			`id`: userId,
-		}, nil)
+		}, nil, nil)
 		if err != nil {
 			return err
 		}

@@ -98,14 +98,14 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 		userId := row["id"].(int64)
 		_, userOrganizationMemberships, err := um.UserOrganizationMembership.Select(&aepr.Log, nil, utils.JSON{
 			"user_id": userId,
-		}, nil, nil)
+		}, nil, nil, nil)
 		if err != nil {
 			return err
 		}
 		list[i]["organizations"] = userOrganizationMemberships
 		_, userRoleMemberships, err := um.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
 			"user_id": userId,
-		}, nil, nil)
+		}, nil, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -646,7 +646,7 @@ func (um *DxmUserManagement) passwordHashVerify(tryPassword string, hashedPasswo
 func (um *DxmUserManagement) UserPasswordVerify(l *dxlibLog.DXLog, userId int64, tryPassword string) (verificationResult bool, err error) {
 	_, userPasswordRow, err := um.UserPassword.SelectOne(l, utils.JSON{
 		`user_id`: userId,
-	}, map[string]string{"id": "DESC"})
+	}, nil, map[string]string{"id": "DESC"})
 	if err != nil {
 		return false, err
 	}
@@ -766,7 +766,7 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 	_, user, err := um.User.SelectOne(&aepr.Log, utils.JSON{
 		`id`: userId,
-	}, nil)
+	}, nil, nil)
 	if err != nil {
 		return err
 	}

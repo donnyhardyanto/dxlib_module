@@ -54,7 +54,7 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 
 	return t.DoRequestPagingList(aepr, filterWhere, filterOrderBy, filterKeyValues, func(listRow utils.JSON) (utils.JSON, error) {
 		organizationId := listRow[`id`].(int64)
-		_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{`organization_id`: organizationId}, map[string]string{"id": "asc"}, nil)
+		_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{`organization_id`: organizationId}, nil, map[string]string{"id": "asc"}, nil)
 		if err != nil {
 			return listRow, err
 		}

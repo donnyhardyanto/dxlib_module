@@ -371,7 +371,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 		"fcm_application_id": applicationId,
 		"c1":                 db.SQLExpression{Expression: "status = 'PENDING' OR status = 'FAILED'"},
 		"c2":                 db.SQLExpression{Expression: "(next_retry_time <= NOW()) or (next_retry_time IS NULL)"},
-	}, nil, 100)
+	}, nil, nil, 100)
 	if err != nil {
 		return fmt.Errorf("failed to fetch messages: %v", err)
 	}
