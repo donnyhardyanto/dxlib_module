@@ -745,7 +745,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
 		"user_id": userId,
-	}, map[string]string{"id": "ASC"}, nil, nil)
+	}, nil, map[string]string{"id": "ASC"}, nil)
 	if err != nil {
 		return err
 	}
