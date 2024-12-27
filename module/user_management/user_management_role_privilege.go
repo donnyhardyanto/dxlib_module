@@ -3,6 +3,7 @@ package user_management
 import (
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
@@ -53,5 +54,61 @@ func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database.DXDatabaseT
 		dtx.Log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.TxInsert`, err)
 		return 0
 	}
+	return id
+}
+
+func (um *DxmUserManagement) RolePrivilegeSxMustInsert(log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
+	d := database.Manager.Databases[um.DatabaseNameId]
+	err := d.Tx(log, database.LevelReadCommitted, func(dtx *database.DXDatabaseTx) (err2 error) {
+		_, privilege, err2 := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
+		if err2 != nil {
+			return err2
+		}
+		privilegeId := privilege[`id`].(int64)
+		id, err2 = um.RolePrivilege.TxInsert(dtx, utils.JSON{
+			`role_id`:      roleId,
+			`privilege_id`: privilegeId,
+		})
+		if err2 != nil {
+			return err2
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert`, err)
+	}
+
+	return id
+}
+
+func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
+	var err error
+	defer func() {
+		if err != nil {
+			log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert`, err)
+		}
+	}()
+
+	_, privilege, err := um.Privilege.ShouldGetByNameId(log, privilegeNameId)
+	if err != nil {
+		return 0
+	}
+
+	privilegeId := privilege[`id`].(int64)
+
+	id, err = um.RolePrivilege.Insert(log, utils.JSON{
+		`role_id`:      roleId,
+		`privilege_id`: privilegeId,
+	})
+	if err != nil {
+		return 0
+	}
+
+	log.Debugf(
+		`RolePrivilegeMustInsert | role_id:%d, privilege_id:%d, privilege_name_id:%s`,
+		roleId,
+		privilegeId,
+		privilegeNameId)
 	return id
 }
