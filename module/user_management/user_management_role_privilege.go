@@ -5,6 +5,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
+	"sync"
 )
 
 func (um *DxmUserManagement) RolePrivilegeList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -111,4 +112,37 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 		privilegeId,
 		privilegeNameId)
 	return id
+}
+
+func (um *DxmUserManagement) RolePrivilegeWgMustInsert(wg *sync.WaitGroup, log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
+	wg.Add(1)
+	aLog := log
+	go func() {
+		um.RolePrivilegeMustInsert(aLog, roleId, privilegeNameId)
+		wg.Done()
+	}()
+	return 0
+}
+
+func (um *DxmUserManagement) RolePrivilegeSWgMustInsert(wg *sync.WaitGroup, log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
+	wg.Add(1)
+	alog := log
+	d := database.Manager.Databases[um.DatabaseNameId]
+
+	go func(aroleId int64, aprivilegeNameId string) {
+		var err error
+
+		d.ConcurrencySemaphore <- struct{}{}
+		defer func() {
+			// Release semaphore
+			<-d.ConcurrencySemaphore
+			wg.Done()
+			if err != nil {
+				alog.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert`, err)
+			}
+		}()
+
+		um.RolePrivilegeMustInsert(alog, roleId, privilegeNameId)
+	}(roleId, privilegeNameId)
+	return 0
 }
