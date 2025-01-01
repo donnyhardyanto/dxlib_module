@@ -93,6 +93,7 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 
 	_, privilege, err := um.Privilege.ShouldGetByNameId(log, privilegeNameId)
 	if err != nil {
+		log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.Privilege.ShouldGetByNameId`, err)
 		return 0
 	}
 
@@ -103,6 +104,7 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 		`privilege_id`: privilegeId,
 	})
 	if err != nil {
+		log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.Insert`, err)
 		return 0
 	}
 
@@ -138,11 +140,16 @@ func (um *DxmUserManagement) RolePrivilegeSWgMustInsert(wg *sync.WaitGroup, log 
 			<-d.ConcurrencySemaphore
 			wg.Done()
 			if err != nil {
-				alog.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert`, err)
+				//	alog.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert`, err)
+				return
 			}
 		}()
 
-		um.RolePrivilegeMustInsert(alog, roleId, privilegeNameId)
+		_ = um.RolePrivilegeMustInsert(alog, aroleId, aprivilegeNameId)
+		if err != nil {
+			alog.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert`, err)
+			return
+		}
 	}(roleId, privilegeNameId)
 	return 0
 }
