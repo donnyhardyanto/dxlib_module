@@ -644,7 +644,7 @@ func (um *DxmUserManagement) passwordHashVerify(tryPassword string, hashedPasswo
 }
 
 func (um *DxmUserManagement) UserPasswordVerify(l *dxlibLog.DXLog, userId int64, tryPassword string) (verificationResult bool, err error) {
-	_, userPasswordRow, err := um.UserPassword.SelectOne(l, utils.JSON{
+	_, userPasswordRow, err := um.UserPassword.SelectOne(l, nil, utils.JSON{
 		`user_id`: userId,
 	}, nil, map[string]string{"id": "DESC"})
 	if err != nil {
@@ -764,7 +764,7 @@ func generateRandomString(n int) string {
 
 func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
-	_, user, err := um.User.SelectOne(&aepr.Log, utils.JSON{
+	_, user, err := um.User.SelectOne(&aepr.Log, nil, utils.JSON{
 		`id`: userId,
 	}, nil, nil)
 	if err != nil {

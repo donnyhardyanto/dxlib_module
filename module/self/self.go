@@ -293,7 +293,7 @@ func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *dxlibLog.DXLog, menuitem
 	}
 	parentId := menuitem[`parent_id`]
 	if parentId != nil {
-		_, parentMenuItem, err := user_management.ModuleUserManagement.MenuItem.SelectOne(l, utils.JSON{
+		_, parentMenuItem, err := user_management.ModuleUserManagement.MenuItem.SelectOne(l, nil, utils.JSON{
 			"id": parentId,
 		}, nil, map[string]string{"id": "ASC"})
 		if err != nil {
@@ -457,7 +457,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_CREDENTIAL`)
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			`loginid`: userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -680,7 +680,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, `INVALID_CREDENTIAL`)
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			`loginid`: userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -1050,7 +1050,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	d := database.Manager.Databases[s.DatabaseNameId]
 	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
 
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, utils.JSON{
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			`id`: userId,
 		}, nil, nil)
 		if err != nil {
