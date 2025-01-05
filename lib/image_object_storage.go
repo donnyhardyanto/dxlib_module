@@ -86,7 +86,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `FAILED_TO_UPLOAD_SOURCE_IMAGE_TO_OBJECT_STORAGE:%s=%v`, ios.ObjectStorageSourceNameId, err.Error())
 	}
 
-	aepr.Log.Infof("Original upload info result: %v", uploadInfo)
+	aepr.Log.Infof("Original upload info result: %d", uploadInfo.Size)
 
 	// Decode the image
 	img, formatName, err := image.Decode(bytes.NewReader(buf.Bytes()))
@@ -96,13 +96,13 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 
 	aepr.Log.Infof("Image format (using Image.Decode): %s", formatName)
 
-	format, err := checkImageFormat(&buf)
+	/*format, err := checkImageFormat(&buf)
 	if err != nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `FAILED_TO_CHECK_IMAGE_FORMAT:%s=%v`, ios.ObjectStorageSourceNameId, err.Error())
 	}
 
-	fmt.Printf("Image format (using Image.DecodeConfig): %s\n", format)
-
+	aepr.Log.Infof("Image format (using Image.DecodeConfig): %s", format)
+	*/
 	bounds := img.Bounds()
 	originalWidth := bounds.Dx()
 	originalHeight := bounds.Dy()
@@ -133,7 +133,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 			return fmt.Errorf("FAILED_TO_UPLOAD_RESIZED_IMAGE_TO_OBJECT_STORAGE:(%s)=%v", processedImage.ObjectStorageNameId, err.Error())
 		}
 
-		aepr.Log.Infof("Resized (%dx%d) upload info result: %v", processedImage.Width, processedImage.Height, uploadInfo)
+		aepr.Log.Infof("Resized (%dx%d) upload info result size: %d", processedImage.Width, processedImage.Height, uploadInfo.Size)
 	}
 
 	return nil
