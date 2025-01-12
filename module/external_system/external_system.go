@@ -7,8 +7,23 @@ import (
 	"net/http"
 )
 
+type DxmExternalSystemLoginFunc func(aNameId string, key string, secret string, ttl int) (isSuccess bool, session string, err error)
+type DxmExternalSystemAuthenticateFunc func(aNameId string, session string, ttl int) (err error)
+
 type DxmExternalSystem struct {
 	ExternalSystem *table.DXTable
+	OnLogin        DxmExternalSystemLoginFunc
+	OnAuthenticate DxmExternalSystemAuthenticateFunc
+}
+
+func (w *DxmExternalSystem) Login(aNameId string, key string, secret string, ttl int) (err error) {
+
+	return nil
+}
+
+func (w *DxmExternalSystem) Authenticate(aNameId string, session string, ttl int) (err error) {
+
+	return nil
 }
 
 func (w *DxmExternalSystem) Init(databaseNameId string) {
