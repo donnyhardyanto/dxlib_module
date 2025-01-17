@@ -16,16 +16,6 @@ type DxmExternalSystem struct {
 	OnAuthenticate DxmExternalSystemAuthenticateFunc
 }
 
-func (w *DxmExternalSystem) Login(aNameId string, key string, secret string, ttl int) (err error) {
-
-	return nil
-}
-
-func (w *DxmExternalSystem) Authenticate(aNameId string, session string, ttl int) (err error) {
-
-	return nil
-}
-
 func (w *DxmExternalSystem) Init(databaseNameId string) {
 	w.ExternalSystem = table.Manager.NewTable(databaseNameId, "configuration.external_system",
 		"configuration.external_system",
