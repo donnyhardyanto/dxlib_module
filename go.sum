@@ -59,8 +59,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
-github.com/donnyhardyanto/dxlib v1.54.0 h1:8Re4xnkUcgjYWmW63JyN5jBHNwMP2sMhpArb3ntwAAE=
-github.com/donnyhardyanto/dxlib v1.54.0/go.mod h1:Ic43XylUNt4F/pTvHS1Wu3MQTaue5fy+iCHARf8h51k=
+github.com/donnyhardyanto/dxlib v1.55.0 h1:VaOa/37oHGWHwZPCNXd89uPLmtqBDdCxgyKzfs6OI6M=
+github.com/donnyhardyanto/dxlib v1.55.0/go.mod h1:ipuvgmUxoW1KT9gA6SC6ufmjeIz0/t0O6v5LA9nZ2SU=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/envoyproxy/go-control-plane v0.13.4 h1:zEqyPVyku6IvWCFwux4x9RxkLOMUL+1vC9xUFv5l2/M=
