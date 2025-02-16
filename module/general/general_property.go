@@ -17,10 +17,10 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 	g.DatabaseNameId = databaseNameId
 	g.Property = table.Manager.NewPropertyTable(databaseNameId, "general.property",
 		"general.property",
-		"general.property", `nameid`, `id`)
+		"general.property", `nameid`, `id`, "uid")
 	g.Announcement = table.Manager.NewTable(databaseNameId, "general.announcement",
 		"general.announcement",
-		"general.announcement", `uid`, `id`)
+		"general.announcement", `uid`, `id`, "uid")
 }
 
 var ModuleGeneral DxmGeneral
