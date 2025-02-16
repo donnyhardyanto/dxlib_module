@@ -113,13 +113,14 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 	}
 
 	data := utils.JSON{
-		"list": utils.JSON{
-			"rows":       list,
-			"total_rows": totalRows,
-			"total_page": totalPage,
-			"rows_info":  rowsInfo,
-		},
-	}
+		"data": utils.JSON{
+			"list": utils.JSON{
+				"rows":       list,
+				"total_rows": totalRows,
+				"total_page": totalPage,
+				"rows_info":  rowsInfo,
+			},
+		}}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, data)
 	return nil
@@ -278,10 +279,11 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
-		"id":                              userId,
-		"user_organization_membership_id": userOrganizationMembershipId,
-		"user_role_membership_id":         userRoleMembershipId,
-	})
+		"data": utils.JSON{
+			"id":                              userId,
+			"user_organization_membership_id": userOrganizationMembershipId,
+			"user_role_membership_id":         userRoleMembershipId,
+		}})
 
 	return nil
 }
@@ -338,9 +340,9 @@ func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
 		t.FieldNameForRowId: id,
-	})
+	}})
 
 	return nil
 
@@ -385,7 +387,7 @@ func (um *DxmUserManagement) UserDelete(aepr *api.DXAPIEndPointRequest) (err err
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 }
 
@@ -426,7 +428,7 @@ func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err er
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 }
 
@@ -467,7 +469,7 @@ func (um *DxmUserManagement) UserActivate(aepr *api.DXAPIEndPointRequest) (err e
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 }
 
@@ -510,7 +512,7 @@ func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err e
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 }
 

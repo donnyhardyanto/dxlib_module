@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -35,6 +36,7 @@ type DxmSelf struct {
 	dxlibModule.DXModule
 	UserOrganizationMembershipType user_management.UserOrganizationMembershipType
 	Avatar                         *lib.ImageObjectStorage
+	RateLimitRedis                 *redis.DXRedis
 	LoginRateLimiter               *rate_limiter.RateLimiter // Add this field
 	OnInitialize                   func(s *DxmSelf) (err error)
 	OnAuthenticateUser             func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organizations []utils.JSON, err error)
@@ -1216,9 +1218,9 @@ func (s *DxmSelf) SelfProfile(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
 		"user": user,
-	})
+	}})
 	return nil
 }
 
@@ -1256,7 +1258,7 @@ func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 
 }

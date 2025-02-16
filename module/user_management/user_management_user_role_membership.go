@@ -65,9 +65,9 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
 		um.UserRoleMembership.FieldNameForRowId: userRoleMembershipId,
-	})
+	}})
 	return err
 }
 
@@ -102,9 +102,9 @@ func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPoin
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
 		um.UserRoleMembership.FieldNameForRowId: userRoleMembershipId,
-	})
+	}})
 	return nil
 }
 func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -139,8 +139,8 @@ func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPoin
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
 		um.UserRoleMembership.FieldNameForRowId: userRoleMembershipId,
-	})
+	}})
 	return nil
 }

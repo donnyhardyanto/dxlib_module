@@ -90,7 +90,7 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 }
 
@@ -171,8 +171,9 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
-		`id`: userTokenId,
-	})
+		"data": utils.JSON{
+			`id`: userTokenId,
+		}})
 	return nil
 }
 
