@@ -53,40 +53,40 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.DatabaseNameId = databaseNameId
 	um.User = table.Manager.NewTable(databaseNameId, "user_management.user",
 		"user_management.user",
-		"user_management.v_user", `loginid`, `id`)
+		"user_management.v_user", `loginid`, `id`, "uid")
 	um.UserPassword = table.Manager.NewTable(databaseNameId, "user_management.user_password",
 		"user_management.user_password",
-		"user_management.user_password", `id`, `id`)
+		"user_management.user_password", `id`, `id`, "uid")
 	um.Role = table.Manager.NewTable(databaseNameId, "user_management.role",
 		"user_management.role",
-		"user_management.role", `nameid`, `id`)
+		"user_management.role", `nameid`, `id`, "uid")
 	um.Role.FieldTypeMapping = map[string]string{
 		"organization_types": "array-string",
 	}
 	um.Organization = table.Manager.NewTable(databaseNameId, "user_management.organization",
 		"user_management.organization",
-		"user_management.organization", `code`, `id`)
+		"user_management.organization", `code`, `id`, "uid")
 	um.OrganizationRoles = table.Manager.NewTable(databaseNameId, "user_management.organization_role",
 		"user_management.organization_role",
-		"user_management.v_organization_role", `id`, `id`)
+		"user_management.v_organization_role", `id`, `id`, "uid")
 	um.UserOrganizationMembership = table.Manager.NewTable(databaseNameId, "user_management.user_organization_membership",
 		"user_management.user_organization_membership",
-		"user_management.v_user_organization_membership", `id`, `id`)
+		"user_management.v_user_organization_membership", `id`, `id`, "uid")
 	um.Privilege = table.Manager.NewTable(databaseNameId, "user_management.privilege",
 		"user_management.privilege",
-		"user_management.privilege", `nameid`, `id`)
+		"user_management.privilege", `nameid`, `id`, "uid")
 	um.RolePrivilege = table.Manager.NewTable(databaseNameId, "user_management.role_privilege",
 		"user_management.role_privilege",
-		"user_management.v_role_privilege", `id`, `id`)
+		"user_management.v_role_privilege", `id`, `id`, "uid")
 	um.UserRoleMembership = table.Manager.NewTable(databaseNameId, "user_management.user_role_membership",
 		"user_management.user_role_membership",
-		"user_management.v_user_role_membership", `id`, `id`)
+		"user_management.v_user_role_membership", `id`, `id`, "uid")
 	um.MenuItem = table.Manager.NewTable(databaseNameId, "user_management.menu_item",
 		"user_management.menu_item",
-		"user_management.v_menu_item", `composite_nameid`, `id`)
+		"user_management.v_menu_item", `composite_nameid`, `id`, "uid")
 	um.UserMessage = table.Manager.NewTable(databaseNameId, "user_management.user_message",
 		"user_management.user_message",
-		"user_management.user_message", `id`, `id`)
+		"user_management.user_message", `id`, `id`, "uid")
 }
 
 func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
