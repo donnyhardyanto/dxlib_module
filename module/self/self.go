@@ -7,6 +7,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"slices"
 	"sort"
@@ -35,6 +36,7 @@ type DxmSelf struct {
 	UserOrganizationMembershipType user_management.UserOrganizationMembershipType
 	Avatar                         *lib.ImageObjectStorage
 	LoginRateLimiter               *rate_limiter.RateLimiter // Add this field
+	OnInitialize                   func(s *DxmSelf) (err error)
 	OnAuthenticateUser             func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organizations []utils.JSON, err error)
 	OnCreateSessionObject          func(aepr *api.DXAPIEndPointRequest, user utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
 }
@@ -42,12 +44,12 @@ type DxmSelf struct {
 func (s *DxmSelf) Init(databaseNameId string) {
 	s.DatabaseNameId = databaseNameId
 	// Initialize rate limiter with Redis client from your existing ModuleUserManagement
-	s.LoginRateLimiter = rate_limiter.NewRateLimiter(
-		user_management.ModuleUserManagement.SessionRedis.Connection, // Assuming this is your Redis client
-		5,              // Max 5 attempts
-		15*time.Minute, // Within 15 minutes
-		60*time.Minute, // Block for 1 hour after max attempts
-	)
+	if s.OnInitialize != nil {
+		err := s.OnInitialize(s)
+		if err != nil {
+			log.Panic(err)
+		}
+	}
 }
 
 /*
@@ -427,24 +429,26 @@ func (s *DxmSelf) fetchMenuTree(l *dxlibLog.DXLog, userEffectivePrivilegeIds map
 
 func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 
-	// Extract IP address or other identifier for rate limiting
-	identifier := aepr.Request.RemoteAddr
-	// You might want to use X-Forwarded-For header if behind a proxy
-	if forwardedFor := aepr.Request.Header.Get("X-Forwarded-For"); forwardedFor != "" {
-		identifier = forwardedFor
-	}
+	if s.LoginRateLimiter != nil {
+		// Extract IP address or other identifier for rate limiting
+		identifier := aepr.Request.RemoteAddr
+		// You might want to use X-Forwarded-For header if behind a proxy
+		if forwardedFor := aepr.Request.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+			identifier = forwardedFor
+		}
 
-	// Check rate limit
-	rateLimitAllowed, err := s.LoginRateLimiter.IsAllowed(aepr.Request.Context(), identifier)
-	if err != nil {
-		return err
-	}
-	if !rateLimitAllowed {
-		remaining, _ := s.LoginRateLimiter.GetRemainingAttempts(aepr.Request.Context(), identifier)
-		return aepr.WriteResponseAndNewErrorf(http.StatusTooManyRequests,
-			"Too many login attempts. Please try again later. Remaining attempts: %d", remaining)
-	}
+		// Check rate limit
+		rateLimitAllowed, err := s.LoginRateLimiter.IsAllowed(aepr.Request.Context(), identifier)
+		if err != nil {
+			return err
+		}
+		if !rateLimitAllowed {
+			remaining, _ := s.LoginRateLimiter.GetRemainingAttempts(aepr.Request.Context(), identifier)
+			return aepr.WriteResponseAndNewErrorf(http.StatusTooManyRequests,
+				"Too many login attempts. Please try again later. Remaining attempts: %d", remaining)
+		}
 
+	}
 	_, preKeyIndex, err := aepr.GetParameterValueAsString(`i`)
 	if err != nil {
 		return err
@@ -660,6 +664,28 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
+
+	if s.LoginRateLimiter != nil {
+		// Extract IP address or other identifier for rate limiting
+		identifier := aepr.Request.RemoteAddr
+		// You might want to use X-Forwarded-For header if behind a proxy
+		if forwardedFor := aepr.Request.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+			identifier = forwardedFor
+		}
+
+		// Check rate limit
+		rateLimitAllowed, err := s.LoginRateLimiter.IsAllowed(aepr.Request.Context(), identifier)
+		if err != nil {
+			return err
+		}
+		if !rateLimitAllowed {
+			remaining, _ := s.LoginRateLimiter.GetRemainingAttempts(aepr.Request.Context(), identifier)
+			return aepr.WriteResponseAndNewErrorf(http.StatusTooManyRequests,
+				"Too many login attempts. Please try again later. Remaining attempts: %d", remaining)
+		}
+
+	}
+
 	_, preKeyIndex, err := aepr.GetParameterValueAsString(`i`)
 	if err != nil {
 		return err
