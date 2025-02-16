@@ -9,6 +9,10 @@ func (g *DxmGeneral) AnnouncementList(aepr *api.DXAPIEndPointRequest) (err error
 	return g.Announcement.RequestPagingList(aepr)
 }
 
+func (g *DxmGeneral) AnnouncementListAll(aepr *api.DXAPIEndPointRequest) (err error) {
+	return g.Announcement.RequestPagingListAll(aepr)
+}
+
 func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = g.Announcement.DoCreate(aepr, map[string]any{
 		`title`:   aepr.ParameterValues[`title`].Value.(string),
