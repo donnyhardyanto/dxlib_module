@@ -65,8 +65,19 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 }
 
 func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+
+	_, parentUid, err := aepr.GetParameterValueAsString(`parent_uid`)
+	if err != nil {
+		return err
+	}
+	_, parentOrganization, err := um.Organization.ShouldGetByUid(&aepr.Log, parentUid)
+	if err != nil {
+		return err
+	}
+	parentOrganizationId := parentOrganization[`id`].(int64)
+
 	o := utils.JSON{
-		`parent_id`: aepr.ParameterValues[`parent_id`].Value,
+		`parent_id`: parentOrganizationId,
 		`code`:      aepr.ParameterValues[`code`].Value.(string),
 		`name`:      aepr.ParameterValues[`name`].Value.(string),
 		`type`:      aepr.ParameterValues[`type`].Value.(string),
