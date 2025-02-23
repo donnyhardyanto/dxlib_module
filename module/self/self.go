@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/donnyhardyanto/dxlib/captcha"
+	"github.com/donnyhardyanto/dxlib/configuration"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
@@ -427,6 +429,60 @@ func (s *DxmSelf) fetchMenuTree(l *dxlibLog.DXLog, userEffectivePrivilegeIds map
 		menuItem[`children`] = sortedChildren
 	}
 	return roots, nil
+}
+
+func (s *DxmSelf) SelfConfiguration(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, preKeyIndex, err := aepr.GetParameterValueAsString(`i`)
+	if err != nil {
+		return err
+	}
+	_, dataAsHexString, err := aepr.GetParameterValueAsString(`d`)
+	if err != nil {
+		return err
+	}
+
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
+	if err != nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `UNPACK_ERROR:%v`, err.Error())
+	}
+	if len(lvPayloadElements) < 1 {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `UNPACK_ERROR:%v`, err.Error())
+	}
+
+	lvMobileAppNameId := lvPayloadElements[0]
+
+	configExternalSystem := *configuration.Manager.Configurations[`external_system`].Data
+	mobileAppConfiguration, ok := configExternalSystem["MOBILE_APP1"].(utils.JSON)
+	if !ok {
+		return fmt.Errorf(`GET_CONFIGURATION:MOBILE_APP_CONFIG_NOT_FOUND`)
+	}
+	apiKeyGoogleMap, ok := mobileAppConfiguration[`api_key_google_map`].(string)
+	if !ok {
+		return fmt.Errorf(`GET_CONFIGURATION:MOBILE_APP_API_KEY_GOOGLE_MAP_CONFIG_NOT_FOUND`)
+	}
+	apiKeyFirebase, ok := mobileAppConfiguration[`api_key_firebase`].(string)
+	if !ok {
+		return fmt.Errorf(`GET_CONFIGURATION:MOBILE_APP_API_KEY_FIREBASE_CONFIG_NOT_FOUND`)
+	}
+	lvAPIKeyGoogleMap, err := lv.NewLV([]byte(apiKeyGoogleMap))
+	if err != nil {
+		return err
+	}
+	lvAPIKeyFirebase, err := lv.NewLV([]byte(apiKeyFirebase))
+	if err != nil {
+		return err
+	}
+
+	dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes,
+		sharedKey2AsBytes, lvMobileAppNameId, lvAPIKeyGoogleMap, lvAPIKeyFirebase)
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		"d": dataBlockEnvelopeAsHexString,
+	})
+	return err
 }
 
 func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
