@@ -129,30 +129,30 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	organizationId, ok := aepr.ParameterValues["organization_id"].Value.(int64)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "ORGANIZATION_ID_MISSING")
 	}
 	_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "ORGANIZATION_NOT_FOUND")
 	}
 
 	roleId, ok := aepr.ParameterValues["role_id"].Value.(int64)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_ID_MISSING")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "ROLE_ID_MISSING")
 	}
 	_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "ROLE_NOT_FOUND")
 	}
 
 	passwordI, ok := aepr.ParameterValues["password_i"].Value.(string)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PASSWORD_PREKEY_INDEX_MISSING")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "PASSWORD_PREKEY_INDEX_MISSING")
 	}
 
 	passwordD, ok := aepr.ParameterValues["password_d"].Value.(string)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PASSWORD_DATA_BLOCK_MISSING")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "PASSWORD_DATA_BLOCK_MISSING")
 	}
 
 	lvPayloadElements, _, _, err := um.PreKeyUnpack(passwordI, passwordD)

@@ -28,7 +28,7 @@ func (w *DxmExternalSystem) ExternalSystemList(aepr *api.DXAPIEndPointRequest) (
 func (w *DxmExternalSystem) ExternalSystemCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	configuration, ok := aepr.ParameterValues[`configuration`].Value.(utils.JSON)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "CONFIGURATION_IS_NOT_JSON")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "CONFIGURATION_IS_NOT_JSON")
 	}
 	configurationAsString, err := utils.JSONToString(configuration)
 	if err != nil {
