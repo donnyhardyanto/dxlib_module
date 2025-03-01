@@ -112,7 +112,6 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		if !ok {
 			return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "", `OBJECT_STORAGE_NAME_NOT_FOUND:%s`, processedImage.ObjectStorageNameId)
 		}
-
 		targetHeight := calculateAspectRatioHeight(originalWidth, originalHeight, processedImage.Width)
 		resizedImg := image.NewRGBA(image.Rect(0, 0, processedImage.Width, targetHeight))
 
