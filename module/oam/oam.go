@@ -10,13 +10,13 @@ func DefineAPIEndPoints(anAPI *api.DXAPI) (err error) {
 	anAPI.NewEndPoint("PING",
 		"Receive Ping and send out Pong. Used to indicate the service is active and well.",
 		"/ping", "GET", api.EndPointTypeHTTPJSON, http.ContentTypeApplicationJSON, nil,
-		oam.Ping, nil, nil, nil, nil, 0,
+		oam.Ping, nil, nil, nil, nil, 0, "",
 	)
 
 	anAPI.NewEndPoint("PrintSpec",
 		"Print the API Specification",
 		"/spec", "GET", api.EndPointTypeHTTPJSON, http.ContentTypeApplicationJSON, nil,
-		anAPI.APIHandlerPrintSpec, nil, nil, nil, nil, 0,
+		anAPI.APIHandlerPrintSpec, nil, nil, nil, nil, 0, "",
 	)
 
 	return nil
