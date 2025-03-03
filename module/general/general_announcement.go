@@ -1,6 +1,7 @@
 package general
 
 import (
+	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
@@ -72,7 +73,73 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRe
 	return nil
 }
 
-func (g *DxmGeneral) AnnouncementPictureDownloadSmall(aepr *api.DXAPIEndPointRequest) (err error) {
+func (g *DxmGeneral) AnnouncementPictureDownloadSourceByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, uid, err := aepr.GetParameterValueAsString(`uid`)
+	if err != nil {
+		return err
+	}
+
+	_, announcement, err := g.Announcement.ShouldGetByUid(&aepr.Log, uid)
+	if err != nil {
+		return err
+	}
+
+	announcementId, ok := announcement[`id`].(int64)
+	if !ok {
+		return fmt.Errorf(`IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT`)
+	}
+
+	idAsString := utils.Int64ToString(announcementId)
+
+	filename := idAsString + ".png"
+
+	err = g.AnnouncementPicture.DownloadSource(aepr, filename)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *DxmGeneral) AnnouncementPictureDownloadByUidByProcessedNameId(aepr *api.DXAPIEndPointRequest, processedImageNameId string) (err error) {
+	_, uid, err := aepr.GetParameterValueAsString(`uid`)
+	if err != nil {
+		return err
+	}
+
+	_, announcement, err := g.Announcement.ShouldGetByUid(&aepr.Log, uid)
+	if err != nil {
+		return err
+	}
+
+	announcementId, ok := announcement[`id`].(int64)
+	if !ok {
+		return fmt.Errorf(`IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT`)
+	}
+
+	idAsString := utils.Int64ToString(announcementId)
+
+	filename := idAsString + ".png"
+	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, processedImageNameId, filename)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *DxmGeneral) AnnouncementPictureDownloadSmallByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	return g.AnnouncementPictureDownloadByUidByProcessedNameId(aepr, `small`)
+}
+
+func (g *DxmGeneral) AnnouncementPictureDownloadMediumByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	return g.AnnouncementPictureDownloadByUidByProcessedNameId(aepr, `medium`)
+}
+
+func (g *DxmGeneral) AnnouncementPictureDownloadBigByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	return g.AnnouncementPictureDownloadByUidByProcessedNameId(aepr, `big`)
+}
+
+func (g *DxmGeneral) AnnouncementPictureDownloadByProcessedNameId(aepr *api.DXAPIEndPointRequest, processedImageNameId string) (err error) {
 	id := aepr.ParameterValues[`id`].Value.(int64)
 
 	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
@@ -83,149 +150,21 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSmall(aepr *api.DXAPIEndPointReq
 	idAsString := utils.Int64ToString(id)
 
 	filename := idAsString + ".png"
-
-	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, `small`, filename)
+	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, processedImageNameId, filename)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (g *DxmGeneral) AnnouncementPictureDownloadSmall(aepr *api.DXAPIEndPointRequest) (err error) {
+	return g.AnnouncementPictureDownloadByProcessedNameId(aepr, `small`)
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadMedium(aepr *api.DXAPIEndPointRequest) (err error) {
-	id := aepr.ParameterValues[`id`].Value.(int64)
-
-	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
-	if err != nil {
-		return err
-	}
-
-	idAsString := utils.Int64ToString(id)
-
-	filename := idAsString + ".png"
-
-	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, `medium`, filename)
-	if err != nil {
-		return err
-	}
-	return nil
+	return g.AnnouncementPictureDownloadByProcessedNameId(aepr, `medium`)
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadBig(aepr *api.DXAPIEndPointRequest) (err error) {
-	id := aepr.ParameterValues[`id`].Value.(int64)
-
-	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
-	if err != nil {
-		return err
-	}
-
-	idAsString := utils.Int64ToString(id)
-
-	filename := idAsString + ".png"
-
-	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, `big`, filename)
-	if err != nil {
-		return err
-	}
-	return nil
+	return g.AnnouncementPictureDownloadByProcessedNameId(aepr, `big`)
 }
-
-/*func (t *DxmGeneral) AnnouncementListDownload(aepr *api.DXAPIEndPointRequest) (err error) {
-	isExistFilterWhere, filterWhere, err := aepr.GetParameterValueAsString("filter_where")
-	if err != nil {
-		return err
-	}
-	if !isExistFilterWhere {
-		filterWhere = ""
-	}
-	isExistFilterOrderBy, filterOrderBy, err := aepr.GetParameterValueAsString("filter_order_by")
-	if err != nil {
-		return err
-	}
-	if !isExistFilterOrderBy {
-		filterOrderBy = ""
-	}
-
-	isExistFilterKeyValues, filterKeyValues, err := aepr.GetParameterValueAsJSON("filter_key_values")
-	if err != nil {
-		return err
-	}
-	if !isExistFilterKeyValues {
-		filterKeyValues = nil
-	}
-
-	_, format, err := aepr.GetParameterValueAsString("format")
-	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, `FORMAT_PARAMETER_ERROR:%s`, err.Error())
-	}
-
-	format = strings.ToLower(format)
-
-	isDeletedIncluded := false
-	if !isDeletedIncluded {
-		if filterWhere != "" {
-			filterWhere = fmt.Sprintf("(%s) and ", filterWhere)
-		}
-
-		switch t.Announcement.Database.DatabaseType.String() {
-		case "sqlserver":
-			filterWhere = filterWhere + "(is_deleted=0)"
-		case "postgres":
-			filterWhere = filterWhere + "(is_deleted=false)"
-		default:
-			filterWhere = filterWhere + "(is_deleted=0)"
-		}
-	}
-
-	if t.Announcement.Database == nil {
-		t.Announcement.Database = database.Manager.Databases[t.DatabaseNameId]
-	}
-
-	if !t.Announcement.Database.Connected {
-		err := t.Announcement.Database.Connect()
-		if err != nil {
-			aepr.Log.Errorf("error At reconnect db At table %s list (%s) ", t.NameId, err.Error())
-			return err
-		}
-	}
-
-	rowsInfo, list, err := db.NamedQueryList(t.Announcement.Database.Connection, "*", t.Announcement.ListViewNameId,
-		filterWhere, "", filterOrderBy, filterKeyValues)
-
-	if err != nil {
-		return err
-	}
-
-	// Set export options
-	opts := export.ExportOptions{
-		Format:     export.ExportFormat(format),
-		SheetName:  "Sheet1",
-		DateFormat: "2006-01-02 15:04:05",
-	}
-
-	// Get file as stream
-	data, contentType, err := export.ExportToStream(rowsInfo, list, opts)
-	if err != nil {
-		return err
-	}
-
-	// Set response headers
-	filename := fmt.Sprintf("export_%s_%s.%s", t.NameId, time.Now().Format("20060102_150405"), format)
-
-	responseWriter := *aepr.GetResponseWriter()
-	responseWriter.Header().Set("Content-Type", contentType)
-	responseWriter.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
-	responseWriter.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-	responseWriter.WriteHeader(http.StatusOK)
-	aepr.ResponseStatusCode = http.StatusOK
-
-	_, err = responseWriter.Write(data)
-	if err != nil {
-		return err
-	}
-
-	aepr.ResponseHeaderSent = true
-	aepr.ResponseBodySent = true
-
-	return nil
-}
-*/
