@@ -991,6 +991,7 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	aepr.LocalData[`session_object`] = sessionObject
 	aepr.LocalData[`session_key`] = sessionKey
 	aepr.LocalData[`user_id`] = userId
+	aepr.LocalData[`user_uid`] = userUid
 	aepr.LocalData[`user`] = user
 	aepr.CurrentUser.Id = utils.Int64ToString(userId)
 	aepr.CurrentUser.Uid = userUid
