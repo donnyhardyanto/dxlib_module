@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
@@ -1089,6 +1090,46 @@ func (s *DxmSelf) SelfLogout(aepr *api.DXAPIEndPointRequest) (err error) {
 	return nil
 }
 
+func PasswordFormatValidation(password string) (err error) {
+
+	if len(password) < 8 {
+		return fmt.Errorf("password must be at least 8 characters long")
+	}
+
+	hasUpper := false
+	hasLower := false
+	hasNumber := false
+	hasSpecial := false
+
+	for _, char := range password {
+		switch {
+		case unicode.IsUpper(char):
+			hasUpper = true
+		case unicode.IsLower(char):
+			hasLower = true
+		case unicode.IsNumber(char):
+			hasNumber = true
+		case !unicode.IsLetter(char) && !unicode.IsNumber(char):
+			hasSpecial = true
+		}
+	}
+
+	if !hasUpper {
+		return fmt.Errorf("password must contain at least one uppercase letter")
+	}
+	if !hasLower {
+		return fmt.Errorf("password must contain at least one lowercase letter")
+	}
+	if !hasNumber {
+		return fmt.Errorf("password must contain at least one number")
+	}
+	if hasSpecial {
+		return fmt.Errorf("password must not contain special characters")
+	}
+
+	return nil
+}
+
 func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, preKeyIndex, err := aepr.GetParameterValueAsString(`i`)
 	if err != nil {
@@ -1109,6 +1150,11 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 	userPasswordNew := string(lvPayloadNewPassword.Value)
 	userPasswordOld := string(lvPayloadOldPassword.Value)
+
+	err = PasswordFormatValidation(userPasswordNew)
+	if err != nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `INVALID_PASSWORD_FORMAT:%v`, err.Error())
+	}
 
 	userId := aepr.LocalData[`user_id`].(int64)
 	var verificationResult bool
