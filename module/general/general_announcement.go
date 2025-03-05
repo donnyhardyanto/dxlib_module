@@ -1,9 +1,9 @@
 package general
 
 import (
-	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/utils"
+	"github.com/pkg/errors"
 )
 
 func (g *DxmGeneral) AnnouncementList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -86,7 +86,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSourceByUid(aepr *api.DXAPIEndPo
 
 	announcementId, ok := announcement[`id`].(int64)
 	if !ok {
-		return fmt.Errorf(`IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT`)
+		return errors.Errorf(`IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT`)
 	}
 
 	idAsString := utils.Int64ToString(announcementId)
@@ -114,7 +114,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByUidByProcessedNameId(aepr *api
 
 	announcementId, ok := announcement[`id`].(int64)
 	if !ok {
-		return fmt.Errorf(`IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT`)
+		return errors.Errorf(`IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT`)
 	}
 
 	idAsString := utils.Int64ToString(announcementId)

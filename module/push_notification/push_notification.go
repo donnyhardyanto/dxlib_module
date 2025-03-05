@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"firebase.google.com/go/v4/messaging"
 	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
@@ -14,6 +13,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/messaging/fcm"
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
+	"github.com/pkg/errors"
 	"math"
 	"net/http"
 	"sync"
@@ -365,7 +365,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 
 	firebaseServiceAccount, err := fcm.Manager.GetServiceAccount(applicationId)
 	if err != nil {
-		return fmt.Errorf("failed to get Firebase app: %v", err)
+		return errors.Errorf("failed to get Firebase app: %v", err)
 	}
 
 	_, fcmMessages, err := f.FCMMessage.Select(&log.Log, nil, utils.JSON{
@@ -374,7 +374,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 		"c2":                 db.SQLExpression{Expression: "(next_retry_time <= NOW()) or (next_retry_time IS NULL)"},
 	}, nil, nil, 100)
 	if err != nil {
-		return fmt.Errorf("failed to fetch messages: %v", err)
+		return errors.Errorf("failed to fetch messages: %v", err)
 	}
 
 	for _, fcmMessage := range fcmMessages {
@@ -431,7 +431,7 @@ func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *m
 			},
 		}
 	default:
-		return fmt.Errorf("UNKNOWN_DEVICE_TYPE: %s", deviceType)
+		return errors.Errorf("UNKNOWN_DEVICE_TYPE: %s", deviceType)
 	}
 
 	_, err := client.Send(ctx, message)

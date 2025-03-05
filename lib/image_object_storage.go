@@ -2,9 +2,9 @@ package lib
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/object_storage"
+	"github.com/pkg/errors"
 	"golang.org/x/image/draw"
 	"image"
 	_ "image/jpeg"
@@ -30,11 +30,11 @@ const MaxRequestSize = 100 * 1024 * 1024 // 100MB
 func checkImageFormat(buf *bytes.Buffer) (string, error) {
 	_, format, err := image.DecodeConfig(bytes.NewReader(buf.Bytes()))
 	if err != nil {
-		return "", fmt.Errorf("failed to decode image config: %v", err.Error())
+		return "", errors.Errorf("failed to decode image config: %v", err.Error())
 	}
 
 	if format == "" {
-		return "", fmt.Errorf("unknown image format")
+		return "", errors.Errorf("unknown image format")
 	}
 
 	return format, nil
@@ -123,7 +123,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 
 		err = png.Encode(&resizedBuf, resizedImg)
 		if err != nil {
-			return fmt.Errorf("RESIZED_IMAGE_PNG_ENCODE_FAILED:(%dx%d) %v", processedImage.Width, processedImage.Height, err.Error())
+			return errors.Errorf("RESIZED_IMAGE_PNG_ENCODE_FAILED:(%dx%d) %v", processedImage.Width, processedImage.Height, err.Error())
 		}
 
 		// Upload the resized image
@@ -131,7 +131,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		bufLen := int64(len(buf))
 		uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(buf), filename, filename, "image/"+formatName, false, bufLen)
 		if err != nil {
-			return fmt.Errorf("FAILED_TO_UPLOAD_RESIZED_IMAGE_TO_OBJECT_STORAGE:(%s)=%v", processedImage.ObjectStorageNameId, err.Error())
+			return errors.Errorf("FAILED_TO_UPLOAD_RESIZED_IMAGE_TO_OBJECT_STORAGE:(%s)=%v", processedImage.ObjectStorageNameId, err.Error())
 		}
 
 		aepr.Log.Infof("Resized (%dx%d) upload info result size: %d", processedImage.Width, processedImage.Height, uploadInfo.Size)

@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/configuration"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"slices"
@@ -451,15 +451,15 @@ func (s *DxmSelf) SelfConfiguration(aepr *api.DXAPIEndPointRequest) (err error) 
 	configExternalSystem := *configuration.Manager.Configurations[`external_system`].Data
 	mobileAppConfiguration, ok := configExternalSystem["MOBILE_APP1"].(utils.JSON)
 	if !ok {
-		return fmt.Errorf(`GET_CONFIGURATION:MOBILE_APP_CONFIG_NOT_FOUND`)
+		return errors.Errorf(`GET_CONFIGURATION:MOBILE_APP_CONFIG_NOT_FOUND`)
 	}
 	apiKeyGoogleMap, ok := mobileAppConfiguration[`api_key_google_map`].(string)
 	if !ok {
-		return fmt.Errorf(`GET_CONFIGURATION:MOBILE_APP_API_KEY_GOOGLE_MAP_CONFIG_NOT_FOUND`)
+		return errors.Errorf(`GET_CONFIGURATION:MOBILE_APP_API_KEY_GOOGLE_MAP_CONFIG_NOT_FOUND`)
 	}
 	apiKeyFirebase, ok := mobileAppConfiguration[`api_key_firebase`].(string)
 	if !ok {
-		return fmt.Errorf(`GET_CONFIGURATION:MOBILE_APP_API_KEY_FIREBASE_CONFIG_NOT_FOUND`)
+		return errors.Errorf(`GET_CONFIGURATION:MOBILE_APP_API_KEY_FIREBASE_CONFIG_NOT_FOUND`)
 	}
 	lvAPIKeyGoogleMap, err := lv.NewLV([]byte(apiKeyGoogleMap))
 	if err != nil {
@@ -1094,7 +1094,7 @@ func (s *DxmSelf) SelfLogout(aepr *api.DXAPIEndPointRequest) (err error) {
 func PasswordFormatValidation(password string) (err error) {
 
 	if len(password) < 8 {
-		return fmt.Errorf("password must be at least 8 characters long")
+		return errors.Errorf("password must be at least 8 characters long")
 	}
 
 	hasUpper := false
@@ -1116,16 +1116,16 @@ func PasswordFormatValidation(password string) (err error) {
 	}
 
 	if !hasUpper {
-		return fmt.Errorf("password must contain at least one uppercase letter")
+		return errors.Errorf("password must contain at least one uppercase letter")
 	}
 	if !hasLower {
-		return fmt.Errorf("password must contain at least one lowercase letter")
+		return errors.Errorf("password must contain at least one lowercase letter")
 	}
 	if !hasNumber {
-		return fmt.Errorf("password must contain at least one number")
+		return errors.Errorf("password must contain at least one number")
 	}
 	if hasSpecial {
-		return fmt.Errorf("password must not contain special characters")
+		return errors.Errorf("password must not contain special characters")
 	}
 
 	return nil
