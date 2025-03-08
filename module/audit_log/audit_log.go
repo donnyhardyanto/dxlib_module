@@ -5,6 +5,7 @@ import (
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
+	"time"
 )
 
 type DxmAudit struct {
@@ -33,6 +34,7 @@ func (al *DxmAudit) DoError(logLevel log.DXLogLevel, location string, text strin
 	}
 	logLevelAsString := log.DXLogLevelAsString[logLevel]
 	_, err = ModuleAudit.ErrorLog.Insert(&log.Log, utils.JSON{
+		"at":        time.Now(),
 		"log_level": logLevelAsString,
 		"location":  location,
 		"message":   text,

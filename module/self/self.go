@@ -522,6 +522,9 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		if !verificationResult {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
 		}
+		userLoggedOrganizationId = userLoggedOrganization[`id`].(int64)
+		userLoggedOrganizationUid = userLoggedOrganization[`uid`].(string)
+
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			`loginid`: userLoginId,
