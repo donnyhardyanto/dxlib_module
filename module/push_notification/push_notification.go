@@ -54,13 +54,13 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.DatabaseNameId = databaseNameId
 	f.FCMApplication = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_application",
 		"push_notification.fcm_application",
-		"push_notification.fcm_application", `nameid`, `id`, "uid")
+		"push_notification.fcm_application", `nameid`, `id`, "uid", "data")
 	f.FCMUserToken = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_user_token",
 		"push_notification.fcm_user_token",
-		"push_notification.fcm_user_token", `id`, `id`, "uid")
+		"push_notification.fcm_user_token", `id`, `id`, "uid", "data")
 	f.FCMMessage = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_message",
 		"push_notification.fcm_message",
-		"push_notification.v_fcm_message", `id`, `id`, "uid")
+		"push_notification.v_fcm_message", `id`, `id`, "uid", "data")
 }
 
 /*func (f *FirebaseCloudMessaging) ApplicationRequestPagingList(aepr *api.DXAPIEndPointRequest) (err error) {

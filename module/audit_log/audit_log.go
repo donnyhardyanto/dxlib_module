@@ -23,10 +23,10 @@ func (al *DxmAudit) Init(databaseNameId string) {
 		"log.event", `id`, `id`)*/
 	al.UserActivityLog = table.Manager.NewRawTable(databaseNameId, "audit.user_activity_log",
 		"audit.user_activity_log",
-		"audit.user_activity_log", `id`, `id`, "uid")
+		"audit.user_activity_log", `id`, `id`, "uid", "data")
 	al.ErrorLog = table.Manager.NewRawTable(databaseNameId, "log.error",
 		"log.error",
-		"log.error", `id`, `id`, "uid")
+		"log.error", `id`, `id`, "uid", "data")
 }
 
 func (al *DxmAudit) DoError(logLevel log.DXLogLevel, location string, text string, stack string) (err error) {
