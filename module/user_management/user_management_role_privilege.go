@@ -103,6 +103,8 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 		`privilege_id`: privilegeId,
 	})
 	if err != nil {
+		log.Error(err.Error())
+
 		return 0
 	}
 
