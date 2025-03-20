@@ -36,7 +36,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 		}
 
 		// if define in vault, use it
-		s := app.App.InitVault.ResolveAsString(`__VAULT__SUPERADMIN_INITIAL_PASSWORD`)
+		s := app.App.InitVault.GetStringOrDefault("SUPERADMIN_INITIAL_PASSWORD", "")
 		if s != "" {
 			err = um.UserPasswordTxCreate(tx, userSuperAdmin[`id`].(int64), s)
 			if err != nil {
