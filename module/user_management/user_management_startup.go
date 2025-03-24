@@ -17,7 +17,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 			"loginid": "superadmin",
 		}, nil)
 		if err != nil {
-			l.Errorf("Failed to check superadmin user: %s", err.Error())
+			l.Errorf(err, "Failed to check superadmin user: %s", err.Error())
 			return err
 		}
 		if userSuperAdmin == nil {
@@ -28,7 +28,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 			"user_id": userSuperAdmin[`id`],
 		}, nil)
 		if err != nil {
-			l.Errorf("Failed to check superadmin user password: %s", err.Error())
+			l.Errorf(err, "Failed to check superadmin user password: %s", err.Error())
 			return err
 		}
 		if userPassword != nil {
@@ -40,7 +40,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 		if s != "" {
 			err = um.UserPasswordTxCreate(tx, userSuperAdmin[`id`].(int64), s)
 			if err != nil {
-				l.Errorf("Failed to insert superadmin user password: %s", err.Error())
+				l.Errorf(err, "Failed to insert superadmin user password: %s", err.Error())
 				return err
 			}
 			l.Warn("Superadmin password has been set")
@@ -53,13 +53,13 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 		l.Warnf("No superadmin password found. Regenerating new one, input new password:")
 		_, err = fmt.Scanln(&userInputPassword1)
 		if err != nil {
-			l.Errorf("Failed to input password: %s", err.Error())
+			l.Errorf(err, "Failed to input password: %s", err.Error())
 			return err
 		}
 		l.Warnf("Input the password again to confirm:")
 		_, err = fmt.Scanln(&userInputPassword2)
 		if err != nil {
-			l.Errorf("Failed to input password again: %s", err.Error())
+			l.Errorf(err, "Failed to input password again: %s", err.Error())
 			return err
 		}
 		if userInputPassword1 != userInputPassword2 {
@@ -70,7 +70,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 		err = um.UserPasswordTxCreate(tx, userSuperAdmin[`id`].(int64), userInputPassword1)
 
 		if err != nil {
-			l.Errorf("Failed to insert superadmin user password: %s", err.Error())
+			l.Errorf(err, "Failed to insert superadmin user password: %s", err.Error())
 			return err
 		}
 		l.Warn("Superadmin password has been set")

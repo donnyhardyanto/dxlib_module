@@ -339,7 +339,7 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 		fcmApplicationId := fcmApplication["id"].(int64)
 		serviceAccountData, err := utils.GetJSONFromKV(fcmApplication, "service_account_data")
 		if err != nil {
-			log.Log.Errorf("ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
+			log.Log.Errorf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
 			continue
 		}
 		_, err = fcm.Manager.StoreApplication(context.Background(), fcmApplicationId, serviceAccountData)

@@ -92,7 +92,7 @@ func (um *DxmUserManagement) PrivilegeListDownload(aepr *api.DXAPIEndPointReques
 	if !t.Database.Connected {
 		err := t.Database.Connect()
 		if err != nil {
-			aepr.Log.Errorf("error At reconnect db At table %s list (%s) ", t.NameId, err.Error())
+			aepr.Log.Errorf(err, "error At reconnect db At table %s list (%s) ", t.NameId, err.Error())
 			return err
 		}
 	}

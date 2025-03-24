@@ -21,15 +21,18 @@ func (al *DxmAudit) Init(databaseNameId string) {
 	/*	al.EventLog = table.Manager.NewTable(databaseNameId, "log.event",
 		"log.event",
 		"log.event", `id`, `id`)*/
-	al.UserActivityLog = table.Manager.NewRawTable(databaseNameId, "audit.user_activity_log",
-		"audit.user_activity_log",
-		"audit.user_activity_log", `id`, `id`, "uid", "data")
-	al.ErrorLog = table.Manager.NewRawTable(databaseNameId, "log.error",
-		"log.error",
-		"log.error", `id`, `id`, "uid", "data")
+	al.UserActivityLog = table.Manager.NewRawTable(databaseNameId, "audit_log.user_activity_log",
+		"audit_log.user_activity_log",
+		"audit_log.user_activity_log", `id`, `id`, "uid", "data")
+	al.ErrorLog = table.Manager.NewRawTable(databaseNameId, "audit_log.error_log",
+		"audit_log.error_log",
+		"audit_log.error_log", `id`, `id`, "uid", "data")
 }
 
-func (al *DxmAudit) DoError(logLevel log.DXLogLevel, location string, text string, stack string) (err error) {
+func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location string, text string, stack string) (err error) {
+	if errPrev != nil {
+		text = errPrev.Error() + "\n" + text
+	}
 	if logLevel > log.DXLogLevelError {
 		return
 	}

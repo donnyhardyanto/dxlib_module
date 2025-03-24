@@ -82,7 +82,7 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 	if !t.Database.Connected {
 		err := t.Database.Connect()
 		if err != nil {
-			aepr.Log.Errorf("error at reconnect db at table %s list (%s) ", t.NameId, err.Error())
+			aepr.Log.Errorf(err, "error at reconnect db at table %s list (%s) ", t.NameId, err.Error())
 			return err
 		}
 	}
@@ -90,7 +90,7 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 	rowsInfo, list, totalRows, totalPage, _, err := db.NamedQueryPaging(t.Database.Connection, t.FieldTypeMapping, "", rowPerPage, pageIndex, "*", t.ListViewNameId,
 		filterWhere, "", filterOrderBy, filterKeyValues)
 	if err != nil {
-		aepr.Log.Errorf("Error at paging table %s (%s) ", t.NameId, err.Error())
+		aepr.Log.Errorf(err, "Error at paging table %s (%s) ", t.NameId, err.Error())
 		return err
 	}
 
