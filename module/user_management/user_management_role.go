@@ -10,9 +10,9 @@ func (um *DxmUserManagement) RoleList(aepr *api.DXAPIEndPointRequest) (err error
 
 func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = um.Role.DoCreate(aepr, map[string]any{
-		`nameid`:      aepr.ParameterValues[`nameid`].Value.(string),
-		`name`:        aepr.ParameterValues[`name`].Value.(string),
-		`description`: aepr.ParameterValues[`description`].Value.(string),
+		"nameid":      aepr.ParameterValues["nameid"].Value.(string),
+		"name":        aepr.ParameterValues["name"].Value.(string),
+		"description": aepr.ParameterValues["description"].Value.(string),
 	})
 	return err
 }

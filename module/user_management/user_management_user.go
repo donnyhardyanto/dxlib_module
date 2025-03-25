@@ -163,7 +163,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	lvPayloadPassword := lvPayloadElements[0]
 	userPassword := string(lvPayloadPassword.Value)
 
-	attribute, ok := aepr.ParameterValues[`attribute`].Value.(string)
+	attribute, ok := aepr.ParameterValues["attribute"].Value.(string)
 	if !ok {
 		attribute = ""
 	}
@@ -175,37 +175,37 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	status := UserStatusActive
 
 	p := utils.JSON{
-		`loginid`:              loginId,
-		`email`:                email,
-		`fullname`:             fullname,
-		`phonenumber`:          phonenumber,
-		`status`:               status,
-		`attribute`:            attribute,
+		"loginid":              loginId,
+		"email":                email,
+		"fullname":             fullname,
+		"phonenumber":          phonenumber,
+		"status":               status,
+		"attribute":            attribute,
 		"must_change_password": false,
 		"is_avatar_exist":      false,
 	}
 
-	identityNumber, ok := aepr.ParameterValues[`identity_number`].Value.(string)
+	identityNumber, ok := aepr.ParameterValues["identity_number"].Value.(string)
 	if ok {
-		p[`identity_number`] = identityNumber
+		p["identity_number"] = identityNumber
 	}
 
-	identityType, ok := aepr.ParameterValues[`identity_type`].Value.(string)
+	identityType, ok := aepr.ParameterValues["identity_type"].Value.(string)
 	if ok {
-		p[`identity_type`] = identityType
+		p["identity_type"] = identityType
 	}
 
-	gender, ok := aepr.ParameterValues[`gender`].Value.(string)
+	gender, ok := aepr.ParameterValues["gender"].Value.(string)
 	if ok {
-		p[`gender`] = gender
+		p["gender"] = gender
 	}
 
-	addressOnIdentityCard, ok := aepr.ParameterValues[`gender`].Value.(string)
+	addressOnIdentityCard, ok := aepr.ParameterValues["gender"].Value.(string)
 	if ok {
-		p[`address_on_identity_card`] = addressOnIdentityCard
+		p["address_on_identity_card"] = addressOnIdentityCard
 	}
 
-	membershipNumber, ok := aepr.ParameterValues[`membership_number`].Value.(string)
+	membershipNumber, ok := aepr.ParameterValues["membership_number"].Value.(string)
 	if !ok {
 		membershipNumber = ""
 	}
@@ -263,7 +263,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		}
 
 		_, userRoleMembership, err := um.UserRoleMembership.TxSelectOne(tx, utils.JSON{
-			`id`: userRoleMembershipId,
+			"id": userRoleMembershipId,
 		}, nil)
 		if err != nil {
 			return err
@@ -622,11 +622,11 @@ func (um *DxmUserManagement) passwordHashVerify(tryPassword string, hashedPasswo
 	}
 
 	if lvSeparateElements == nil {
-		return false, errors.New(`lvSeparateElements.IS_NIL`)
+		return false, errors.New("lvSeparateElements.IS_NIL")
 	}
 
 	if len(lvSeparateElements) < 3 {
-		return false, errors.New(`lvSeparateElements.IS_NOT_3`)
+		return false, errors.New("lvSeparateElements.IS_NOT_3")
 	}
 
 	lvSalt := lvSeparateElements[0]
@@ -647,7 +647,7 @@ func (um *DxmUserManagement) passwordHashVerify(tryPassword string, hashedPasswo
 
 func (um *DxmUserManagement) UserPasswordVerify(l *dxlibLog.DXLog, userId int64, tryPassword string) (verificationResult bool, err error) {
 	_, userPasswordRow, err := um.UserPassword.SelectOne(l, nil, utils.JSON{
-		`user_id`: userId,
+		"user_id": userId,
 	}, nil, map[string]string{"id": "DESC"})
 	if err != nil {
 		return false, err
@@ -663,8 +663,8 @@ func (um *DxmUserManagement) UserPasswordVerify(l *dxlibLog.DXLog, userId int64,
 }
 
 func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString string) (lvPayloadElements []*lv.LV, sharedKey2AsBytes []byte, edB0PrivateKeyAsBytes []byte, err error) {
-	if preKeyIndex == `` || datablockAsString == `` {
-		return nil, nil, nil, errors.New(`PARAMETER_IS_EMPTY`)
+	if preKeyIndex == "" || datablockAsString == "" {
+		return nil, nil, nil, errors.New("PARAMETER_IS_EMPTY")
 	}
 
 	preKeyData, err := um.PreKeyRedis.Get(preKeyIndex)
@@ -672,13 +672,13 @@ func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString 
 		return nil, nil, nil, err
 	}
 	if preKeyData == nil {
-		return nil, nil, nil, errors.New(`PREKEY_NOT_FOUND`)
+		return nil, nil, nil, errors.New("PREKEY_NOT_FOUND")
 	}
 
-	sharedKey1AsHexString := preKeyData[`shared_key_1`].(string)
-	sharedKey2AsHexString := preKeyData[`shared_key_2`].(string)
-	edA0PublicKeyAsHexString := preKeyData[`a0_public_key`].(string)
-	edB0PrivateKeyAsHexString := preKeyData[`b0_private_key`].(string)
+	sharedKey1AsHexString := preKeyData["shared_key_1"].(string)
+	sharedKey2AsHexString := preKeyData["shared_key_2"].(string)
+	edA0PublicKeyAsHexString := preKeyData["a0_public_key"].(string)
+	edB0PrivateKeyAsHexString := preKeyData["b0_private_key"].(string)
 
 	sharedKey1AsBytes, err := hex.DecodeString(sharedKey1AsHexString)
 	if err != nil {
@@ -709,8 +709,8 @@ func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString 
 func (um *DxmUserManagement) PreKeyUnpackCaptcha(preKeyIndex string, datablockAsString string) (
 	lvPayloadElements []*lv.LV, sharedKey2AsBytes []byte, edB0PrivateKeyAsBytes []byte, captchaId string, captchaText string, err error,
 ) {
-	if preKeyIndex == `` || datablockAsString == `` {
-		return nil, nil, nil, "", "", errors.New(`PARAMETER_IS_EMPTY`)
+	if preKeyIndex == "" || datablockAsString == "" {
+		return nil, nil, nil, "", "", errors.New("PARAMETER_IS_EMPTY")
 	}
 
 	preKeyData, err := um.PreKeyRedis.Get(preKeyIndex)
@@ -718,15 +718,15 @@ func (um *DxmUserManagement) PreKeyUnpackCaptcha(preKeyIndex string, datablockAs
 		return nil, nil, nil, "", "", err
 	}
 	if preKeyData == nil {
-		return nil, nil, nil, "", "", errors.New(`PREKEY_NOT_FOUND`)
+		return nil, nil, nil, "", "", errors.New("PREKEY_NOT_FOUND")
 	}
 
-	sharedKey1AsHexString := preKeyData[`shared_key_1`].(string)
-	sharedKey2AsHexString := preKeyData[`shared_key_2`].(string)
-	edA0PublicKeyAsHexString := preKeyData[`a0_public_key`].(string)
-	edB0PrivateKeyAsHexString := preKeyData[`b0_private_key`].(string)
-	captchaId = preKeyData[`captcha_id`].(string)
-	captchaText = preKeyData[`captcha_text`].(string)
+	sharedKey1AsHexString := preKeyData["shared_key_1"].(string)
+	sharedKey2AsHexString := preKeyData["shared_key_2"].(string)
+	edA0PublicKeyAsHexString := preKeyData["a0_public_key"].(string)
+	edB0PrivateKeyAsHexString := preKeyData["b0_private_key"].(string)
+	captchaId = preKeyData["captcha_id"].(string)
+	captchaText = preKeyData["captcha_text"].(string)
 
 	sharedKey1AsBytes, err := hex.DecodeString(sharedKey1AsHexString)
 	if err != nil {
@@ -767,7 +767,7 @@ func generateRandomString(n int) string {
 func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 	_, user, err := um.User.SelectOne(&aepr.Log, nil, utils.JSON{
-		`id`: userId,
+		"id": userId,
 	}, nil, nil)
 	if err != nil {
 		return err
@@ -835,7 +835,7 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 
 	_, format, err := aepr.GetParameterValueAsString("format")
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, `FORMAT_PARAMETER_ERROR:%s`, err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "FORMAT_PARAMETER_ERROR:%s", err.Error())
 	}
 
 	format = strings.ToLower(format)

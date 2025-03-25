@@ -25,7 +25,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 			return err
 		}
 		_, userPassword, err := um.UserPassword.TxSelectOne(tx, utils.JSON{
-			"user_id": userSuperAdmin[`id`],
+			"user_id": userSuperAdmin["id"],
 		}, nil)
 		if err != nil {
 			l.Errorf(err, "Failed to check superadmin user password: %s", err.Error())
@@ -38,7 +38,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 		// if define in vault, use it
 		s := app.App.InitVault.GetStringOrDefault("SUPERADMIN_INITIAL_PASSWORD", "")
 		if s != "" {
-			err = um.UserPasswordTxCreate(tx, userSuperAdmin[`id`].(int64), s)
+			err = um.UserPasswordTxCreate(tx, userSuperAdmin["id"].(int64), s)
 			if err != nil {
 				l.Errorf(err, "Failed to insert superadmin user password: %s", err.Error())
 				return err
@@ -67,7 +67,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 			return err
 		}
 
-		err = um.UserPasswordTxCreate(tx, userSuperAdmin[`id`].(int64), userInputPassword1)
+		err = um.UserPasswordTxCreate(tx, userSuperAdmin["id"].(int64), userInputPassword1)
 
 		if err != nil {
 			l.Errorf(err, "Failed to insert superadmin user password: %s", err.Error())

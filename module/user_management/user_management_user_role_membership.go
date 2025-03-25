@@ -13,22 +13,22 @@ func (um *DxmUserManagement) UserRoleMembershipList(aepr *api.DXAPIEndPointReque
 }
 
 func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, userId, err := aepr.GetParameterValueAsInt64(`user_id`)
+	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 	if err != nil {
 		return err
 	}
-	_, roleId, err := aepr.GetParameterValueAsInt64(`role_id`)
+	_, roleId, err := aepr.GetParameterValueAsInt64("role_id")
 	if err != nil {
 		return err
 	}
-	_, organizationId, err := aepr.GetParameterValueAsInt64(`organization_id`)
+	_, organizationId, err := aepr.GetParameterValueAsInt64("organization_id")
 	if err != nil {
 		return err
 	}
 
 	_, _, err = um.OrganizationRoles.ShouldSelectOne(&aepr.Log, utils.JSON{
-		`organization_id`: organizationId,
-		`role_id`:         roleId,
+		"organization_id": organizationId,
+		"role_id":         roleId,
 	}, nil, nil)
 	if err != nil {
 		return err
@@ -43,9 +43,9 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 
 	var userRoleMembershipId int64
 	userRoleMembershipId, err = um.UserRoleMembership.TxInsert(dtx, map[string]any{
-		`user_id`:         userId,
-		`organization_id`: organizationId,
-		`role_id`:         roleId,
+		"user_id":         userId,
+		"organization_id": organizationId,
+		"role_id":         roleId,
 	})
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 }
 
 func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, userRoleMembershipId, err := aepr.GetParameterValueAsInt64(`id`)
+	_, userRoleMembershipId, err := aepr.GetParameterValueAsInt64("id")
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPoin
 }
 func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPointRequest) (err error) {
 
-	_, userRoleMembershipId, err := aepr.GetParameterValueAsInt64(`id`)
+	_, userRoleMembershipId, err := aepr.GetParameterValueAsInt64("id")
 	if err != nil {
 		return err
 	}

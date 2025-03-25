@@ -19,14 +19,14 @@ type DxmExternalSystem struct {
 func (w *DxmExternalSystem) Init(databaseNameId string) {
 	w.ExternalSystem = table.Manager.NewTable(databaseNameId, "configuration.external_system",
 		"configuration.external_system",
-		"configuration.external_system", `nameid`, `id`, "uid", "data")
+		"configuration.external_system", "nameid", "id", "uid", "data")
 }
 func (w *DxmExternalSystem) ExternalSystemList(aepr *api.DXAPIEndPointRequest) (err error) {
 	return w.ExternalSystem.RequestPagingList(aepr)
 }
 
 func (w *DxmExternalSystem) ExternalSystemCreate(aepr *api.DXAPIEndPointRequest) (err error) {
-	configuration, ok := aepr.ParameterValues[`configuration`].Value.(utils.JSON)
+	configuration, ok := aepr.ParameterValues["configuration"].Value.(utils.JSON)
 	if !ok {
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "CONFIGURATION_IS_NOT_JSON")
 	}
@@ -35,9 +35,9 @@ func (w *DxmExternalSystem) ExternalSystemCreate(aepr *api.DXAPIEndPointRequest)
 		return err
 	}
 	_, err = w.ExternalSystem.DoCreate(aepr, map[string]any{
-		`nameid`:        aepr.ParameterValues[`nameid`].Value.(string),
-		`type`:          aepr.ParameterValues[`type`].Value.(string),
-		`configuration`: configurationAsString,
+		"nameid":        aepr.ParameterValues["nameid"].Value.(string),
+		"type":          aepr.ParameterValues["type"].Value.(string),
+		"configuration": configurationAsString,
 	})
 	return err
 }

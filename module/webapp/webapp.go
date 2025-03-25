@@ -14,9 +14,9 @@ type DxmWebapp struct {
 
 func (w *DxmWebapp) Init(databaseNameId string) {
 	w.App = table.Manager.NewTable(databaseNameId, "webapp.app", "webapp.app",
-		"webapp.app", `nameid`, `id`, "uid")
+		"webapp.app", "nameid", "id", "uid")
 	w.Page = table.Manager.NewTable(databaseNameId, "webapp.page", "webapp.page",
-		"webapp.page", `nameid`, `id`, "uid")
+		"webapp.page", "nameid", "id", "uid")
 }
 
 func (w *DxmWebapp) AppList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -25,7 +25,7 @@ func (w *DxmWebapp) AppList(aepr *api.DXAPIEndPointRequest) (err error) {
 
 func (w *DxmWebapp) AppCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = w.App.DoCreate(aepr, map[string]any{
-		`nameid`: aepr.ParameterValues[`nameid`].Value.(string),
+		"nameid": aepr.ParameterValues["nameid"].Value.(string),
 	})
 	return err
 }
@@ -48,9 +48,9 @@ func (w *DxmWebapp) PageList(aepr *api.DXAPIEndPointRequest) (err error) {
 
 func (w *DxmWebapp) PageCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = w.Page.DoCreate(aepr, map[string]any{
-		`app_id`:  aepr.ParameterValues[`app_id`].Value.(int64),
-		`nameid`:  aepr.ParameterValues[`nameid`].Value.(string),
-		`content`: aepr.ParameterValues[`content`].Value.(string),
+		"app_id":  aepr.ParameterValues["app_id"].Value.(int64),
+		"nameid":  aepr.ParameterValues["nameid"].Value.(string),
+		"content": aepr.ParameterValues["content"].Value.(string),
 	})
 	return err
 }

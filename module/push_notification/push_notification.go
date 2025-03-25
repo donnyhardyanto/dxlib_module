@@ -54,13 +54,13 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.DatabaseNameId = databaseNameId
 	f.FCMApplication = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_application",
 		"push_notification.fcm_application",
-		"push_notification.fcm_application", `nameid`, `id`, "uid", "data")
+		"push_notification.fcm_application", "nameid", "id", "uid", "data")
 	f.FCMUserToken = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_user_token",
 		"push_notification.fcm_user_token",
-		"push_notification.fcm_user_token", `id`, `id`, "uid", "data")
+		"push_notification.fcm_user_token", "id", "id", "uid", "data")
 	f.FCMMessage = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_message",
 		"push_notification.fcm_message",
-		"push_notification.v_fcm_message", `id`, `id`, "uid", "data")
+		"push_notification.v_fcm_message", "id", "id", "uid", "data")
 }
 
 /*func (f *FirebaseCloudMessaging) ApplicationRequestPagingList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -83,8 +83,8 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 	}
 
 	_, err = f.FCMApplication.DoCreate(aepr, map[string]interface{}{
-		`nameid`:               nameId,
-		`service_account_data`: serviceAccountDataAsBytes,
+		"nameid":               nameId,
+		"service_account_data": serviceAccountDataAsBytes,
 	})
 	if err != nil {
 		return err
@@ -172,7 +172,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		"data": utils.JSON{
-			`id`: userTokenId,
+			"id": userTokenId,
 		}})
 	return nil
 }

@@ -53,8 +53,8 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 	}
 
 	return t.DoRequestPagingList(aepr, filterWhere, filterOrderBy, filterKeyValues, func(listRow utils.JSON) (utils.JSON, error) {
-		organizationId := listRow[`id`].(int64)
-		_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{`organization_id`: organizationId}, nil, map[string]string{"id": "asc"}, nil)
+		organizationId := listRow["id"].(int64)
+		_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{"organization_id": organizationId}, nil, map[string]string{"id": "asc"}, nil)
 		if err != nil {
 			return listRow, err
 		}
@@ -66,53 +66,53 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 
 func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	o := utils.JSON{
-		`parent_id`: aepr.ParameterValues[`parent_id`].Value.(int64),
-		`code`:      aepr.ParameterValues[`code`].Value.(string),
-		`name`:      aepr.ParameterValues[`name`].Value.(string),
-		`type`:      aepr.ParameterValues[`type`].Value.(string),
+		"parent_id": aepr.ParameterValues["parent_id"].Value.(int64),
+		"code":      aepr.ParameterValues["code"].Value.(string),
+		"name":      aepr.ParameterValues["name"].Value.(string),
+		"type":      aepr.ParameterValues["type"].Value.(string),
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `address`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "address")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `npwp`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "npwp")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `email`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "email")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `phonenumber`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "phonenumber")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `attribute1`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "attribute1")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `attribute2`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "attribute2")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `auth_source1`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "auth_source1")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `auth_source2`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "auth_source2")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `utag`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "utag")
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) 
 }
 func (um *DxmUserManagement) OrganizationCreateByUid(aepr *api.DXAPIEndPointRequest) (err error) {
 
-	_, parentUid, err := aepr.GetParameterValueAsString(`parent_uid`)
+	_, parentUid, err := aepr.GetParameterValueAsString("parent_uid")
 	if err != nil {
 		return err
 	}
@@ -130,56 +130,56 @@ func (um *DxmUserManagement) OrganizationCreateByUid(aepr *api.DXAPIEndPointRequ
 	if err != nil {
 		return err
 	}
-	parentOrganizationId := parentOrganization[`id`].(int64)
+	parentOrganizationId := parentOrganization["id"].(int64)
 
 	o := utils.JSON{
-		`parent_id`: parentOrganizationId,
-		`code`:      aepr.ParameterValues[`code`].Value.(string),
-		`name`:      aepr.ParameterValues[`name`].Value.(string),
-		`type`:      aepr.ParameterValues[`type`].Value.(string),
+		"parent_id": parentOrganizationId,
+		"code":      aepr.ParameterValues["code"].Value.(string),
+		"name":      aepr.ParameterValues["name"].Value.(string),
+		"type":      aepr.ParameterValues["type"].Value.(string),
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `address`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "address")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `npwp`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "npwp")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `email`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "email")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `phonenumber`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "phonenumber")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `attribute1`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "attribute1")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `attribute2`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "attribute2")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `auth_source1`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "auth_source1")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `auth_source2`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "auth_source2")
 	if err != nil {
 		return err
 	}
 
-	_, _, err = aepr.AssignParameterNullableString(&o, `utag`)
+	_, _, err = aepr.AssignParameterNullableString(&o, "utag")
 	if err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func (um *DxmUserManagement) OrganizationDelete(aepr *api.DXAPIEndPointRequest) 
 
 	_, format, err := aepr.GetParameterValueAsString("format")
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, `FORMAT_PARAMETER_ERROR:%s`, err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "FORMAT_PARAMETER_ERROR:%s", err.Error())
 	}
 
 	format = strings.ToLower(format)

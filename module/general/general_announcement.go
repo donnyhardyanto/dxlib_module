@@ -16,8 +16,8 @@ func (g *DxmGeneral) AnnouncementListAll(aepr *api.DXAPIEndPointRequest) (err er
 
 func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = g.Announcement.DoCreate(aepr, map[string]any{
-		`title`:   aepr.ParameterValues[`title`].Value.(string),
-		`content`: aepr.ParameterValues[`content`].Value.(string),
+		"title":   aepr.ParameterValues["title"].Value.(string),
+		"content": aepr.ParameterValues["content"].Value.(string),
 	})
 	return err
 }
@@ -35,7 +35,7 @@ func (g *DxmGeneral) AnnouncementDelete(aepr *api.DXAPIEndPointRequest) (err err
 }
 
 func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
-	id := aepr.ParameterValues[`id`].Value.(int64)
+	id := aepr.ParameterValues["id"].Value.(int64)
 
 	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
 	if err != nil {
@@ -54,7 +54,7 @@ func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRequest) (err error) {
-	id := aepr.ParameterValues[`id`].Value.(int64)
+	id := aepr.ParameterValues["id"].Value.(int64)
 
 	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
 	if err != nil {
@@ -74,7 +74,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRe
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadSourceByUid(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, uid, err := aepr.GetParameterValueAsString(`uid`)
+	_, uid, err := aepr.GetParameterValueAsString("uid")
 	if err != nil {
 		return err
 	}
@@ -84,9 +84,9 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSourceByUid(aepr *api.DXAPIEndPo
 		return err
 	}
 
-	announcementId, ok := announcement[`id`].(int64)
+	announcementId, ok := announcement["id"].(int64)
 	if !ok {
-		return errors.Errorf(`IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT`)
+		return errors.Errorf("IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT")
 	}
 
 	idAsString := utils.Int64ToString(announcementId)
@@ -102,7 +102,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSourceByUid(aepr *api.DXAPIEndPo
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadByUidByProcessedNameId(aepr *api.DXAPIEndPointRequest, processedImageNameId string) (err error) {
-	_, uid, err := aepr.GetParameterValueAsString(`uid`)
+	_, uid, err := aepr.GetParameterValueAsString("uid")
 	if err != nil {
 		return err
 	}
@@ -112,9 +112,9 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByUidByProcessedNameId(aepr *api
 		return err
 	}
 
-	announcementId, ok := announcement[`id`].(int64)
+	announcementId, ok := announcement["id"].(int64)
 	if !ok {
-		return errors.Errorf(`IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT`)
+		return errors.Errorf("IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT")
 	}
 
 	idAsString := utils.Int64ToString(announcementId)
@@ -128,19 +128,19 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByUidByProcessedNameId(aepr *api
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadSmallByUid(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.AnnouncementPictureDownloadByUidByProcessedNameId(aepr, `small`)
+	return g.AnnouncementPictureDownloadByUidByProcessedNameId(aepr, "small")
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadMediumByUid(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.AnnouncementPictureDownloadByUidByProcessedNameId(aepr, `medium`)
+	return g.AnnouncementPictureDownloadByUidByProcessedNameId(aepr, "medium")
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadBigByUid(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.AnnouncementPictureDownloadByUidByProcessedNameId(aepr, `big`)
+	return g.AnnouncementPictureDownloadByUidByProcessedNameId(aepr, "big")
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadByProcessedNameId(aepr *api.DXAPIEndPointRequest, processedImageNameId string) (err error) {
-	id := aepr.ParameterValues[`id`].Value.(int64)
+	id := aepr.ParameterValues["id"].Value.(int64)
 
 	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
 	if err != nil {
@@ -158,13 +158,13 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByProcessedNameId(aepr *api.DXAP
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadSmall(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.AnnouncementPictureDownloadByProcessedNameId(aepr, `small`)
+	return g.AnnouncementPictureDownloadByProcessedNameId(aepr, "small")
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadMedium(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.AnnouncementPictureDownloadByProcessedNameId(aepr, `medium`)
+	return g.AnnouncementPictureDownloadByProcessedNameId(aepr, "medium")
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadBig(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.AnnouncementPictureDownloadByProcessedNameId(aepr, `big`)
+	return g.AnnouncementPictureDownloadByProcessedNameId(aepr, "big")
 }

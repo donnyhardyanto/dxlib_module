@@ -63,28 +63,28 @@ func (s *DxmSelf) Init(databaseNameId string) {
 */
 
 func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, edA0PublicKeyAsHexString, err := aepr.GetParameterValueAsString(`a0`)
+	_, edA0PublicKeyAsHexString, err := aepr.GetParameterValueAsString("a0")
 	if err != nil {
 		return err
 	}
 
-	_, ecdhA1PublicKeyAsHexString, err := aepr.GetParameterValueAsString(`a1`)
+	_, ecdhA1PublicKeyAsHexString, err := aepr.GetParameterValueAsString("a1")
 	if err != nil {
 		return err
 	}
-	_, ecdhA2PublicKeyAsHexString, err := aepr.GetParameterValueAsString(`a2`)
+	_, ecdhA2PublicKeyAsHexString, err := aepr.GetParameterValueAsString("a2")
 	if err != nil {
 		return err
 	}
 
-	if edA0PublicKeyAsHexString == `` {
-		return aepr.WriteResponseAndNewErrorf(400, "", `PARAMETER_IS_EMPTY:ED_A0_PUBLIC_KEY`)
+	if edA0PublicKeyAsHexString == "" {
+		return aepr.WriteResponseAndNewErrorf(400, "", "PARAMETER_IS_EMPTY:ED_A0_PUBLIC_KEY")
 	}
-	if ecdhA1PublicKeyAsHexString == `` {
-		return aepr.WriteResponseAndNewErrorf(400, "", `PARAMETER_IS_EMPTY:ECDH_A1_PUBLIC_KEY`)
+	if ecdhA1PublicKeyAsHexString == "" {
+		return aepr.WriteResponseAndNewErrorf(400, "", "PARAMETER_IS_EMPTY:ECDH_A1_PUBLIC_KEY")
 	}
-	if ecdhA2PublicKeyAsHexString == `` {
-		return aepr.WriteResponseAndNewErrorf(400, "", `PARAMETER_IS_EMPTY:ECDH_A2_PUBLIC_KEY`)
+	if ecdhA2PublicKeyAsHexString == "" {
+		return aepr.WriteResponseAndNewErrorf(400, "", "PARAMETER_IS_EMPTY:ECDH_A2_PUBLIC_KEY")
 	}
 
 	ecdhA1PublicKeyAsBytes, err := hex.DecodeString(ecdhA1PublicKeyAsHexString)
@@ -131,9 +131,9 @@ func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
-	preKeyString := `PREKEY_` + uuidA.String()
+	preKeyString := "PREKEY_" + uuidA.String()
 
-	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, `PREKEY_TTL_SECOND`)
+	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "PREKEY_TTL_SECOND")
 	if err != nil {
 		return err
 	}
@@ -165,28 +165,28 @@ func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, edA0PublicKeyAsHexString, err := aepr.GetParameterValueAsString(`a0`)
+	_, edA0PublicKeyAsHexString, err := aepr.GetParameterValueAsString("a0")
 	if err != nil {
 		return err
 	}
 
-	_, ecdhA1PublicKeyAsHexString, err := aepr.GetParameterValueAsString(`a1`)
+	_, ecdhA1PublicKeyAsHexString, err := aepr.GetParameterValueAsString("a1")
 	if err != nil {
 		return err
 	}
-	_, ecdhA2PublicKeyAsHexString, err := aepr.GetParameterValueAsString(`a2`)
+	_, ecdhA2PublicKeyAsHexString, err := aepr.GetParameterValueAsString("a2")
 	if err != nil {
 		return err
 	}
 
-	if edA0PublicKeyAsHexString == `` {
-		return aepr.WriteResponseAndNewErrorf(400, "", `PARAMETER_IS_EMPTY:ED_A0_PUBLIC_KEY`)
+	if edA0PublicKeyAsHexString == "" {
+		return aepr.WriteResponseAndNewErrorf(400, "", "PARAMETER_IS_EMPTY:ED_A0_PUBLIC_KEY")
 	}
-	if ecdhA1PublicKeyAsHexString == `` {
-		return aepr.WriteResponseAndNewErrorf(400, "", `PARAMETER_IS_EMPTY:ECDH_A1_PUBLIC_KEY`)
+	if ecdhA1PublicKeyAsHexString == "" {
+		return aepr.WriteResponseAndNewErrorf(400, "", "PARAMETER_IS_EMPTY:ECDH_A1_PUBLIC_KEY")
 	}
-	if ecdhA2PublicKeyAsHexString == `` {
-		return aepr.WriteResponseAndNewErrorf(400, "", `PARAMETER_IS_EMPTY:ECDH_A2_PUBLIC_KEY`)
+	if ecdhA2PublicKeyAsHexString == "" {
+		return aepr.WriteResponseAndNewErrorf(400, "", "PARAMETER_IS_EMPTY:ECDH_A2_PUBLIC_KEY")
 	}
 
 	ecdhA1PublicKeyAsBytes, err := hex.DecodeString(ecdhA1PublicKeyAsHexString)
@@ -236,9 +236,9 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	if err != nil {
 		return err
 	}
-	preKeyString := `PREKEY_` + uuidA.String()
+	preKeyString := "PREKEY_" + uuidA.String()
 
-	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, `PREKEY_TTL_SECOND`)
+	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "PREKEY_TTL_SECOND")
 	if err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *dxlibLog.DXLog, menuitem
 	if menuitem == nil {
 		return nil
 	}
-	parentId := menuitem[`parent_id`]
+	parentId := menuitem["parent_id"]
 	if parentId != nil {
 		_, parentMenuItem, err := user_management.ModuleUserManagement.MenuItem.SelectOne(l, nil, utils.JSON{
 			"id": parentId,
@@ -335,7 +335,7 @@ func setParentMenuItemAllowed(allMenuItem *map[int64]utils.JSON, menuItem *utils
 	if menuItem == nil {
 		return
 	}
-	parentID, ok := (*menuItem)[`parent_id`].(int64)
+	parentID, ok := (*menuItem)["parent_id"].(int64)
 	if !ok {
 		return
 	}
@@ -343,16 +343,16 @@ func setParentMenuItemAllowed(allMenuItem *map[int64]utils.JSON, menuItem *utils
 	if !exists {
 		return
 	}
-	parentMenuItem[`allowed`] = true
+	parentMenuItem["allowed"] = true
 	setParentMenuItemAllowed(allMenuItem, &parentMenuItem)
 }
 
 // pruneMenuItems recursively prunes the menu items that are not allowed
 func pruneMenuItems(menuItem *utils.JSON) {
-	children := (*menuItem)[`children`].(map[int64]*utils.JSON)
+	children := (*menuItem)["children"].(map[int64]*utils.JSON)
 	for id, childMenuItemPtr := range children {
 		childMenuItem := *childMenuItemPtr
-		if !childMenuItem[`allowed`].(bool) {
+		if !childMenuItem["allowed"].(bool) {
 			delete(children, id)
 		} else {
 			pruneMenuItems(&childMenuItem)
@@ -368,25 +368,25 @@ func (s *DxmSelf) fetchMenuTree(l *dxlibLog.DXLog, userEffectivePrivilegeIds map
 		return nil, err
 	}
 	for _, menuItem := range menuItems {
-		allMenuItems[menuItem[`id`].(int64)] = menuItem
+		allMenuItems[menuItem["id"].(int64)] = menuItem
 	}
 
 	// Build the complete menu tree
 	var roots []*utils.JSON
 	for _, menuItem := range allMenuItems {
-		menuItemIndex := menuItem[`item_index`].(int64)
-		if menuItem[`children`] == nil {
-			menuItem[`children`] = map[int64]*utils.JSON{}
+		menuItemIndex := menuItem["item_index"].(int64)
+		if menuItem["children"] == nil {
+			menuItem["children"] = map[int64]*utils.JSON{}
 		}
-		if menuItem[`parent_id`] != nil {
-			parentId := menuItem[`parent_id`].(int64)
+		if menuItem["parent_id"] != nil {
+			parentId := menuItem["parent_id"].(int64)
 			parentMenuItem := allMenuItems[parentId]
-			//			menuItem[`parent_menu_item`] = &parentMenuItem
-			menuItem[`allowed`] = false
-			if parentMenuItem[`children`] == nil {
-				parentMenuItem[`children`] = map[int64]*utils.JSON{}
+			//			menuItem["parent_menu_item"] = &parentMenuItem
+			menuItem["allowed"] = false
+			if parentMenuItem["children"] == nil {
+				parentMenuItem["children"] = map[int64]*utils.JSON{}
 			}
-			parentMenuItem[`children`].(map[int64]*utils.JSON)[menuItemIndex] = &menuItem
+			parentMenuItem["children"].(map[int64]*utils.JSON)[menuItemIndex] = &menuItem
 		} else {
 			roots = append(roots, &menuItem)
 		}
@@ -395,8 +395,8 @@ func (s *DxmSelf) fetchMenuTree(l *dxlibLog.DXLog, userEffectivePrivilegeIds map
 	// only keep menu items that the user has access to
 	for _, privilegeId := range userEffectivePrivilegeIds {
 		for _, menuItem := range allMenuItems {
-			if menuItem[`privilege_id`] == privilegeId {
-				menuItem[`allowed`] = true
+			if menuItem["privilege_id"] == privilegeId {
+				menuItem["allowed"] = true
 				setParentMenuItemAllowed(&allMenuItems, &menuItem)
 				continue
 			}
@@ -412,54 +412,54 @@ func (s *DxmSelf) fetchMenuTree(l *dxlibLog.DXLog, userEffectivePrivilegeIds map
 	// sort the children of each menu item by menuItem[item_index]
 	for _, menuItemPtr := range roots {
 		menuItem := *menuItemPtr
-		children := menuItem[`children`].(map[int64]*utils.JSON)
+		children := menuItem["children"].(map[int64]*utils.JSON)
 		sortedChildren := make([]*utils.JSON, 0, len(children))
 		for _, childMenuItemPtr := range children {
 			childMenuItem := *childMenuItemPtr
-			//			delete(childMenuItem, `parent_menu_item`)
+			//			delete(childMenuItem, "parent_menu_item")
 			sortedChildren = append(sortedChildren, &childMenuItem)
 		}
 		// Sort the slice based on item_index
 		sort.Slice(sortedChildren, func(i, j int) bool {
-			return (*sortedChildren[i])[`item_index`].(int64) < (*sortedChildren[j])[`item_index`].(int64)
+			return (*sortedChildren[i])["item_index"].(int64) < (*sortedChildren[j])["item_index"].(int64)
 		})
-		menuItem[`children`] = sortedChildren
+		menuItem["children"] = sortedChildren
 	}
 	return roots, nil
 }
 
 func (s *DxmSelf) SelfConfiguration(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, preKeyIndex, err := aepr.GetParameterValueAsString(`i`)
+	_, preKeyIndex, err := aepr.GetParameterValueAsString("i")
 	if err != nil {
 		return err
 	}
-	_, dataAsHexString, err := aepr.GetParameterValueAsString(`d`)
+	_, dataAsHexString, err := aepr.GetParameterValueAsString("d")
 	if err != nil {
 		return err
 	}
 
 	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", `UNPACK_ERROR:%v`, err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "UNPACK_ERROR:%v", err.Error())
 	}
 	if len(lvPayloadElements) < 1 {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", `PAYLOAD_LESS_THAN_ONE`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "PAYLOAD_LESS_THAN_ONE")
 	}
 
 	lvMobileAppNameId := lvPayloadElements[0]
 
-	configExternalSystem := *configuration.Manager.Configurations[`external_system`].Data
+	configExternalSystem := *configuration.Manager.Configurations["external_system"].Data
 	mobileAppConfiguration, ok := configExternalSystem["MOBILE_APP1"].(utils.JSON)
 	if !ok {
-		return errors.Errorf(`GET_CONFIGURATION:MOBILE_APP_CONFIG_NOT_FOUND`)
+		return errors.Errorf("GET_CONFIGURATION:MOBILE_APP_CONFIG_NOT_FOUND")
 	}
-	apiKeyGoogleMap, ok := mobileAppConfiguration[`api_key_google_map`].(string)
+	apiKeyGoogleMap, ok := mobileAppConfiguration["api_key_google_map"].(string)
 	if !ok {
-		return errors.Errorf(`GET_CONFIGURATION:MOBILE_APP_API_KEY_GOOGLE_MAP_CONFIG_NOT_FOUND`)
+		return errors.Errorf("GET_CONFIGURATION:MOBILE_APP_API_KEY_GOOGLE_MAP_CONFIG_NOT_FOUND")
 	}
-	apiKeyFirebase, ok := mobileAppConfiguration[`api_key_firebase`].(string)
+	apiKeyFirebase, ok := mobileAppConfiguration["api_key_firebase"].(string)
 	if !ok {
-		return errors.Errorf(`GET_CONFIGURATION:MOBILE_APP_API_KEY_FIREBASE_CONFIG_NOT_FOUND`)
+		return errors.Errorf("GET_CONFIGURATION:MOBILE_APP_API_KEY_FIREBASE_CONFIG_NOT_FOUND")
 	}
 	lvAPIKeyGoogleMap, err := lv.NewLV([]byte(apiKeyGoogleMap))
 	if err != nil {
@@ -483,24 +483,24 @@ func (s *DxmSelf) SelfConfiguration(aepr *api.DXAPIEndPointRequest) (err error) 
 }
 
 func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, preKeyIndex, err := aepr.GetParameterValueAsString(`i`)
+	_, preKeyIndex, err := aepr.GetParameterValueAsString("i")
 	if err != nil {
 		return err
 	}
-	_, dataAsHexString, err := aepr.GetParameterValueAsString(`d`)
+	_, dataAsHexString, err := aepr.GetParameterValueAsString("d")
 	if err != nil {
 		return err
 	}
 
 	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", `UNPACK_ERROR:%v`, err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "UNPACK_ERROR:%v", err.Error())
 	}
 
 	lvPayloadLoginId := lvPayloadElements[0]
 	lvPayloadPassword := lvPayloadElements[1]
 
-	organizationUId := ``
+	organizationUId := ""
 	userLoginId := string(lvPayloadLoginId.Value)
 	userPassword := string(lvPayloadPassword.Value)
 	if len(lvPayloadElements) > 2 {
@@ -520,30 +520,30 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
-		userLoggedOrganizationId = userLoggedOrganization[`id`].(int64)
-		userLoggedOrganizationUid = userLoggedOrganization[`uid`].(string)
+		userLoggedOrganizationId = userLoggedOrganization["id"].(int64)
+		userLoggedOrganizationUid = userLoggedOrganization["uid"].(string)
 
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
-			`loginid`: userLoginId,
+			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
 
-		userId := user[`id`].(int64)
+		userId := user["id"].(int64)
 
 		us := utils.JSON{
 			"user_id": userId,
 		}
 
-		if organizationUId != `` {
-			us[`organization_uid`] = organizationUId
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
 		}
 
 		_, userOrganizationMemberships, err := user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us,
@@ -553,11 +553,11 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
 
-		userLoggedOrganizationId = userOrganizationMemberships[0][`organization_id`].(int64)
-		userLoggedOrganizationUid = userOrganizationMemberships[0][`organization_uid`].(string)
+		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
+		userLoggedOrganizationUid = userOrganizationMemberships[0]["organization_uid"].(string)
 
 		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
 		if err != nil {
@@ -570,7 +570,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
 	}
 
@@ -579,9 +579,9 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	userId, ok := user[`id`].(int64)
+	userId, ok := user["id"].(int64)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(500, "", `SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER`)
+		return aepr.WriteResponseAndNewErrorf(500, "", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
 	}
 	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
 		"user_id": userId,
@@ -593,24 +593,24 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	userEffectivePrivilegeIds := map[string]int64{}
 	for _, roleMembership := range userRoleMemberships {
 		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
-			"role_id": roleMembership[`role_id`],
+			"role_id": roleMembership["role_id"],
 		}, nil, nil, nil)
 		if err != nil {
 			return err
 		}
 		for _, v1 := range rolePrivileges {
-			privilegeNameId := v1[`privilege_nameid`].(string)
+			privilegeNameId := v1["privilege_nameid"].(string)
 
-			privilegeId := v1[`privilege_id`].(int64)
-			if privilegeNameId == `EVERYTHING` {
+			privilegeId := v1["privilege_id"].(int64)
+			if privilegeNameId == "EVERYTHING" {
 				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil)
 				if err != nil {
 					return err
 				}
 				for _, v2 := range rolePrivileges {
-					privilegeNameId := v2[`nameid`].(string)
-					privilegeId := v2[`id`].(int64)
-					if privilegeNameId != `EVERYTHING` {
+					privilegeNameId := v2["nameid"].(string)
+					privilegeId := v2["id"].(int64)
+					if privilegeNameId != "EVERYTHING" {
 						_, exists := userEffectivePrivilegeIds[privilegeNameId]
 						if !exists {
 							userEffectivePrivilegeIds[privilegeNameId] = privilegeId
@@ -633,16 +633,16 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 
 	sessionObject := utils.JSON{
-		`session_key`:      sessionKey,
-		`user_id`:          user[`id`],
-		`user`:             user,
+		"session_key":      sessionKey,
+		"user_id":          user["id"],
+		"user":             user,
 		"organization_id":  userLoggedOrganizationId,
 		"organization_uid": userLoggedOrganizationUid,
 		"organization":     userLoggedOrganization,
-		//`user_organization_memberships`: userOrganizationMemberships,
-		`user_role_memberships`:        userRoleMemberships,
-		`user_effective_privilege_ids`: userEffectivePrivilegeIds,
-		`menu_tree_root`:               menuTreeRoot,
+		//"user_organization_memberships": userOrganizationMemberships,
+		"user_role_memberships":        userRoleMemberships,
+		"user_effective_privilege_ids": userEffectivePrivilegeIds,
+		"menu_tree_root":               menuTreeRoot,
 	}
 
 	allowed := false
@@ -652,7 +652,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 	}
 	if !allowed {
-		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", `USER_ROLE_PRIVILEGE_FORBIDDEN`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
 	if s.OnCreateSessionObject != nil {
@@ -661,7 +661,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 	}
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, `SESSION_TTL_SECOND`)
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
 	if err != nil {
 		return err
 	}
@@ -721,18 +721,18 @@ func GenerateSessionKey() (string, error) {
 
 func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 
-	_, preKeyIndex, err := aepr.GetParameterValueAsString(`i`)
+	_, preKeyIndex, err := aepr.GetParameterValueAsString("i")
 	if err != nil {
 		return err
 	}
-	_, dataAsHexString, err := aepr.GetParameterValueAsString(`d`)
+	_, dataAsHexString, err := aepr.GetParameterValueAsString("d")
 	if err != nil {
 		return err
 	}
 
 	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, storedCaptchaId, storedCapchaText, err := user_management.ModuleUserManagement.PreKeyUnpackCaptcha(preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", `UNPACK_ERROR:%v`, err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "UNPACK_ERROR:%v", err.Error())
 	}
 
 	lvPayloadLoginId := lvPayloadElements[0]
@@ -748,10 +748,10 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	captchaText := string(lvPayloadCaptchaText.Value)
 
 	if captchaId != storedCaptchaId {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", `INVALID_CAPTCHA`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "INVALID_CAPTCHA")
 	}
 	if captchaText != storedCapchaText {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", `INVALID_CAPTCHA`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "INVALID_CAPTCHA")
 	}
 
 	var user utils.JSON
@@ -766,27 +766,27 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
-			`loginid`: userLoginId,
+			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
 
-		userId := user[`id`].(int64)
+		userId := user["id"].(int64)
 
 		us := utils.JSON{
 			"user_id": userId,
 		}
 
-		if organizationUId != `` {
-			us[`organization_uid`] = organizationUId
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
 		}
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us,
@@ -796,11 +796,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
 
-		userLoggedOrganizationId = userOrganizationMemberships[0][`organization_id`].(int64)
-		userLoggedOrganizationUid = userOrganizationMemberships[0][`organization_uid`].(string)
+		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
+		userLoggedOrganizationUid = userOrganizationMemberships[0]["organization_uid"].(string)
 
 		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
 		if err != nil {
@@ -813,7 +813,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
 	}
 
@@ -822,12 +822,13 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	userId, ok := user[`id`].(int64)
+	userId, ok := user["id"].(int64)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(500, "", `SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER`)
+		return aepr.WriteResponseAndNewErrorf(500, "", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
 	}
 	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
-		"user_id": userId,
+		"user_id":         userId,
+		"organization_id": userLoggedOrganizationId,
 	}, nil, map[string]string{"id": "ASC"}, nil)
 	if err != nil {
 		return err
@@ -836,23 +837,23 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	userEffectivePrivilegeIds := map[string]int64{}
 	for _, roleMembership := range userRoleMemberships {
 		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
-			"role_id": roleMembership[`role_id`],
+			"role_id": roleMembership["role_id"],
 		}, nil, nil, nil)
 		if err != nil {
 			return err
 		}
 		for _, v1 := range rolePrivileges {
-			privilegeNameId := v1[`privilege_nameid`].(string)
-			privilegeId := v1[`privilege_id`].(int64)
-			if privilegeNameId == `EVERYTHING` {
+			privilegeNameId := v1["privilege_nameid"].(string)
+			privilegeId := v1["privilege_id"].(int64)
+			if privilegeNameId == "EVERYTHING" {
 				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil)
 				if err != nil {
 					return err
 				}
 				for _, v2 := range rolePrivileges {
-					privilegeNameId := v2[`nameid`].(string)
-					privilegeId := v2[`id`].(int64)
-					if privilegeNameId != `EVERYTHING` {
+					privilegeNameId := v2["nameid"].(string)
+					privilegeId := v2["id"].(int64)
+					if privilegeNameId != "EVERYTHING" {
 						_, exists := userEffectivePrivilegeIds[privilegeNameId]
 						if !exists {
 							userEffectivePrivilegeIds[privilegeNameId] = privilegeId
@@ -875,16 +876,16 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 
 	sessionObject := utils.JSON{
-		`session_key`:      sessionKey,
-		`user_id`:          user[`id`],
-		`user`:             user,
-		"organization_id":  userLoggedOrganizationId,
-		"organization_uid": userLoggedOrganizationUid,
-		"organization":     userLoggedOrganization,
-		//`user_organization_memberships`: userOrganizationMemberships,
-		`user_role_memberships`:        userRoleMemberships,
-		`user_effective_privilege_ids`: userEffectivePrivilegeIds,
-		`menu_tree_root`:               menuTreeRoot,
+		"session_key":                   sessionKey,
+		"user_id":                       user["id"],
+		"user":                          user,
+		"organization_id":               userLoggedOrganizationId,
+		"organization_uid":              userLoggedOrganizationUid,
+		"organization":                  userLoggedOrganization,
+		"user_organization_memberships": userOrganizationMemberships,
+		"user_role_memberships":         userRoleMemberships,
+		"user_effective_privilege_ids":  userEffectivePrivilegeIds,
+		"menu_tree_root":                menuTreeRoot,
 	}
 
 	allowed := false
@@ -894,7 +895,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 	}
 	if !allowed {
-		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", `USER_ROLE_PRIVILEGE_FORBIDDEN`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
 	if s.OnCreateSessionObject != nil {
@@ -903,7 +904,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 	}
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, `SESSION_TTL_SECOND`)
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
 	if err != nil {
 		return err
 	}
@@ -937,20 +938,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
-	sessionObject := aepr.LocalData[`session_object`].(utils.JSON)
-	/*	userId := aepr.LocalData["user_id"].(int64)
-	 */
-	/*	_, user, err := user_management.ModuleUserManagement.User.ShouldGetById(&aepr.Log, userId)
-		if err != nil {
-			return err
-		}
-		if s.OnCreateSessionObject != nil {
-			sessionObject, err = s.OnCreateSessionObject(aepr, user, userId.userLoggedOrganization, sessionObject)
-			if err != nil {
-				return err
-			}
-		}*/
-
+	sessionObject := aepr.LocalData["session_object"].(utils.JSON)
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		"session_object": sessionObject,
 	})
@@ -958,7 +946,7 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string) (sessionObject utils.JSON, err error) {
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, `SESSION_TTL_SECOND`)
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
 	if err != nil {
 		return nil, err
 	}
@@ -969,43 +957,43 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 		return nil, err
 	}
 	if sessionObject == nil {
-		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `SESSION_NOT_FOUND`)
+		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "SESSION_NOT_FOUND")
 	}
-	userId := utilsJSON.MustGetInt64(sessionObject, `user_id`)
-	user := sessionObject[`user`].(utils.JSON)
-	userUid, err := utilsJSON.GetString(user, `uid`)
+	userId := utilsJSON.MustGetInt64(sessionObject, "user_id")
+	user := sessionObject["user"].(utils.JSON)
+	userUid, err := utilsJSON.GetString(user, "uid")
 	if err != nil {
 		return nil, err
 	}
-	userLoginId, err := utilsJSON.GetString(user, `loginid`)
+	userLoginId, err := utilsJSON.GetString(user, "loginid")
 	if err != nil {
 		return nil, err
 	}
-	userFullName, err := utilsJSON.GetString(user, `fullname`)
+	userFullName, err := utilsJSON.GetString(user, "fullname")
 	if err != nil {
 		return nil, err
 	}
-	organization := sessionObject[`organization`].(utils.JSON)
-	organizationId, err := utilsJSON.GetInt64(organization, `id`)
+	organization := sessionObject["organization"].(utils.JSON)
+	organizationId, err := utilsJSON.GetInt64(organization, "id")
 	if err != nil {
 		return nil, err
 	}
-	organizationUid, err := utilsJSON.GetString(organization, `uid`)
+	organizationUid, err := utilsJSON.GetString(organization, "uid")
 	if err != nil {
 		return nil, err
 	}
-	organizationName, err := utilsJSON.GetString(organization, `name`)
+	organizationName, err := utilsJSON.GetString(organization, "name")
 	if err != nil {
 		return nil, err
 	}
 	if user == nil {
-		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `USER_NOT_FOUND`)
+		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "USER_NOT_FOUND")
 	}
-	aepr.LocalData[`session_object`] = sessionObject
-	aepr.LocalData[`session_key`] = sessionKey
-	aepr.LocalData[`user_id`] = userId
-	aepr.LocalData[`user_uid`] = userUid
-	aepr.LocalData[`user`] = user
+	aepr.LocalData["session_object"] = sessionObject
+	aepr.LocalData["session_key"] = sessionKey
+	aepr.LocalData["user_id"] = userId
+	aepr.LocalData["user_uid"] = userUid
+	aepr.LocalData["user"] = user
 	aepr.LocalData["organization_id"] = organizationId
 	aepr.LocalData["organization_uid"] = organizationUid
 	aepr.LocalData["organization_name"] = organizationName
@@ -1027,12 +1015,12 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 
 	authHeader := aepr.Request.Header.Get("Authorization")
 	if authHeader == "" {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `AUTHORIZATION_HEADER_NOT_FOUND`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
 	}
 
 	const bearerSchema = "Bearer "
 	if !strings.HasPrefix(authHeader, bearerSchema) {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_AUTHORIZATION_HEADER`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_AUTHORIZATION_HEADER")
 	}
 
 	sessionKey := authHeader[len(bearerSchema):]
@@ -1048,12 +1036,12 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
 	authHeader := aepr.Request.Header.Get("Authorization")
 	if authHeader == "" {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `AUTHORIZATION_HEADER_NOT_FOUND`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
 	}
 
 	const bearerSchema = "Bearer "
 	if !strings.HasPrefix(authHeader, bearerSchema) {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_AUTHORIZATION_HEADER`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_AUTHORIZATION_HEADER")
 	}
 
 	sessionKey := authHeader[len(bearerSchema):]
@@ -1063,7 +1051,7 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 	}
 
 	allowed := false
-	userEffectivePrivilegeIds := sessionObject[`user_effective_privilege_ids`].(map[string]any)
+	userEffectivePrivilegeIds := sessionObject["user_effective_privilege_ids"].(map[string]any)
 	if aepr.EndPoint.Privileges == nil {
 		allowed = true
 	}
@@ -1077,18 +1065,18 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 		}
 	}
 	if !allowed {
-		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", `USER_ROLE_PRIVILEGE_FORBIDDEN`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 	return nil
 }
 
 func (s *DxmSelf) SelfLogout(aepr *api.DXAPIEndPointRequest) (err error) {
-	sessionKey, ok := aepr.LocalData[`session_key`].(string)
+	sessionKey, ok := aepr.LocalData["session_key"].(string)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `SESSION_KEY_IS_NOT_IN_REQUEST_PARAMETER`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "SESSION_KEY_IS_NOT_IN_REQUEST_PARAMETER")
 	}
-	if sessionKey == `` {
-		return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "", `SESSION_KEY_IS_EMPTY`)
+	if sessionKey == "" {
+		return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "", "SESSION_KEY_IS_EMPTY")
 	}
 	err = user_management.ModuleUserManagement.SessionRedis.Delete(sessionKey)
 	if err != nil {
@@ -1138,18 +1126,18 @@ func PasswordFormatValidation(password string) (err error) {
 }
 
 func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, preKeyIndex, err := aepr.GetParameterValueAsString(`i`)
+	_, preKeyIndex, err := aepr.GetParameterValueAsString("i")
 	if err != nil {
 		return err
 	}
-	_, dataAsHexString, err := aepr.GetParameterValueAsString(`d`)
+	_, dataAsHexString, err := aepr.GetParameterValueAsString("d")
 	if err != nil {
 		return err
 	}
 
 	lvPayloadElements, _, _, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `UNPACK_ERROR:%v`, err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "UNPACK_ERROR:%v", err.Error())
 	}
 
 	lvPayloadNewPassword := lvPayloadElements[0]
@@ -1160,23 +1148,23 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 	err = PasswordFormatValidation(userPasswordNew)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, `INVALID_PASSWORD_FORMAT:%v`, err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%v", err.Error())
 	}
 
-	userId := aepr.LocalData[`user_id`].(int64)
+	userId := aepr.LocalData["user_id"].(int64)
 	var verificationResult bool
 
 	d := database.Manager.Databases[s.DatabaseNameId]
 	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
 
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
-			`id`: userId,
+			"id": userId,
 		}, nil, nil)
 		if err != nil {
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "", `USER_NOT_FOUND`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "", "USER_NOT_FOUND")
 		}
 
 		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
@@ -1185,7 +1173,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", `INVALID_CREDENTIAL`)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
 
 		err = user_management.ModuleUserManagement.UserPasswordTxCreate(tx, userId, userPasswordNew)
@@ -1195,9 +1183,9 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 		aepr.Log.Infof("User password changed")
 
 		_, err = user_management.ModuleUserManagement.User.Update(utils.JSON{
-			`must_change_password`: false,
+			"must_change_password": false,
 		}, utils.JSON{
-			`id`: userId,
+			"id": userId,
 		})
 		if err != nil {
 			return err
@@ -1211,9 +1199,9 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 }
 
 func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData[`user`].(utils.JSON)
+	user := aepr.LocalData["user"].(utils.JSON)
 	userId := user["id"].(int64)
-	userUid := user[`uid`].(string)
+	userUid := user["uid"].(string)
 	filename := userUid + ".png"
 
 	err = s.Avatar.Update(aepr, filename)
@@ -1228,46 +1216,46 @@ func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfAvatarDownloadSource(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData[`user`].(utils.JSON)
-	userUid := user[`uid`].(string)
+	user := aepr.LocalData["user"].(utils.JSON)
+	userUid := user["uid"].(string)
 	filename := userUid + ".png"
 	err = s.Avatar.DownloadSource(aepr, filename)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", `SELF_AVATAR_NOT_FOUND`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "SELF_AVATAR_NOT_FOUND")
 	}
 
 	return nil
 }
 
 func (s *DxmSelf) SelfAvatarDownloadSmall(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData[`user`].(utils.JSON)
-	userUid := user[`uid`].(string)
+	user := aepr.LocalData["user"].(utils.JSON)
+	userUid := user["uid"].(string)
 	filename := userUid + ".png"
-	err = s.Avatar.DownloadProcessedImage(aepr, `small`, filename)
+	err = s.Avatar.DownloadProcessedImage(aepr, "small", filename)
 	if err != nil {
 		aepr.SuppressLogDump = true
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", `SELF_AVATAR_NOT_FOUND`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "SELF_AVATAR_NOT_FOUND")
 	}
 	return nil
 }
 
 func (s *DxmSelf) SelfAvatarDownloadMedium(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData[`user`].(utils.JSON)
-	userUid := user[`uid`].(string)
+	user := aepr.LocalData["user"].(utils.JSON)
+	userUid := user["uid"].(string)
 	filename := userUid + ".png"
-	err = s.Avatar.DownloadProcessedImage(aepr, `medium`, filename)
+	err = s.Avatar.DownloadProcessedImage(aepr, "medium", filename)
 	if err != nil {
 		aepr.SuppressLogDump = true
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", `SELF_AVATAR_NOT_FOUND`)
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "SELF_AVATAR_NOT_FOUND")
 	}
 	return nil
 }
 
 func (s *DxmSelf) SelfAvatarDownloadBig(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData[`user`].(utils.JSON)
-	userUid := user[`uid`].(string)
+	user := aepr.LocalData["user"].(utils.JSON)
+	userUid := user["uid"].(string)
 	filename := userUid + ".png"
-	err = s.Avatar.DownloadProcessedImage(aepr, `big`, filename)
+	err = s.Avatar.DownloadProcessedImage(aepr, "big", filename)
 	if err != nil {
 		aepr.SuppressLogDump = true
 		return err
@@ -1276,7 +1264,7 @@ func (s *DxmSelf) SelfAvatarDownloadBig(aepr *api.DXAPIEndPointRequest) (err err
 }
 
 func (s *DxmSelf) SelfProfile(aepr *api.DXAPIEndPointRequest) (err error) {
-	userId := aepr.LocalData[`user_id`].(int64)
+	userId := aepr.LocalData["user_id"].(int64)
 	_, user, err := user_management.ModuleUserManagement.User.ShouldGetById(&aepr.Log, userId)
 	if err != nil {
 		return err
@@ -1288,7 +1276,7 @@ func (s *DxmSelf) SelfProfile(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfProfileEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	userId := aepr.LocalData[`user_id`].(int64)
+	userId := aepr.LocalData["user_id"].(int64)
 	_, newValues, err := aepr.GetParameterValueAsJSON("new")
 	if err != nil {
 		return err
@@ -1303,11 +1291,11 @@ func (s *DxmSelf) SelfProfileEdit(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, applicationNameId, err := aepr.GetParameterValueAsString(`application_nameid`)
+	_, applicationNameId, err := aepr.GetParameterValueAsString("application_nameid")
 	if err != nil {
 		return err
 	}
-	_, fcmToken, err := aepr.GetParameterValueAsString(`fcm_token`)
+	_, fcmToken, err := aepr.GetParameterValueAsString("fcm_token")
 	if err != nil {
 		return err
 	}
@@ -1315,7 +1303,7 @@ func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
-	userId := aepr.LocalData[`user_id`].(int64)
+	userId := aepr.LocalData["user_id"].(int64)
 	err = push_notification.ModulePushNotification.FCM.RegisterUserToken(aepr, applicationNameId, deviceType, userId, fcmToken)
 	if err != nil {
 		return err

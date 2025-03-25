@@ -17,9 +17,9 @@ func (um *DxmUserManagement) PrivilegeList(aepr *api.DXAPIEndPointRequest) (err 
 
 func (um *DxmUserManagement) PrivilegeCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = um.Privilege.DoCreate(aepr, map[string]any{
-		`nameid`:      aepr.ParameterValues[`nameid`].Value.(string),
-		`name`:        aepr.ParameterValues[`name`].Value.(string),
-		`description`: aepr.ParameterValues[`description`].Value.(string),
+		"nameid":      aepr.ParameterValues["nameid"].Value.(string),
+		"name":        aepr.ParameterValues["name"].Value.(string),
+		"description": aepr.ParameterValues["description"].Value.(string),
 	})
 	return err
 }
@@ -62,7 +62,7 @@ func (um *DxmUserManagement) PrivilegeListDownload(aepr *api.DXAPIEndPointReques
 
 	_, format, err := aepr.GetParameterValueAsString("format")
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, `FORMAT_PARAMETER_ERROR:%s`, err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "FORMAT_PARAMETER_ERROR:%s", err.Error())
 	}
 
 	format = strings.ToLower(format)

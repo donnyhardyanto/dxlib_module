@@ -14,8 +14,8 @@ func (um *DxmUserManagement) RolePrivilegeList(aepr *api.DXAPIEndPointRequest) (
 
 func (um *DxmUserManagement) RolePrivilegeCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = um.RolePrivilege.DoCreate(aepr, map[string]any{
-		`role_id`:      aepr.ParameterValues[`role_id`].Value.(string),
-		`privilege_id`: aepr.ParameterValues[`privilege_id`].Value.(string),
+		"role_id":      aepr.ParameterValues["role_id"].Value.(string),
+		"privilege_id": aepr.ParameterValues["privilege_id"].Value.(string),
 	})
 	return err
 }
@@ -29,10 +29,10 @@ func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database.DXDatabaseTx, r
 	if err != nil {
 		return 0, err
 	}
-	privilegeId := privilege[`id`].(int64)
+	privilegeId := privilege["id"].(int64)
 	id, err = um.RolePrivilege.TxInsert(dtx, utils.JSON{
-		`role_id`:      roleId,
-		`privilege_id`: privilegeId,
+		"role_id":      roleId,
+		"privilege_id": privilegeId,
 	})
 	if err != nil {
 		return 0, err
@@ -43,16 +43,16 @@ func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database.DXDatabaseTx, r
 func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64) {
 	_, privilege, err := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
 	if err != nil {
-		dtx.Log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.Privilege.TxShouldGetByNameId`, err)
+		dtx.Log.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.Privilege.TxShouldGetByNameId", err)
 		return 0
 	}
-	privilegeId := privilege[`id`].(int64)
+	privilegeId := privilege["id"].(int64)
 	id, err = um.RolePrivilege.TxInsert(dtx, utils.JSON{
-		`role_id`:      roleId,
-		`privilege_id`: privilegeId,
+		"role_id":      roleId,
+		"privilege_id": privilegeId,
 	})
 	if err != nil {
-		dtx.Log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.TxInsert`, err)
+		dtx.Log.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.TxInsert", err)
 		return 0
 	}
 	return id
@@ -65,10 +65,10 @@ func (um *DxmUserManagement) RolePrivilegeSxMustInsert(log *log.DXLog, roleId in
 		if err2 != nil {
 			return err2
 		}
-		privilegeId := privilege[`id`].(int64)
+		privilegeId := privilege["id"].(int64)
 		id, err2 = um.RolePrivilege.TxInsert(dtx, utils.JSON{
-			`role_id`:      roleId,
-			`privilege_id`: privilegeId,
+			"role_id":      roleId,
+			"privilege_id": privilegeId,
 		})
 		if err2 != nil {
 			return err2
@@ -77,7 +77,7 @@ func (um *DxmUserManagement) RolePrivilegeSxMustInsert(log *log.DXLog, roleId in
 		return nil
 	})
 	if err != nil {
-		log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert`, err)
+		log.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert", err)
 	}
 
 	return id
@@ -87,7 +87,7 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 	var err error
 	defer func() {
 		if err != nil {
-			log.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert`, err)
+			log.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert", err)
 		}
 	}()
 
@@ -96,11 +96,11 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 		return 0
 	}
 
-	privilegeId := privilege[`id`].(int64)
+	privilegeId := privilege["id"].(int64)
 
 	id, err = um.RolePrivilege.Insert(log, utils.JSON{
-		`role_id`:      roleId,
-		`privilege_id`: privilegeId,
+		"role_id":      roleId,
+		"privilege_id": privilegeId,
 	})
 	if err != nil {
 		log.Error(err.Error(), err)
@@ -109,7 +109,7 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 	}
 
 	log.Debugf(
-		`RolePrivilegeMustInsert | role_id:%d, privilege_id:%d, privilege_name_id:%s`,
+		"RolePrivilegeMustInsert | role_id:%d, privilege_id:%d, privilege_name_id:%s",
 		roleId,
 		privilegeId,
 		privilegeNameId)
@@ -140,7 +140,7 @@ func (um *DxmUserManagement) RolePrivilegeSWgMustInsert(wg *sync.WaitGroup, log 
 			<-d.ConcurrencySemaphore
 			wg.Done()
 			if err != nil {
-				alog.Panic(`RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert`, err)
+				alog.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert", err)
 			}
 		}()
 
