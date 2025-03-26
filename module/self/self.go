@@ -957,7 +957,7 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 		return nil, err
 	}
 	if sessionObject == nil {
-		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "SESSION_NOT_FOUND")
+		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "NOT_ERROR:SESSION_NOT_FOUND")
 	}
 	userId := utilsJSON.MustGetInt64(sessionObject, "user_id")
 	user := sessionObject["user"].(utils.JSON)
