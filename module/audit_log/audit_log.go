@@ -37,7 +37,7 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 		return
 	}
 	logLevelAsString := log.DXLogLevelAsString[logLevel]
-	_, err = ModuleAudit.ErrorLog.Insert(&log.Log, utils.JSON{
+	_, err = ModuleAuditLog.ErrorLog.Insert(&log.Log, utils.JSON{
 		"at":        time.Now(),
 		"prefix":    app.App.NameId + " " + app.App.Version,
 		"log_level": logLevelAsString,
@@ -52,8 +52,8 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 	return nil
 }
 
-var ModuleAudit DxmAudit
+var ModuleAuditLog DxmAudit
 
 func init() {
-	ModuleAudit = DxmAudit{}
+	ModuleAuditLog = DxmAudit{}
 }
