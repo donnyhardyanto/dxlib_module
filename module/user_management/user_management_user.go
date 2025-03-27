@@ -129,30 +129,30 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	organizationId, ok := aepr.ParameterValues["organization_id"].Value.(int64)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "ORGANIZATION_ID_MISSING")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
 	}
 	_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "ORGANIZATION_NOT_FOUND")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
 	}
 
 	roleId, ok := aepr.ParameterValues["role_id"].Value.(int64)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "ROLE_ID_MISSING")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING", "")
 	}
 	_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "ROLE_NOT_FOUND")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
 	}
 
 	passwordI, ok := aepr.ParameterValues["password_i"].Value.(string)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "PASSWORD_PREKEY_INDEX_MISSING")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "PASSWORD_PREKEY_INDEX_MISSING", "")
 	}
 
 	passwordD, ok := aepr.ParameterValues["password_d"].Value.(string)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "", "PASSWORD_DATA_BLOCK_MISSING")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "PASSWORD_DATA_BLOCK_MISSING", "")
 	}
 
 	lvPayloadElements, _, _, err := um.PreKeyUnpack(passwordI, passwordD)
@@ -222,7 +222,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			return err2
 		}
 		if user != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS:%v", loginId)
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
 		}
 		userId, err2 = um.User.TxInsert(tx, p)
 		if err2 != nil {
