@@ -61,15 +61,31 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 		listRow["organization_roles"] = organizationRoles
 		return listRow, nil
 	})
-
 }
 
 func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, organizationCode, err := aepr.GetParameterValueAsString("code")
+	if err != nil {
+		return err
+	}
+	_, organizationName, err := aepr.GetParameterValueAsString("name")
+	if err != nil {
+		return err
+	}
+	_, organizationType, err := aepr.GetParameterValueAsString("type")
+	if err != nil {
+		return err
+	}
+
 	o := utils.JSON{
-		"parent_id": aepr.ParameterValues["parent_id"].Value.(int64),
-		"code":      aepr.ParameterValues["code"].Value.(string),
-		"name":      aepr.ParameterValues["name"].Value.(string),
-		"type":      aepr.ParameterValues["type"].Value.(string),
+		"code": organizationCode,
+		"name": organizationName,
+		"type": organizationType,
+	}
+
+	_, _, err = aepr.AssignParameterNullableInt64(&o, "parent_id")
+	if err != nil {
+		return err
 	}
 
 	_, _, err = aepr.AssignParameterNullableString(&o, "address")
