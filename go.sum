@@ -63,6 +63,7 @@ github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cu
 github.com/donnyhardyanto/dxlib v1.57.0 h1:AhdjBxKF25dhbdjV6DSIDfNDcp5IQTO5B3GVExsinao=
 github.com/donnyhardyanto/dxlib v1.57.0/go.mod h1:RltiBGllL70qjT63WHEvfzCb46JTug4JlsSsMSHm2VQ=
 github.com/donnyhardyanto/dxlib v1.67.0/go.mod h1:RltiBGllL70qjT63WHEvfzCb46JTug4JlsSsMSHm2VQ=
+github.com/donnyhardyanto/dxlib v1.68.0/go.mod h1:RltiBGllL70qjT63WHEvfzCb46JTug4JlsSsMSHm2VQ=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/envoyproxy/go-control-plane v0.13.4 h1:zEqyPVyku6IvWCFwux4x9RxkLOMUL+1vC9xUFv5l2/M=

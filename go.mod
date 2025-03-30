@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	firebase.google.com/go/v4 v4.15.2
-	github.com/donnyhardyanto/dxlib v1.67.0
+	github.com/donnyhardyanto/dxlib v1.68.0
 	github.com/google/uuid v1.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
