@@ -146,6 +146,26 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	}
 	fcmApplicationId := fcmApplication["id"].(int64)
 
+	_, existingUserTokens, err := f.FCMUserToken.TxSelect(dtx, utils.JSON{
+		"fcm_application_id": fcmApplicationId,
+		"fcm_token":          token,
+	}, nil, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, existingUserToken := range existingUserTokens {
+		existingUserId := existingUserToken["user_id"].(int64)
+		if existingUserId != userId {
+			_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{
+				"id": existingUserToken["id"].(int64),
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	var userTokenId int64
 	_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
@@ -269,6 +289,53 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 	}
 
 	return nil
+}
+
+func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIEndPointRequest) (err error) {
+	isApplicationIdExist, applicationId, err := aepr.GetParameterValueAsString("application_id")
+	if err != nil {
+		return err
+	}
+	if !isApplicationIdExist {
+		return errors.New("application_id is required")
+	}
+
+	isUserIdExist, userId, err := aepr.GetParameterValueAsInt64("user_id")
+	if err != nil {
+		return err
+	}
+	if !isUserIdExist {
+		return errors.New("user_id is required")
+	}
+
+	_, msgTitle, err := aepr.GetParameterValueAsString("title")
+	if err != nil {
+		return err
+	}
+	_, msgBody, err := aepr.GetParameterValueAsString("body")
+	if err != nil {
+		return err
+	}
+
+	var msgData map[string]string
+	_, msgDataRaw, err := aepr.GetParameterValueAsString("data")
+	if err != nil {
+		return err
+	}
+	if msgDataRaw != "" {
+		err = json.Unmarshal([]byte(msgDataRaw), &msgData)
+		if err != nil {
+			return errors.New("failed to parse 'data' as a map[string]string")
+		}
+	}
+
+	err = f.SendToUser(&aepr.Log, applicationId, userId, msgTitle, msgBody, msgData, nil)
+	if err != nil {
+		return fmt.Errorf("failed to send test message: %w", err)
+	}
+
+	return nil
+
 }
 
 func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId int64, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
