@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/configuration"
 	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/endpoint_rate_limiter"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -1067,6 +1069,43 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 	if !allowed {
 		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
+	return nil
+}
+
+func (s *DxmSelf) MiddlewareRequestRateLimitCheck(aepr *api.DXAPIEndPointRequest) (err error) {
+	rateLimitGroupNameId := aepr.EndPoint.RateLimitGroupNameId
+	// Bypass when ""
+	if rateLimitGroupNameId == "" {
+		return nil
+	}
+	identifier := aepr.Request.RemoteAddr
+	// You might want to use X-Forwarded-For header if behind a proxy
+	if forwardedFor := aepr.Request.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+		identifier = forwardedFor
+	}
+
+	limiter := endpoint_rate_limiter.Manager.EndpointRateLimiter
+
+	allowed, err := limiter.IsAllowed(aepr.Request.Context(), rateLimitGroupNameId, identifier)
+	if err != nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusInternalServerError, "", err.Error())
+	}
+	w := *aepr.ResponseWriter
+	if !allowed {
+		// Get blocked status and remaining time if blocked
+		blocked, remaining, _ := limiter.GetBlockedStatus(aepr.Request.Context(), rateLimitGroupNameId, identifier)
+		if blocked {
+			w.Header().Set("Retry-After", fmt.Sprintf("%d", int(remaining.Seconds())))
+		}
+		aepr.WriteResponseAsErrorMessage(http.StatusTooManyRequests, fmt.Sprintf("RATE_LIMIT_EXCEEDED"))
+		return
+	}
+
+	// Add rate limit headers
+	remaining, _ := limiter.GetRemainingAttempts(aepr.Request.Context(), rateLimitGroupNameId, identifier)
+	w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
+
+	// Call the actual handler
 	return nil
 }
 
