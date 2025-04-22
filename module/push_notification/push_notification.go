@@ -292,12 +292,12 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 }
 
 func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIEndPointRequest) (err error) {
-	isApplicationIdExist, applicationId, err := aepr.GetParameterValueAsString("application_id")
+	isApplicationNameIdExist, applicationNameId, err := aepr.GetParameterValueAsString("application_nameid")
 	if err != nil {
 		return err
 	}
-	if !isApplicationIdExist {
-		return errors.New("application_id is required")
+	if !isApplicationNameIdExist {
+		return errors.New("application_nameid is required")
 	}
 
 	isUserIdExist, userId, err := aepr.GetParameterValueAsInt64("user_id")
@@ -329,7 +329,7 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 		}
 	}
 
-	err = f.SendToUser(&aepr.Log, applicationId, userId, msgTitle, msgBody, msgData, nil)
+	err = f.SendToUser(&aepr.Log, applicationNameId, userId, msgTitle, msgBody, msgData, nil)
 	if err != nil {
 		return fmt.Errorf("failed to send test message: %w", err)
 	}
