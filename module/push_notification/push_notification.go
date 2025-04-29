@@ -308,17 +308,17 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 		return errors.New("user_id is required")
 	}
 
-	_, msgTitle, err := aepr.GetParameterValueAsString("title")
+	_, msgTitle, err := aepr.GetParameterValueAsString("msg_title")
 	if err != nil {
 		return err
 	}
-	_, msgBody, err := aepr.GetParameterValueAsString("body")
+	_, msgBody, err := aepr.GetParameterValueAsString("msg_body")
 	if err != nil {
 		return err
 	}
 
 	var msgData map[string]string
-	_, msgDataRaw, err := aepr.GetParameterValueAsString("data")
+	_, msgDataRaw, err := aepr.GetParameterValueAsString("msg_data")
 	if err != nil {
 		return err
 	}
