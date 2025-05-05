@@ -317,15 +317,16 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 		return err
 	}
 
-	var msgData map[string]string
-	_, msgDataRaw, err := aepr.GetParameterValueAsString("msg_data")
+	_, msgDataRaw, err := aepr.GetParameterValueAsJSON("msg_data")
 	if err != nil {
 		return err
 	}
-	if msgDataRaw != "" {
-		err = json.Unmarshal([]byte(msgDataRaw), &msgData)
-		if err != nil {
-			return errors.New("failed to parse 'data' as a map[string]string")
+	msgData := make(map[string]string)
+	for k, v := range msgDataRaw {
+		if str, ok := v.(string); ok {
+			msgData[k] = str
+		} else {
+			msgData[k] = fmt.Sprintf("%v", v)
 		}
 	}
 
