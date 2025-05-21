@@ -1243,7 +1243,29 @@ func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 	userUid := user["uid"].(string)
 	filename := userUid + ".png"
 
-	err = s.Avatar.Update(aepr, filename)
+	err = s.Avatar.Update(aepr, filename, "")
+	if err != nil {
+		return err
+	}
+
+	_, err = user_management.ModuleUserManagement.User.UpdateOne(&aepr.Log, userId, utils.JSON{
+		"is_avatar_exist": true,
+	})
+	return nil
+}
+
+func (s *DxmSelf) SelfAvatarUpdateFileContentBase64(aepr *api.DXAPIEndPointRequest) (err error) {
+	user := aepr.LocalData["user"].(utils.JSON)
+	userId := user["id"].(int64)
+	userUid := user["uid"].(string)
+	filename := userUid + ".png"
+
+	_, fileContentBase64, err := aepr.GetParameterValueAsString("content_base64")
+	if err != nil {
+		return err
+	}
+
+	err = s.Avatar.Update(aepr, filename, fileContentBase64)
 	if err != nil {
 		return err
 	}

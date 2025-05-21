@@ -46,7 +46,31 @@ func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (
 
 	filename := idAsString + ".png"
 
-	err = g.AnnouncementPicture.Update(aepr, filename)
+	err = g.AnnouncementPicture.Update(aepr, filename, "")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *DxmGeneral) AnnouncementPictureUpdateFileContentBase64(aepr *api.DXAPIEndPointRequest) (err error) {
+	id := aepr.ParameterValues["id"].Value.(int64)
+
+	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
+	if err != nil {
+		return err
+	}
+
+	idAsString := utils.Int64ToString(id)
+
+	filename := idAsString + ".png"
+
+	_, fileContentBase64, err := aepr.GetParameterValueAsString("content_base64")
+	if err != nil {
+		return err
+	}
+
+	err = g.AnnouncementPicture.Update(aepr, filename, fileContentBase64)
 	if err != nil {
 		return err
 	}

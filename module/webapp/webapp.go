@@ -14,9 +14,9 @@ type DxmWebapp struct {
 
 func (w *DxmWebapp) Init(databaseNameId string) {
 	w.App = table.Manager.NewTable(databaseNameId, "webapp.app", "webapp.app",
-		"webapp.app", "nameid", "id", "uid")
+		"webapp.app", "nameid", "id", "uid", "data")
 	w.Page = table.Manager.NewTable(databaseNameId, "webapp.page", "webapp.page",
-		"webapp.page", "nameid", "id", "uid")
+		"webapp.page", "nameid", "id", "uid", "data")
 }
 
 func (w *DxmWebapp) AppList(aepr *api.DXAPIEndPointRequest) (err error) {

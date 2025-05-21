@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/object_storage"
 	"github.com/pkg/errors"
@@ -158,7 +159,7 @@ func (ios *ImageObjectStorage) DecodeImageWithTimeout(data []byte) (image.Image,
 	}
 }
 
-func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename string) (err error) {
+func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename string, fileContentBase64 string) (err error) {
 
 	// Check the request size
 	if aepr.Request.ContentLength > ios.MaxRequestSize {
@@ -170,20 +171,36 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "", "OBJECT_STORAGE_NAME_NOT_FOUND:%s", ios.ObjectStorageSourceNameId)
 	}
 
-	bodyLen := aepr.Request.ContentLength
-	aepr.Log.Infof("Request body length: %d", bodyLen)
-
-	// Get the request body stream
-	bs := aepr.Request.Body
-	if bs == nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_GET_BODY_STREAM:%s", ios.ObjectStorageSourceNameId)
-	}
-
-	// RequestRead the entire request body into a buffer
 	var buf bytes.Buffer
-	_, err = io.Copy(&buf, bs)
-	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_READ_REQUEST_BODY:%s=%v", ios.ObjectStorageSourceNameId, err.Error())
+	var bodyLen int64
+	if fileContentBase64 != "" {
+		bodyLen = aepr.Request.ContentLength
+		aepr.Log.Infof("Request body length: %d", bodyLen)
+
+		// Get the request body stream
+		bs := aepr.Request.Body
+		if bs == nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_GET_BODY_STREAM:%s", ios.ObjectStorageSourceNameId)
+		}
+
+		// RequestRead the entire request body into a buffer
+		_, err = io.Copy(&buf, bs)
+		if err != nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_READ_REQUEST_BODY:%s=%v", ios.ObjectStorageSourceNameId, err.Error())
+		}
+	} else {
+		// Decode base64 string to bytes
+		decodedBytes, err := base64.StdEncoding.DecodeString(fileContentBase64)
+		if err != nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_DECODE_BASE64:%s=%v", ios.ObjectStorageSourceNameId, err.Error())
+		}
+		
+		// Get the total size of the decoded content
+		bodyLen = int64(len(decodedBytes))
+		aepr.Log.Infof("Base64 decoded content length: %d", bodyLen)
+		
+		// Write decoded bytes to buffer
+		buf.Write(decodedBytes)
 	}
 
 	// Validate image dimensions to prevent pixel flood attacks
