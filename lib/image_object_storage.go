@@ -173,7 +173,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 
 	var buf bytes.Buffer
 	var bodyLen int64
-	if fileContentBase64 != "" {
+	if fileContentBase64 == "" {
 		bodyLen = aepr.Request.ContentLength
 		aepr.Log.Infof("Request body length: %d", bodyLen)
 
@@ -194,11 +194,11 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		if err != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_DECODE_BASE64:%s=%v", ios.ObjectStorageSourceNameId, err.Error())
 		}
-		
+
 		// Get the total size of the decoded content
 		bodyLen = int64(len(decodedBytes))
 		aepr.Log.Infof("Base64 decoded content length: %d", bodyLen)
-		
+
 		// Write decoded bytes to buffer
 		buf.Write(decodedBytes)
 	}

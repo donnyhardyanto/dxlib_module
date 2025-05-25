@@ -585,66 +585,9 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	if !ok {
 		return aepr.WriteResponseAndNewErrorf(500, "", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
 	}
-	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
-		"user_id": userId,
-	}, nil, map[string]string{"id": "ASC"}, nil)
-	if err != nil {
-		return err
-	}
-
-	userEffectivePrivilegeIds := map[string]int64{}
-	for _, roleMembership := range userRoleMemberships {
-		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
-			"role_id": roleMembership["role_id"],
-		}, nil, nil, nil)
-		if err != nil {
-			return err
-		}
-		for _, v1 := range rolePrivileges {
-			privilegeNameId := v1["privilege_nameid"].(string)
-
-			privilegeId := v1["privilege_id"].(int64)
-			if privilegeNameId == "EVERYTHING" {
-				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil)
-				if err != nil {
-					return err
-				}
-				for _, v2 := range rolePrivileges {
-					privilegeNameId := v2["nameid"].(string)
-					privilegeId := v2["id"].(int64)
-					if privilegeNameId != "EVERYTHING" {
-						_, exists := userEffectivePrivilegeIds[privilegeNameId]
-						if !exists {
-							userEffectivePrivilegeIds[privilegeNameId] = privilegeId
-						}
-					}
-
-				}
-			} else {
-				_, exists := userEffectivePrivilegeIds[privilegeNameId]
-				if !exists {
-					userEffectivePrivilegeIds[privilegeNameId] = privilegeId
-				}
-			}
-		}
-	}
-
-	menuTreeRoot, err := s.fetchMenuTree(&aepr.Log, userEffectivePrivilegeIds)
-	if err != nil {
-		return err
-	}
-
-	sessionObject := utils.JSON{
-		"session_key":      sessionKey,
-		"user_id":          user["id"],
-		"user":             user,
-		"organization_id":  userLoggedOrganizationId,
-		"organization_uid": userLoggedOrganizationUid,
-		"organization":     userLoggedOrganization,
-		//"user_organization_memberships": userOrganizationMemberships,
-		"user_role_memberships":        userRoleMemberships,
-		"user_effective_privilege_ids": userEffectivePrivilegeIds,
-		"menu_tree_root":               menuTreeRoot,
+	userEffectivePrivilegeIds, sessionObject, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization)
+	if err2 != nil {
+		return err2
 	}
 
 	allowed := false
@@ -694,6 +637,75 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		"d": dataBlockEnvelopeAsHexString,
 	})
 	return err
+}
+
+func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId int64, sessionKey string, user utils.JSON, userLoggedOrganizationId int64,
+	userLoggedOrganizationUid string, userLoggedOrganization utils.JSON) (userEffectivePrivilegeIds map[string]int64, sessionObject utils.JSON, err error) {
+	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
+		"user_id": userId,
+	}, nil, map[string]string{"id": "ASC"}, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	userEffectivePrivilegeIds = map[string]int64{}
+	for _, roleMembership := range userRoleMemberships {
+		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
+			"role_id": roleMembership["role_id"],
+		}, nil, nil, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, v1 := range rolePrivileges {
+			privilegeNameId := v1["privilege_nameid"].(string)
+
+			privilegeId := v1["privilege_id"].(int64)
+			if privilegeNameId == "EVERYTHING" {
+				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil)
+				if err != nil {
+					return nil, nil, err
+				}
+				for _, v2 := range rolePrivileges {
+					privilegeNameId := v2["nameid"].(string)
+					privilegeId := v2["id"].(int64)
+					if privilegeNameId != "EVERYTHING" {
+						_, exists := userEffectivePrivilegeIds[privilegeNameId]
+						if !exists {
+							userEffectivePrivilegeIds[privilegeNameId] = privilegeId
+						}
+					}
+
+				}
+			} else {
+				_, exists := userEffectivePrivilegeIds[privilegeNameId]
+				if !exists {
+					userEffectivePrivilegeIds[privilegeNameId] = privilegeId
+				}
+			}
+		}
+	}
+
+	menuTreeRoot, err := s.fetchMenuTree(&aepr.Log, userEffectivePrivilegeIds)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var userId int64
+	userId = user["id"]
+
+	sessionObject = utils.JSON{
+		"session_key":      sessionKey,
+		"user_id":          int64(user["id"]),
+		"user":             user,
+		"organization_id":  userLoggedOrganizationId,
+		"organization_uid": userLoggedOrganizationUid,
+		"organization":     userLoggedOrganization,
+		//"user_organization_memberships": userOrganizationMemberships,
+		"user_role_memberships":        userRoleMemberships,
+		"user_effective_privilege_ids": userEffectivePrivilegeIds,
+		"menu_tree_root":               menuTreeRoot,
+	}
+	return userEffectivePrivilegeIds, sessionObject, nil
 }
 
 func GenerateSessionKey() (string, error) {
@@ -941,6 +953,31 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 
 func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	sessionObject := aepr.LocalData["session_object"].(utils.JSON)
+	userId := sessionObject["user_id"].(int64)
+	sessionKey := sessionObject["session_key"].(string)
+	userLoggedOrganizationId := sessionObject["organization_id"].(int64)
+	userLoggedOrganizationUid := sessionObject["organization_uid"].(string)
+	userLoggedOrganization := sessionObject["organization"].(utils.JSON)
+	_, user, err := user_management.ModuleUserManagement.User.GetById(&aepr.Log, userId)
+	if err != nil {
+		return err
+	}
+	_, sessionObject, err = s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization)
+	if err != nil {
+		return err
+	}
+
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
+	if err != nil {
+		return err
+	}
+	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
+
+	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	if err != nil {
+		return err
+	}
+
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		"session_object": sessionObject,
 	})
@@ -1239,7 +1276,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 	user := aepr.LocalData["user"].(utils.JSON)
-	userId := user["id"].(int64)
+	userId := aepr.LocalData["user_id"].(int64)
 	userUid := user["uid"].(string)
 	filename := userUid + ".png"
 
@@ -1256,7 +1293,7 @@ func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 
 func (s *DxmSelf) SelfAvatarUpdateFileContentBase64(aepr *api.DXAPIEndPointRequest) (err error) {
 	user := aepr.LocalData["user"].(utils.JSON)
-	userId := user["id"].(int64)
+	userId := aepr.LocalData["user_id"].(int64)
 	userUid := user["uid"].(string)
 	filename := userUid + ".png"
 
