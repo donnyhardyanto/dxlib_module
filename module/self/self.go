@@ -690,12 +690,9 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 		return nil, nil, err
 	}
 
-	var userId int64
-	userId = user["id"]
-
 	sessionObject = utils.JSON{
 		"session_key":      sessionKey,
-		"user_id":          int64(user["id"]),
+		"user_id":          userId,
 		"user":             user,
 		"organization_id":  userLoggedOrganizationId,
 		"organization_uid": userLoggedOrganizationUid,
@@ -953,11 +950,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 
 func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	sessionObject := aepr.LocalData["session_object"].(utils.JSON)
-	userId := sessionObject["user_id"].(int64)
+	userId := aepr.LocalData["user_id"].(int64)
 	sessionKey := sessionObject["session_key"].(string)
-	userLoggedOrganizationId := sessionObject["organization_id"].(int64)
-	userLoggedOrganizationUid := sessionObject["organization_uid"].(string)
-	userLoggedOrganization := sessionObject["organization"].(utils.JSON)
+	userLoggedOrganizationId := aepr.LocalData["organization_id"].(int64)
+	userLoggedOrganizationUid := aepr.LocalData["organization_uid"].(string)
+	userLoggedOrganization := aepr.LocalData["organization"].(utils.JSON)
 	_, user, err := user_management.ModuleUserManagement.User.GetById(&aepr.Log, userId)
 	if err != nil {
 		return err
