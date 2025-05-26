@@ -511,7 +511,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 
 	var user utils.JSON
-	//var userOrganizationMemberships []utils.JSON
+	var userOrganizationMemberships []utils.JSON
 	var userLoggedOrganizationId int64
 	var userLoggedOrganizationUid string
 	var userLoggedOrganization utils.JSON
@@ -524,9 +524,29 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		if !verificationResult {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
+
+		userId := user["id"].(int64)
+
+		us := utils.JSON{
+			"user_id": userId,
+		}
+
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
+		}
+
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
+			map[string]string{"order_index": "asc"}, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+		}
+
 		userLoggedOrganizationId = userLoggedOrganization["id"].(int64)
 		userLoggedOrganizationUid = userLoggedOrganization["uid"].(string)
-
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
@@ -548,8 +568,8 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err := user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
+			map[string]string{"order_index": "asc"}, nil)
 		if err != nil {
 			return err
 		}
@@ -585,7 +605,8 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	if !ok {
 		return aepr.WriteResponseAndNewErrorf(500, "", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
 	}
-	userEffectivePrivilegeIds, sessionObject, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization)
+	a := []any{userOrganizationMemberships}
+	userEffectivePrivilegeIds, sessionObject, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
 	if err2 != nil {
 		return err2
 	}
@@ -640,7 +661,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId int64, sessionKey string, user utils.JSON, userLoggedOrganizationId int64,
-	userLoggedOrganizationUid string, userLoggedOrganization utils.JSON) (userEffectivePrivilegeIds map[string]int64, sessionObject utils.JSON, err error) {
+	userLoggedOrganizationUid string, userLoggedOrganization utils.JSON, userOrganizationMemberships []any) (userEffectivePrivilegeIds map[string]int64, sessionObject utils.JSON, err error) {
 	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
 		"user_id": userId,
 	}, nil, map[string]string{"id": "ASC"}, nil)
@@ -691,16 +712,16 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 	}
 
 	sessionObject = utils.JSON{
-		"session_key":      sessionKey,
-		"user_id":          userId,
-		"user":             user,
-		"organization_id":  userLoggedOrganizationId,
-		"organization_uid": userLoggedOrganizationUid,
-		"organization":     userLoggedOrganization,
-		//"user_organization_memberships": userOrganizationMemberships,
-		"user_role_memberships":        userRoleMemberships,
-		"user_effective_privilege_ids": userEffectivePrivilegeIds,
-		"menu_tree_root":               menuTreeRoot,
+		"session_key":                   sessionKey,
+		"user_id":                       userId,
+		"user":                          user,
+		"organization_id":               userLoggedOrganizationId,
+		"organization_uid":              userLoggedOrganizationUid,
+		"organization":                  userLoggedOrganization,
+		"user_organization_memberships": userOrganizationMemberships,
+		"user_role_memberships":         userRoleMemberships,
+		"user_effective_privilege_ids":  userEffectivePrivilegeIds,
+		"menu_tree_root":                menuTreeRoot,
 	}
 	return userEffectivePrivilegeIds, sessionObject, nil
 }
@@ -800,8 +821,8 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
+			map[string]string{"order_index": "asc"}, nil)
 		if err != nil {
 			return err
 		}
@@ -955,11 +976,13 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	userLoggedOrganizationId := aepr.LocalData["organization_id"].(int64)
 	userLoggedOrganizationUid := aepr.LocalData["organization_uid"].(string)
 	userLoggedOrganization := aepr.LocalData["organization"].(utils.JSON)
+	userOrganizationMemberships := aepr.LocalData["user_organization_memberships"].([]interface{})
+
 	_, user, err := user_management.ModuleUserManagement.User.GetById(&aepr.Log, userId)
 	if err != nil {
 		return err
 	}
-	_, sessionObject, err = s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization)
+	_, sessionObject, err = s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, userOrganizationMemberships)
 	if err != nil {
 		return err
 	}
@@ -1022,6 +1045,11 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	if err != nil {
 		return nil, err
 	}
+	userOrganizationMemberships, ok := sessionObject["user_organization_memberships"].([]interface{})
+	if !ok {
+		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "NOT_ERROR:USER_ORGANIZATION_MEMBERSHIPS_NOT_FOUND")
+	}
+
 	if user == nil {
 		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "USER_NOT_FOUND")
 	}
@@ -1034,6 +1062,8 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	aepr.LocalData["organization_uid"] = organizationUid
 	aepr.LocalData["organization_name"] = organizationName
 	aepr.LocalData["organization"] = organization
+	aepr.LocalData["user_organization_memberships"] = userOrganizationMemberships
+
 	aepr.CurrentUser.Id = utils.Int64ToString(userId)
 	aepr.CurrentUser.Uid = userUid
 	aepr.CurrentUser.LoginId = userLoginId
