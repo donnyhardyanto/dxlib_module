@@ -1072,7 +1072,10 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	return nil
 }
 
-func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
+/*func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
+	aepr.Log.Debugf("Middleware Start: %s", aepr.EndPoint.Uri)
+	defer aepr.Log.Debugf("Middleware Done: %s", aepr.EndPoint.Uri)
+
 	authHeader := aepr.Request.Header.Get("Authorization")
 	if authHeader == "" {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
@@ -1084,6 +1087,47 @@ func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (
 	}
 
 	sessionKey := authHeader[len(bearerSchema):]
+	sessionObject, err := SessionKeyToSessionObject(aepr, sessionKey)
+	if err != nil {
+		return err
+	}
+
+	allowed := false
+	userEffectivePrivilegeIds := sessionObject["user_effective_privilege_ids"].(map[string]any)
+	if aepr.EndPoint.Privileges == nil {
+		allowed = true
+	}
+	if len(aepr.EndPoint.Privileges) == 0 {
+		allowed = true
+	} else {
+		for k := range userEffectivePrivilegeIds {
+			if slices.Contains(aepr.EndPoint.Privileges, k) {
+				allowed = true
+			}
+		}
+	}
+	if !allowed {
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
+	}
+	return nil
+}*/
+
+func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
+	aepr.Log.Debugf("Middleware Start: %s", aepr.EndPoint.Uri)
+	defer aepr.Log.Debugf("Middleware Done: %s", aepr.EndPoint.Uri)
+
+	authHeader := aepr.Request.Header.Get("Authorization")
+	if authHeader == "" {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
+	}
+
+	const bearerSchema = "Bearer "
+	if !strings.HasPrefix(authHeader, bearerSchema) {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_AUTHORIZATION_HEADER")
+	}
+
+	sessionKey := authHeader[len(bearerSchema):]
+
 	sessionObject, err := SessionKeyToSessionObject(aepr, sessionKey)
 	if err != nil {
 		return err
