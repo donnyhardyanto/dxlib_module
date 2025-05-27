@@ -606,27 +606,27 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndNewErrorf(500, "", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
 	}
 	a := []any{userOrganizationMemberships}
-	userEffectivePrivilegeIds, sessionObject, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
+	/*userEffectivePrivilegeIds, */ sessionObject, allowed, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
 	if err2 != nil {
 		return err2
 	}
 
-	allowed := false
-	for k := range userEffectivePrivilegeIds {
-		if slices.Contains(aepr.EndPoint.Privileges, k) {
-			allowed = true
-		}
-	}
+	/*	allowed := false
+		for k := range userEffectivePrivilegeIds {
+			if slices.Contains(aepr.EndPoint.Privileges, k) {
+				allowed = true
+			}
+		}*/
 	if !allowed {
 		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
-	if s.OnCreateSessionObject != nil {
+	/*	if s.OnCreateSessionObject != nil {
 		sessionObject, err = s.OnCreateSessionObject(aepr, user, userLoggedOrganization, sessionObject)
 		if err != nil {
 			return err
 		}
-	}
+	}*/
 	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
 	if err != nil {
 		return err
@@ -661,12 +661,14 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId int64, sessionKey string, user utils.JSON, userLoggedOrganizationId int64,
-	userLoggedOrganizationUid string, userLoggedOrganization utils.JSON, userOrganizationMemberships []any) (userEffectivePrivilegeIds map[string]int64, sessionObject utils.JSON, err error) {
+	userLoggedOrganizationUid string, userLoggedOrganization utils.JSON, userOrganizationMemberships []any) (sessionObject utils.JSON, allowed bool, err error) {
+	var userEffectivePrivilegeIds map[string]int64
+
 	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
 		"user_id": userId,
 	}, nil, map[string]string{"id": "ASC"}, nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, false, err
 	}
 
 	userEffectivePrivilegeIds = map[string]int64{}
@@ -675,7 +677,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 			"role_id": roleMembership["role_id"],
 		}, nil, nil, nil)
 		if err != nil {
-			return nil, nil, err
+			return nil, false, err
 		}
 		for _, v1 := range rolePrivileges {
 			privilegeNameId := v1["privilege_nameid"].(string)
@@ -684,7 +686,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 			if privilegeNameId == "EVERYTHING" {
 				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil)
 				if err != nil {
-					return nil, nil, err
+					return nil, false, err
 				}
 				for _, v2 := range rolePrivileges {
 					privilegeNameId := v2["nameid"].(string)
@@ -708,7 +710,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 
 	menuTreeRoot, err := s.fetchMenuTree(&aepr.Log, userEffectivePrivilegeIds)
 	if err != nil {
-		return nil, nil, err
+		return nil, false, err
 	}
 
 	sessionObject = utils.JSON{
@@ -723,7 +725,29 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 		"user_effective_privilege_ids":  userEffectivePrivilegeIds,
 		"menu_tree_root":                menuTreeRoot,
 	}
-	return userEffectivePrivilegeIds, sessionObject, nil
+
+	if len(aepr.EndPoint.Privileges) > 0 {
+		allowed = false
+		for k := range userEffectivePrivilegeIds {
+			if slices.Contains(aepr.EndPoint.Privileges, k) {
+				allowed = true
+			}
+		}
+	} else {
+		allowed = true
+	}
+	if !allowed {
+		return sessionObject, false, err
+	}
+
+	if s.OnCreateSessionObject != nil {
+		sessionObject, err = s.OnCreateSessionObject(aepr, user, userLoggedOrganization, sessionObject)
+		if err != nil {
+			return sessionObject, true, err
+		}
+	}
+
+	return sessionObject, true, nil
 }
 
 func GenerateSessionKey() (string, error) {
@@ -858,88 +882,33 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	if !ok {
 		return aepr.WriteResponseAndNewErrorf(500, "", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
 	}
-	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
-		"user_id": userId,
-		//	"organization_id": userLoggedOrganizationId,
-	}, nil, map[string]string{"id": "ASC"}, nil)
-	if err != nil {
-		return err
+	a := []any{userOrganizationMemberships}
+	/*userEffectivePrivilegeIds, */ sessionObject, allowed, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
+	if err2 != nil {
+		return err2
 	}
 
-	userEffectivePrivilegeIds := map[string]int64{}
-	for _, roleMembership := range userRoleMemberships {
-		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
-			"role_id": roleMembership["role_id"],
-		}, nil, nil, nil)
-		if err != nil {
-			return err
-		}
-		for _, v1 := range rolePrivileges {
-			privilegeNameId := v1["privilege_nameid"].(string)
-			privilegeId := v1["privilege_id"].(int64)
-			if privilegeNameId == "EVERYTHING" {
-				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil)
-				if err != nil {
-					return err
-				}
-				for _, v2 := range rolePrivileges {
-					privilegeNameId := v2["nameid"].(string)
-					privilegeId := v2["id"].(int64)
-					if privilegeNameId != "EVERYTHING" {
-						_, exists := userEffectivePrivilegeIds[privilegeNameId]
-						if !exists {
-							userEffectivePrivilegeIds[privilegeNameId] = privilegeId
-						}
-					}
-
-				}
-			} else {
-				_, exists := userEffectivePrivilegeIds[privilegeNameId]
-				if !exists {
-					userEffectivePrivilegeIds[privilegeNameId] = privilegeId
-				}
+	/*	allowed := false
+		for k := range userEffectivePrivilegeIds {
+			if slices.Contains(aepr.EndPoint.Privileges, k) {
+				allowed = true
 			}
-		}
-	}
-
-	menuTreeRoot, err := s.fetchMenuTree(&aepr.Log, userEffectivePrivilegeIds)
-	if err != nil {
-		return err
-	}
-
-	sessionObject := utils.JSON{
-		"session_key":                   sessionKey,
-		"user_id":                       user["id"],
-		"user":                          user,
-		"organization_id":               userLoggedOrganizationId,
-		"organization_uid":              userLoggedOrganizationUid,
-		"organization":                  userLoggedOrganization,
-		"user_organization_memberships": userOrganizationMemberships,
-		"user_role_memberships":         userRoleMemberships,
-		"user_effective_privilege_ids":  userEffectivePrivilegeIds,
-		"menu_tree_root":                menuTreeRoot,
-	}
-
-	allowed := false
-	for k := range userEffectivePrivilegeIds {
-		if slices.Contains(aepr.EndPoint.Privileges, k) {
-			allowed = true
-		}
-	}
+		}*/
 	if !allowed {
 		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
-	if s.OnCreateSessionObject != nil {
+	/*	if s.OnCreateSessionObject != nil {
 		sessionObject, err = s.OnCreateSessionObject(aepr, user, userLoggedOrganization, sessionObject)
 		if err != nil {
 			return err
 		}
-	}
+	}*/
 	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
 	if err != nil {
 		return err
 	}
+
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
 	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
@@ -982,9 +951,13 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
-	_, sessionObject, err = s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, userOrganizationMemberships)
+	sessionObject, allowed, err := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, userOrganizationMemberships)
 	if err != nil {
 		return err
+	}
+
+	if !allowed {
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
 	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
