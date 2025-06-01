@@ -3,6 +3,7 @@ package user_management
 import (
 	"bytes"
 	"database/sql"
+	"encoding/csv"
 	"encoding/hex"
 	"fmt"
 	"github.com/donnyhardyanto/dxlib/api"
@@ -14,11 +15,372 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils/lv"
 	security "github.com/donnyhardyanto/dxlib/utils/security"
 	"github.com/pkg/errors"
+	"github.com/tealeg/xlsx"
 	"github.com/teris-io/shortid"
+	"io"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
+
+func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err error) {
+	// Get the request body stream
+	bs := aepr.Request.Body
+	if bs == nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "FAILED_TO_GET_BODY_STREAM:%s", "UserCreateBulk")
+	}
+	defer bs.Close()
+
+	// Read the entire request body into a buffer
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, bs)
+	if err != nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "FAILED_TO_READ_REQUEST_BODY:%s=%v", "UserCreateBulk", err.Error())
+	}
+
+	// Determine the file type and parse accordingly
+	contentType := aepr.Request.Header.Get("Content-Type")
+	if strings.Contains(contentType, "csv") {
+		err = um.parseAndCreateUsersFromCSV(&buf, aepr)
+	} else if strings.Contains(contentType, "excel") || strings.Contains(contentType, "spreadsheetml") {
+		err = um.parseAndCreateUsersFromXLSX(&buf, aepr)
+	} else {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnsupportedMediaType, "UNSUPPORTED_FILE_TYPE:%s", contentType)
+	}
+
+	if err != nil {
+		return errors.Wrap(err, "error occurred")
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
+	return nil
+}
+
+func (um *DxmUserManagement) parseAndCreateUsersFromCSV(buf *bytes.Buffer, aepr *api.DXAPIEndPointRequest) error {
+	// Create a new reader with comma as delimiter
+	reader := csv.NewReader(buf)
+	reader.Comma = ','          // Set comma as delimiter
+	reader.LazyQuotes = true    // Handle quotes more flexibly
+	reader.FieldsPerRecord = -1 // Allow variable number of fields
+
+	// Read header row
+	headers, err := reader.Read()
+	if err != nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
+			"FAILED_TO_READ_CSV_HEADERS: %s", err.Error())
+	}
+
+	// Clean headers - trim spaces and empty fields
+	cleanHeaders := make([]string, 0)
+	for _, h := range headers {
+		h = strings.TrimSpace(h)
+		if h != "" {
+			cleanHeaders = append(cleanHeaders, h)
+		}
+	}
+
+	// Process each row
+	lineNum := 1 // Keep track of line numbers for error reporting
+	for {
+		lineNum++
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "",
+				"FAILED_TO_PARSE_CSV_LINE_%d: %s", lineNum, err.Error())
+		}
+
+		// Create user data map
+		userData := make(map[string]interface{})
+		for i, value := range record {
+			if i >= len(cleanHeaders) {
+				break
+			}
+			// Clean and validate the value
+			value = strings.TrimSpace(value)
+			if value != "" {
+				userData[cleanHeaders[i]] = value
+			}
+		}
+
+		// Skip empty rows
+		if len(userData) == 0 {
+			continue
+		}
+
+		// Create user
+		err = um.doUserCreate(&aepr.Log, userData)
+		if err != nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "",
+				"FAILED_TO_CREATE_USER_LINE_%d: %s", lineNum, err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (um *DxmUserManagement) parseAndCreateUsersFromXLSX(buf *bytes.Buffer, aepr *api.DXAPIEndPointRequest) error {
+	xlFile, err := xlsx.OpenBinary(buf.Bytes())
+	if err != nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_PARSE_XLSX: %s", err.Error())
+	}
+
+	for _, sheet := range xlFile.Sheets {
+		if len(sheet.Rows) < 2 {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "XLSX_FILE_MUST_HAVE_HEADER_AND_DATA")
+		}
+
+		// Validate and extract headers
+		headers := make([]string, 0, len(sheet.Rows[0].Cells))
+		for _, cell := range sheet.Rows[0].Cells {
+			header := strings.TrimSpace(cell.String())
+			if header == "" {
+				return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "EMPTY_HEADER_NOT_ALLOWED")
+			}
+			headers = append(headers, header)
+		}
+
+		// Process data rows
+		for rowIdx, row := range sheet.Rows[1:] {
+			userData := make(map[string]interface{}, len(headers))
+
+			if len(row.Cells) == 0 {
+				continue // Skip empty rows
+			}
+
+			// Map cell values to headers with type conversion
+			for i, cell := range row.Cells {
+				if i >= len(headers) {
+					break
+				}
+
+				value := strings.TrimSpace(cell.String())
+				if value == "" {
+					continue // Skip empty values instead of adding them to userData
+				}
+
+				// Try to convert numeric values for specific columns
+				if um.isNumericUserColumn(headers[i]) {
+					if numVal, err := cell.Float(); err == nil {
+						userData[headers[i]] = numVal
+					} else {
+						return aepr.WriteResponseAndNewErrorf(
+							http.StatusUnprocessableEntity, "",
+							"INVALID_NUMERIC_VALUE_AT_ROW_%d_COLUMN_%s: %q",
+							rowIdx+2,
+							headers[i],
+							value,
+						)
+					}
+				} else {
+					userData[headers[i]] = value
+				}
+			}
+
+			if len(userData) == 0 {
+				continue
+			}
+
+			if err = um.doUserCreate(&aepr.Log, userData); err != nil {
+				// Check for specific PostgreSQL errors
+				if strings.Contains(err.Error(), "invalid input syntax for type double precision") {
+					return aepr.WriteResponseAndNewErrorf(
+						http.StatusUnprocessableEntity, "",
+						"INVALID_NUMERIC_VALUE_AT_ROW_%d: Please ensure all numeric fields contain valid numbers",
+						rowIdx+2,
+					)
+				}
+				return aepr.WriteResponseAndNewErrorf(
+					http.StatusUnprocessableEntity, "",
+					"FAILED_TO_CREATE_USER_AT_ROW_%d: %s",
+					rowIdx+2,
+					err.Error(),
+				)
+			}
+		}
+	}
+
+	return nil
+}
+
+// Helper function to identify numeric columns for users
+func (um *DxmUserManagement) isNumericUserColumn(header string) bool {
+	// Add your numeric column names here for users
+	numericColumns := map[string]bool{
+		"organization_id": true,
+		"role_id":         true,
+		// Add other numeric column names as needed
+	}
+
+	header = strings.ToLower(header)
+	return numericColumns[header]
+}
+
+// Helper function to create user with proper validation
+func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[string]interface{}) error {
+	// Validate required fields
+	loginid, ok := userData["loginid"].(string)
+	if !ok || loginid == "" {
+		return fmt.Errorf("loginid is required")
+	}
+
+	email, ok := userData["email"].(string)
+	if !ok || email == "" {
+		return fmt.Errorf("email is required")
+	}
+
+	fullname, ok := userData["fullname"].(string)
+	if !ok || fullname == "" {
+		return fmt.Errorf("fullname is required")
+	}
+
+	phonenumber, ok := userData["phonenumber"].(string)
+	if !ok || phonenumber == "" {
+		return fmt.Errorf("phonenumber is required")
+	}
+
+	// Get organization ID
+	var organizationId int64
+	if orgId, ok := userData["organization_id"].(float64); ok {
+		organizationId = int64(orgId)
+	} else if orgName, ok := userData["organization_name"].(string); ok && orgName != "" {
+		// Look up organization by name
+		_, org, err := um.Organization.SelectOne(log, nil, utils.JSON{
+			"name": orgName,
+		}, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to find organization '%s': %v", orgName, err)
+		}
+		if org == nil {
+			return fmt.Errorf("organization '%s' not found", orgName)
+		}
+		organizationId = org["id"].(int64)
+	} else {
+		return fmt.Errorf("organization_id or organization_name is required")
+	}
+
+	// Get role ID (default to a basic role if not specified)
+	var roleId int64 = 1 // Default role ID, you might want to make this configurable
+	if rId, ok := userData["role_id"].(float64); ok {
+		roleId = int64(rId)
+	}
+
+	// Generate a default password (will be reset later)
+	defaultPassword := generateRandomString(12)
+
+	// Build user object
+	userObj := utils.JSON{
+		"loginid":              loginid,
+		"email":                email,
+		"fullname":             fullname,
+		"phonenumber":          phonenumber,
+		"status":               UserStatusActive,
+		"must_change_password": true, // Force password change on first login
+		"is_avatar_exist":      false,
+	}
+
+	// Handle optional fields
+	if attribute, ok := userData["attribute"].(string); ok && attribute != "" {
+		userObj["attribute"] = attribute
+	}
+
+	if identityNumber, ok := userData["identity_number"].(string); ok && identityNumber != "" {
+		userObj["identity_number"] = identityNumber
+	}
+
+	if identityType, ok := userData["identity_type"].(string); ok && identityType != "" {
+		userObj["identity_type"] = identityType
+	}
+
+	if gender, ok := userData["gender"].(string); ok && gender != "" {
+		userObj["gender"] = gender
+	}
+
+	if addressOnId, ok := userData["address_on_identity_card"].(string); ok && addressOnId != "" {
+		userObj["address_on_identity_card"] = addressOnId
+	}
+
+	membershipNumber, ok := userData["membership_number"].(string)
+	if !ok {
+		membershipNumber = ""
+	}
+
+	// Create user in a transaction
+	var userId int64
+	var userOrganizationMembershipId int64
+	var userRoleMembershipId int64
+
+	err := um.User.Database.Tx(log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) error {
+		// Check if user already exists
+		_, existingUser, err := um.User.TxSelectOne(tx, utils.JSON{
+			"loginid": loginid,
+		}, nil)
+		if err != nil {
+			return err
+		}
+		if existingUser != nil {
+			return fmt.Errorf("user with loginid '%s' already exists", loginid)
+		}
+
+		// Create user
+		userId, err = um.User.TxInsert(tx, userObj)
+		if err != nil {
+			return err
+		}
+
+		// Create organization membership
+		userOrganizationMembershipId, err = um.UserOrganizationMembership.TxInsert(tx, map[string]any{
+			"user_id":           userId,
+			"organization_id":   organizationId,
+			"membership_number": membershipNumber,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Create role membership
+		userRoleMembershipId, err = um.UserRoleMembership.TxInsert(tx, map[string]any{
+			"user_id":         userId,
+			"organization_id": organizationId,
+			"role_id":         roleId,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Create password
+		err = um.TxUserPasswordCreate(tx, userId, defaultPassword)
+		if err != nil {
+			return err
+		}
+
+		// Call post-create hooks if they exist
+		if um.OnUserAfterCreate != nil {
+			_, user, err := um.User.TxSelectOne(tx, utils.JSON{
+				"id": userId,
+			}, nil)
+			if err != nil {
+				return err
+			}
+			err = um.OnUserAfterCreate(nil, tx, user, defaultPassword) // Pass nil for aepr since we don't have it in this context
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Created user: %s (ID: %d, Org: %d, Role: %d)", loginid, userId, userOrganizationMembershipId, userRoleMembershipId)
+	return nil
+}
 
 func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error) {
 	isExistFilterWhere, filterWhere, err := aepr.GetParameterValueAsString("filter_where")
