@@ -60,7 +60,7 @@ func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err
 func (um *DxmUserManagement) parseAndCreateUsersFromCSV(buf *bytes.Buffer, aepr *api.DXAPIEndPointRequest) error {
 	// Create a new reader with comma as delimiter
 	reader := csv.NewReader(buf)
-	reader.Comma = ','          // Set comma as delimiter
+	reader.Comma = ';'          // Set comma as delimiter
 	reader.LazyQuotes = true    // Handle quotes more flexibly
 	reader.FieldsPerRecord = -1 // Allow variable number of fields
 
