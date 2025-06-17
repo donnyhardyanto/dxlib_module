@@ -39,13 +39,20 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 	if logLevel > log.DXLogLevelError {
 		return
 	}
+	l := len(text)
+	st := ""
+	if l >= 1000 {
+		st = text[:1000] + "..."
+	} else {
+		st = text
+	}
 	logLevelAsString := log.DXLogLevelAsString[logLevel]
 	_, err = ModuleAuditLog.ErrorLog.Insert(&log.Log, utils.JSON{
 		"at":        time.Now(),
 		"prefix":    app.App.NameId + " " + app.App.Version,
 		"log_level": logLevelAsString,
 		"location":  location,
-		"message":   text,
+		"message":   st,
 		"stack":     stack,
 	})
 	if err != nil {
