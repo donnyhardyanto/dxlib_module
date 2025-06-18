@@ -41,8 +41,8 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 	}
 	l := len(text)
 	st := ""
-	if l >= 1000 {
-		st = text[:1000] + "..."
+	if l >= 10000 {
+		st = text[:10000] + "..."
 	} else {
 		st = text
 	}
