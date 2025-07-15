@@ -66,7 +66,7 @@ require (
 	github.com/hashicorp/vault/api v1.20.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/knetic/go-namedparameterquery v0.0.0-20250325061911-c16f232e6761 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/microsoft/go-mssqldb v1.9.2 // indirect
