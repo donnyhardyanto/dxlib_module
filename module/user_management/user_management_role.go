@@ -2,6 +2,8 @@ package user_management
 
 import (
 	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/utils"
+	"github.com/pkg/errors"
 )
 
 func (um *DxmUserManagement) RoleList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -9,11 +11,22 @@ func (um *DxmUserManagement) RoleList(aepr *api.DXAPIEndPointRequest) (err error
 }
 
 func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err error) {
-	_, err = um.Role.DoCreate(aepr, map[string]any{
+	isOrganizationTypes, organizationTypes, err := aepr.GetParameterValueAsArrayOfString("organization_types")
+	if err != nil {
+		return errors.Wrap(err, "error occurred")
+	}
+
+	p := utils.JSON{
 		"nameid":      aepr.ParameterValues["nameid"].Value.(string),
 		"name":        aepr.ParameterValues["name"].Value.(string),
 		"description": aepr.ParameterValues["description"].Value.(string),
-	})
+	}
+
+	if isOrganizationTypes {
+		p["organization_types"] = organizationTypes
+	}
+
+	_, err = um.Role.DoCreate(aepr, p)
 	return err
 }
 
