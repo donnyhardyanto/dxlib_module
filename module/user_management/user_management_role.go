@@ -1,6 +1,7 @@
 package user_management
 
 import (
+	"encoding/json"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/pkg/errors"
@@ -72,7 +73,12 @@ func (um *DxmUserManagement) RoleEdit(aepr *api.DXAPIEndPointRequest) (err error
 
 	organizationTypes, ok := newFieldValues["organization_types"].([]string)
 	if ok {
-		p["organization_types"] = organizationTypes
+		jsonBytes, err := json.Marshal(organizationTypes)
+		if err != nil {
+			return err
+		}
+		jsonString := string(jsonBytes)
+		p["organization_types"] = jsonString
 	}
 
 	err = t.DoEdit(aepr, id, p)
