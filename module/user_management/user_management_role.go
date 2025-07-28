@@ -39,7 +39,47 @@ func (um *DxmUserManagement) RoleReadByNameId(aepr *api.DXAPIEndPointRequest) (e
 }
 
 func (um *DxmUserManagement) RoleEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.RequestEdit(aepr)
+	t := um.Role
+	_, id, err := aepr.GetParameterValueAsInt64(t.FieldNameForRowId)
+	if err != nil {
+		return errors.Wrap(err, "error occured")
+	}
+
+	_, newFieldValues, err := aepr.GetParameterValueAsJSON("new")
+	if err != nil {
+		return errors.Wrap(err, "error occured")
+	}
+
+	p := utils.JSON{}
+
+	nameid, ok := newFieldValues["nameid"].(string)
+	if ok {
+		p["nameid"] = nameid
+
+	}
+
+	name, ok := newFieldValues["name"].(string)
+	if ok {
+		p["name"] = name
+
+	}
+
+	description, ok := newFieldValues["description"].(string)
+	if ok {
+		p["description"] = description
+
+	}
+
+	organizationTypes, ok := newFieldValues["organization_types"].([]string)
+	if ok {
+		p["organization_types"] = organizationTypes
+	}
+
+	err = t.DoEdit(aepr, id, p)
+	if err != nil {
+		return errors.Wrap(err, "error occured")
+	}
+	return nil
 }
 
 func (um *DxmUserManagement) RoleDelete(aepr *api.DXAPIEndPointRequest) (err error) {
