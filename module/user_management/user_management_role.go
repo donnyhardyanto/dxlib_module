@@ -12,7 +12,7 @@ func (um *DxmUserManagement) RoleList(aepr *api.DXAPIEndPointRequest) (err error
 }
 
 func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err error) {
-	isOrganizationTypes, organizationTypes, err := aepr.GetParameterValueAsArrayOfString("organization_types")
+	isOrganizationTypes, organizationTypes, err := aepr.GetParameterValueAsStrings("organization_types")
 	if err != nil {
 		return errors.Wrap(err, "error occurred")
 	}
