@@ -21,7 +21,7 @@ func (um *DxmUserManagement) RolePrivilegeCreate(aepr *api.DXAPIEndPointRequest)
 }
 
 func (um *DxmUserManagement) RolePrivilegeDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.RolePrivilege.RequestSoftDelete(aepr)
+	return um.RolePrivilege.RequestHardDelete(aepr)
 }
 
 func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64, err error) {

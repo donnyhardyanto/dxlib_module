@@ -2,6 +2,8 @@ package user_management
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/log"
@@ -10,7 +12,6 @@ import (
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
-	"strings"
 )
 
 const (
