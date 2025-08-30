@@ -5,13 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/donnyhardyanto/dxlib/captcha"
-	"github.com/donnyhardyanto/dxlib/configuration"
-	"github.com/donnyhardyanto/dxlib/database"
-	"github.com/donnyhardyanto/dxlib/endpoint_rate_limiter"
-	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"slices"
 	"sort"
@@ -19,6 +12,14 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/donnyhardyanto/dxlib/captcha"
+	"github.com/donnyhardyanto/dxlib/configuration"
+	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/endpoint_rate_limiter"
+	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
@@ -804,10 +805,10 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	captchaText := string(lvPayloadCaptchaText.Value)
 
 	if captchaId != storedCaptchaId {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "INVALID_CAPTCHA")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "INVALID_CAPTCHA")
 	}
 	if captchaText != storedCapchaText {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "INVALID_CAPTCHA")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "INVALID_CAPTCHA")
 	}
 
 	var user utils.JSON
