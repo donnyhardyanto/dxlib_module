@@ -480,6 +480,10 @@ func (um *DxmUserManagement) OrganizationRead(aepr *api.DXAPIEndPointRequest) (e
 	return um.Organization.RequestRead(aepr)
 }
 
+func (um *DxmUserManagement) OrganizationReadByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	return um.Organization.RequestReadByUid(aepr)
+}
+
 func (um *DxmUserManagement) OrganizationReadByName(aepr *api.DXAPIEndPointRequest) (err error) {
 	return um.Organization.RequestReadByNameId(aepr)
 }
