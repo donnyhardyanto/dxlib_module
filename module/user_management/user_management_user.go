@@ -654,6 +654,10 @@ func (um *DxmUserManagement) UserRead(aepr *api.DXAPIEndPointRequest) (err error
 	return um.User.RequestRead(aepr)
 }
 
+func (um *DxmUserManagement) UserReadByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	return um.User.RequestReadByUid(aepr)
+}
+
 func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error) {
 	t := um.User
 	_, id, err := aepr.GetParameterValueAsInt64(t.FieldNameForRowId)
