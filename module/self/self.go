@@ -497,7 +497,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "UNPACK_ERROR:%v", err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR_%v", err.Error())
 	}
 
 	lvPayloadLoginId := lvPayloadElements[0]
@@ -523,7 +523,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
 		}
 
 		userId := user["id"].(int64)
@@ -543,7 +543,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
 		}
 
 		userLoggedOrganizationId = userLoggedOrganization["id"].(int64)
@@ -556,7 +556,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
 		}
 
 		userId := user["id"].(int64)
@@ -576,7 +576,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
 		}
 
 		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
@@ -593,7 +593,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
 		}
 	}
 
@@ -604,12 +604,12 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	userId, ok := user["id"].(int64)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(500, "", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
+		return aepr.WriteResponseAndNewErrorf(500, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
 	}
 	a := []any{userOrganizationMemberships}
-	/*userEffectivePrivilegeIds, */ sessionObject, allowed, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
+	sessionObject, allowed, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
 	if err2 != nil {
-		return err2
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err2.Error())
 	}
 
 	/*	allowed := false
@@ -619,7 +619,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			}
 		}*/
 	if !allowed {
-		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
 	/*	if s.OnCreateSessionObject != nil {
@@ -789,7 +789,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, storedCaptchaId, storedCapchaText, err := user_management.ModuleUserManagement.PreKeyUnpackCaptcha(preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "UNPACK_ERROR:%v", err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR_%v", err.Error())
 	}
 
 	lvPayloadLoginId := lvPayloadElements[0]
@@ -805,10 +805,10 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	captchaText := string(lvPayloadCaptchaText.Value)
 
 	if captchaId != storedCaptchaId {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "INVALID_CAPTCHA")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 	}
 	if captchaText != storedCapchaText {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "INVALID_CAPTCHA")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 	}
 
 	var user utils.JSON
@@ -823,7 +823,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
 		}
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
@@ -833,7 +833,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
 		}
 
 		userId := user["id"].(int64)
@@ -853,7 +853,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
 		}
 
 		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
@@ -870,7 +870,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
 		}
 	}
 
@@ -881,12 +881,12 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	userId, ok := user["id"].(int64)
 	if !ok {
-		return aepr.WriteResponseAndNewErrorf(500, "", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
+		return aepr.WriteResponseAndNewErrorf(500, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
 	}
 	a := []any{userOrganizationMemberships}
-	/*userEffectivePrivilegeIds, */ sessionObject, allowed, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
+	sessionObject, allowed, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
 	if err2 != nil {
-		return err2
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err2.Error())
 	}
 
 	/*	allowed := false
@@ -896,7 +896,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			}
 		}*/
 	if !allowed {
-		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
 	/*	if s.OnCreateSessionObject != nil {
@@ -954,11 +954,11 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 	sessionObject, allowed, err := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, userOrganizationMemberships)
 	if err != nil {
-		return err
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err.Error())
 	}
 
 	if !allowed {
-		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
 	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
@@ -990,7 +990,7 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 		return nil, err
 	}
 	if sessionObject == nil {
-		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "NOT_ERROR:SESSION_NOT_FOUND")
+		return nil, aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SESSION_NOT_FOUND", "NOT_ERROR:SESSION_NOT_FOUND")
 	}
 	userId := utilsJSON.MustGetInt64(sessionObject, "user_id")
 	user := sessionObject["user"].(utils.JSON)
