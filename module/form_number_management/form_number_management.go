@@ -103,13 +103,19 @@ func (fnm *DxmFormNumberManagement) getPostgreSQLQuery() string {
         INSERT INTO form_number_management.form_number_counters (nameid, last_year_month, last_sequence)
         VALUES ($1, $2, 1)
         ON CONFLICT (nameid) DO UPDATE SET
-            last_year_month = $2,
+       		last_year_month = $2,
             last_sequence = CASE 
-                WHEN form_number_management.form_number_counters.last_year_month = $2 THEN form_number_management.form_number_counters.last_sequence + 1
-                ELSE 1
+                WHEN form_number_management.form_number_counters.type = 'RESET_PER_MONTH' THEN
+                    CASE 
+                        WHEN form_number_management.form_number_counters.last_year_month = $2 THEN form_number_management.form_number_counters.last_sequence + 1
+                        ELSE 1
+                    END
+                WHEN form_number_management.form_number_counters.type = 'CONTINUES' THEN
+                    form_number_management.form_number_counters.last_sequence + 1
+                ELSE form_number_management.form_number_counters.last_sequence + 1
             END,
             updated_at = CURRENT_TIMESTAMP
-        RETURNING last_sequence, updated_at
+        RETURNING last_year_month, last_sequence
     `
 }
 
