@@ -80,9 +80,9 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 	formNumberType := rr["type"].(string)
 	formNumberTemplate := rr["template"].(string)
 	formNumberPrefix := rr["prefix"].(string)
-	formNumberLastYear := rr["last_year"].(int)
-	formNumberLastMonth := rr["last_month"].(int)
-	formNumberLastSequence := rr["last_sequence"].(int)
+	formNumberLastYear := rr["last_year"].(int64)
+	formNumberLastMonth := rr["last_month"].(int64)
+	formNumberLastSequence := rr["last_sequence"].(int64)
 
 	// Format form number
 	formNumber := ""
