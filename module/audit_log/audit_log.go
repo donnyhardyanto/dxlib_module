@@ -1,12 +1,13 @@
 package audit_log
 
 import (
+	"time"
+
 	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"time"
 )
 
 type DxmAudit struct {
@@ -24,12 +25,12 @@ func (al *DxmAudit) Init(databaseNameId string) {
 	al.UserActivityLog = table.Manager.NewRawTable(databaseNameId, "audit_log.user_activity_log",
 		"audit_log.user_activity_log",
 		"audit_log.user_activity_log", "id", "id", "uid", "data")
-	al.UserActivityLog.FieldMaxLengths = map[string]int{"error_message": 1024}
+	al.UserActivityLog.FieldMaxLengths = map[string]int{"error_message": 16000}
 
 	al.ErrorLog = table.Manager.NewRawTable(databaseNameId, "audit_log.error_log",
 		"audit_log.error_log",
 		"audit_log.error_log", "id", "id", "uid", "data")
-	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 1024}
+	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }
 
 func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location string, text string, stack string) (err error) {
@@ -41,8 +42,8 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 	}
 	l := len(text)
 	st := ""
-	if l >= 10000 {
-		st = text[:10000] + "..."
+	if l >= 16000 {
+		st = text[:16000] + "..."
 	} else {
 		st = text
 	}
