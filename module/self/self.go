@@ -1134,6 +1134,10 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 		return err
 	}
 
+	if sessionObject == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "SESSION_EXPIRED")
+	}
+
 	allowed := false
 	userEffectivePrivilegeIds := sessionObject["user_effective_privilege_ids"].(map[string]any)
 	if aepr.EndPoint.Privileges == nil {
