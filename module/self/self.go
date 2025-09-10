@@ -1262,7 +1262,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 	lvPayloadElements, _, _, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "UNPACK_ERROR:%v", err.Error())
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "", "UNPACK_ERROR:%s", err.Error())
 	}
 
 	lvPayloadNewPassword := lvPayloadElements[0]
@@ -1273,7 +1273,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 	err = PasswordFormatValidation(userPasswordNew)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%v", err.Error())
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "", "INVALID_PASSWORD_FORMAT:%s", err.Error())
 	}
 
 	userId := aepr.LocalData["user_id"].(int64)
