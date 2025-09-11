@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/object_storage"
-	"github.com/pkg/errors"
-	"golang.org/x/image/draw"
 	"image"
 	_ "image/jpeg"
 	"image/png"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/object_storage"
+	"github.com/pkg/errors"
+	"golang.org/x/image/draw"
 )
 
 type ProcessedImageObjectStorage struct {
@@ -186,13 +187,13 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		// RequestRead the entire request body into a buffer
 		_, err = io.Copy(&buf, bs)
 		if err != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_READ_REQUEST_BODY:%s=%v", ios.ObjectStorageSourceNameId, err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_READ_REQUEST_BODY:%s=%s", ios.ObjectStorageSourceNameId, err.Error())
 		}
 	} else {
 		// Decode base64 string to bytes
 		decodedBytes, err := base64.StdEncoding.DecodeString(fileContentBase64)
 		if err != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_DECODE_BASE64:%s=%v", ios.ObjectStorageSourceNameId, err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_DECODE_BASE64:%s=%s", ios.ObjectStorageSourceNameId, err.Error())
 		}
 
 		// Get the total size of the decoded content
@@ -206,13 +207,13 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 	// Validate image dimensions to prevent pixel flood attacks
 	err = ios.ValidateImageDimensions(buf.Bytes())
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "PIXEL_FLOOD_PROTECTION:%v", err)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "PIXEL_FLOOD_PROTECTION:%s", err.Error())
 	}
 
 	// Upload the original file
 	uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(buf.Bytes()), filename, filename, "application/octet-stream", false, bodyLen)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_UPLOAD_SOURCE_IMAGE_TO_OBJECT_STORAGE:%s=%v", ios.ObjectStorageSourceNameId, err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_UPLOAD_SOURCE_IMAGE_TO_OBJECT_STORAGE:%s=%s", ios.ObjectStorageSourceNameId, err.Error())
 	}
 
 	aepr.Log.Infof("Original upload info result: %d", uploadInfo.Size)
@@ -221,9 +222,9 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 	img, formatName, err := ios.DecodeImageWithTimeout(buf.Bytes())
 	if err != nil {
 		if err.Error() == "IMAGE_DECODE_TIMEOUT:possible_decompression_bomb" {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "PIXEL_FLOOD_PROTECTION:%v", err)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "PIXEL_FLOOD_PROTECTION:%s", err.Error())
 		}
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_DECODE_IMAGE:%s=%v", ios.ObjectStorageSourceNameId, err)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_DECODE_IMAGE:%s=%s", ios.ObjectStorageSourceNameId, err.Error())
 	}
 
 	aepr.Log.Infof("Image format (using Image.Decode): %s", formatName)
@@ -268,7 +269,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		case <-scaleDone:
 			cancel()
 			if scaleErr != nil {
-				return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_SCALE_IMAGE:%v", scaleErr.Error())
+				return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_SCALE_IMAGE:%s", scaleErr.Error())
 			}
 		}
 
@@ -276,7 +277,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		var resizedBuf bytes.Buffer
 		err = png.Encode(&resizedBuf, resizedImg)
 		if err != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "RESIZED_IMAGE_PNG_ENCODE_FAILED:(%dx%d) %v", processedImage.Width, targetHeight, err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "RESIZED_IMAGE_PNG_ENCODE_FAILED:(%dx%d) %s", processedImage.Width, targetHeight, err.Error())
 		}
 
 		// Upload the resized image
@@ -284,7 +285,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		bufLen := int64(len(buf))
 		uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(buf), filename, filename, "image/"+formatName, false, bufLen)
 		if err != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_UPLOAD_RESIZED_IMAGE_TO_OBJECT_STORAGE:(%s)=%v", processedImage.ObjectStorageNameId, err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_UPLOAD_RESIZED_IMAGE_TO_OBJECT_STORAGE:(%s)=%s", processedImage.ObjectStorageNameId, err.Error())
 		}
 
 		aepr.Log.Infof("Resized (%dx%d) upload info result size: %d", processedImage.Width, targetHeight, uploadInfo.Size)
