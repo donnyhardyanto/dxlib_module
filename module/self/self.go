@@ -940,7 +940,10 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
-	sessionObject := aepr.LocalData["session_object"].(utils.JSON)
+	sessionObject, ok := aepr.LocalData["session_object"].(utils.JSON)
+	if !ok {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:NO_SESSION_OBJECT")
+	}
 	userId := aepr.LocalData["user_id"].(int64)
 	sessionKey := sessionObject["session_key"].(string)
 	userLoggedOrganizationId := aepr.LocalData["organization_id"].(int64)
