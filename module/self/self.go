@@ -1222,7 +1222,10 @@ func PasswordFormatValidation(password string) (err error) {
 	hasUpper := false
 	hasLower := false
 	hasNumber := false
-	hasSpecial := false
+	hasForbiddenSpecial := false
+
+	// Define allowed special characters
+	allowedSpecialChars := "#$@!&*"
 
 	for _, char := range password {
 		switch {
@@ -1233,7 +1236,10 @@ func PasswordFormatValidation(password string) (err error) {
 		case unicode.IsNumber(char):
 			hasNumber = true
 		case !unicode.IsLetter(char) && !unicode.IsNumber(char):
-			hasSpecial = true
+			// Check if this special character is allowed
+			if !strings.ContainsRune(allowedSpecialChars, char) {
+				hasForbiddenSpecial = true
+			}
 		}
 	}
 
@@ -1246,10 +1252,9 @@ func PasswordFormatValidation(password string) (err error) {
 	if !hasNumber {
 		return errors.Errorf("password must contain at least one number")
 	}
-	if hasSpecial {
-		return errors.Errorf("password must not contain special characters")
+	if hasForbiddenSpecial {
+		return errors.Errorf("password must not contain special characters other than #$@!&*")
 	}
-
 	return nil
 }
 
