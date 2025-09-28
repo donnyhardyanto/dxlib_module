@@ -1186,7 +1186,7 @@ func (s *DxmSelf) MiddlewareRequestRateLimitCheck(aepr *api.DXAPIEndPointRequest
 		if blocked {
 			w.Header().Set("Retry-After", fmt.Sprintf("%d", int(remaining.Seconds())))
 		}
-		aepr.WriteResponseAsErrorMessage(http.StatusTooManyRequests, fmt.Sprintf("RATE_LIMIT_EXCEEDED"))
+		aepr.WriteResponseAsErrorMessage(http.StatusTooManyRequests, "", "RATE_LIMIT_EXCEEDED")
 		return
 	}
 
