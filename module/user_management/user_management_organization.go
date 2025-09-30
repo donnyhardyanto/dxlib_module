@@ -213,17 +213,17 @@ func (um *DxmUserManagement) doOrganizationCreate(log *dxlibLog.DXLog, organizat
 	// Validate required fields
 	code, ok := organizationData["code"].(string)
 	if !ok || code == "" {
-		return 0, fmt.Errorf("organization code is required")
+		return 0, errors.Errorf("organization code is required")
 	}
 
 	name, ok := organizationData["name"].(string)
 	if !ok || name == "" {
-		return 0, fmt.Errorf("organization name is required")
+		return 0, errors.Errorf("organization name is required")
 	}
 
 	orgType, ok := organizationData["type"].(string)
 	if !ok || orgType == "" {
-		return 0, fmt.Errorf("organization type is required")
+		return 0, errors.Errorf("organization type is required")
 	}
 
 	// Build organization object

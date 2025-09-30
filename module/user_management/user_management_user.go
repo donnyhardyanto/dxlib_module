@@ -224,22 +224,22 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 	// Validate required fields
 	loginid, ok := userData["loginid"].(string)
 	if !ok || loginid == "" {
-		return fmt.Errorf("loginid is required")
+		return errors.Errorf("loginid is required")
 	}
 
 	email, ok := userData["email"].(string)
 	if !ok || email == "" {
-		return fmt.Errorf("email is required")
+		return errors.Errorf("email is required")
 	}
 
 	fullname, ok := userData["fullname"].(string)
 	if !ok || fullname == "" {
-		return fmt.Errorf("fullname is required")
+		return errors.Errorf("fullname is required")
 	}
 
 	phonenumber, ok := userData["phonenumber"].(string)
 	if !ok || phonenumber == "" {
-		return fmt.Errorf("phonenumber is required")
+		return errors.Errorf("phonenumber is required")
 	}
 
 	// Get organization ID
@@ -252,14 +252,14 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 			"name": orgName,
 		}, nil, nil)
 		if err != nil {
-			return fmt.Errorf("failed to find organization '%s': %v", orgName, err)
+			return errors.Errorf("failed to find organization '%s': %v", orgName, err)
 		}
 		if org == nil {
-			return fmt.Errorf("organization '%s' not found", orgName)
+			return errors.Errorf("organization '%s' not found", orgName)
 		}
 		organizationId = org["id"].(int64)
 	} else {
-		return fmt.Errorf("organization_id or organization_name is required")
+		return errors.Errorf("organization_id or organization_name is required")
 	}
 
 	// Get role ID (default to a basic role if not specified)
@@ -322,7 +322,7 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 			return err
 		}
 		if existingUser != nil {
-			return fmt.Errorf("user with loginid '%s' already exists", loginid)
+			return errors.Errorf("user with loginid '%s' already exists", loginid)
 		}
 
 		// Create user

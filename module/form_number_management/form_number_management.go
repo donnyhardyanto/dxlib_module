@@ -9,6 +9,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/database/protected/db"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/pkg/errors"
 )
 
 type DxmFormNumberManagement struct {
@@ -35,7 +36,7 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 	// Load timezone location
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
-		return "", fmt.Errorf("invalid timezone '%s': %w", timezone, err)
+		return "", errors.Errorf("invalid timezone '%s': %w", timezone, err)
 	}
 
 	// Get current year and month separately in specified timezone
@@ -63,17 +64,17 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 		query = fnm.getMariaDBQuery()
 		args = []interface{}{nameid, year, month, year, month} // 5 parameters: INSERT (3) + UPDATE (2)
 	default:
-		return "", fmt.Errorf("unsupported database type: %s", fnm.FormNumberCounter.Database.DatabaseType)
+		return "", errors.Errorf("unsupported database type: %s", fnm.FormNumberCounter.Database.DatabaseType)
 	}
 
 	_, r, err := db.QueryRows(fnm.FormNumberCounter.Database.Connection, nil, query, args)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate form number: %w", err)
+		return "", errors.Errorf("failed to generate form number: %w", err)
 	}
 
 	// SAFER:
 	if len(r) == 0 {
-		return "", fmt.Errorf("no result returned from form number generation query")
+		return "", errors.Errorf("no result returned from form number generation query")
 	}
 	rr := r[0]
 

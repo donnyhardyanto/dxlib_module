@@ -4,8 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"firebase.google.com/go/v4/messaging"
 	"fmt"
+	"math"
+	"net/http"
+	"sync"
+	"time"
+
+	"firebase.google.com/go/v4/messaging"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/database/protected/db"
@@ -14,10 +19,6 @@ import (
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/pkg/errors"
-	"math"
-	"net/http"
-	"sync"
-	"time"
 )
 
 type DxmPushNotification struct {
@@ -332,7 +333,7 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 
 	err = f.SendToUser(&aepr.Log, applicationNameId, userId, msgTitle, msgBody, msgData, nil)
 	if err != nil {
-		return fmt.Errorf("failed to send test message: %w", err)
+		return errors.Errorf("failed to send test message: %w", err)
 	}
 
 	return nil
