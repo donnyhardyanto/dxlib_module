@@ -132,7 +132,7 @@ func (f *FirebaseCloudMessaging) MessageHardDelete(aepr *api.DXAPIEndPointReques
 	return f.FCMMessage.RequestHardDelete(aepr)
 }
 
-func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, deviceToken string, userId int64, token string) (err error) {
+func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, deviceType string, userId int64, token string) (err error) {
 	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
 	var dtx *database.DXDatabaseTx
 	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
@@ -172,7 +172,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 		"fcm_application_id": fcmApplicationId,
 		"user_id":            userId,
 		"fcm_token":          token,
-		"device_type":        deviceToken,
+		"device_type":        deviceType,
 	}, nil)
 	if err != nil {
 		return err
@@ -182,7 +182,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 			"fcm_application_id": fcmApplicationId,
 			"user_id":            userId,
 			"fcm_token":          token,
-			"device_type":        deviceToken,
+			"device_type":        deviceType,
 		})
 		if err != nil {
 			return err
@@ -267,14 +267,16 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 		return err
 	}
 
+	//	msgDataAsJSON := utils.MapStringStringToJSON(msgData)
+
 	var fcmMessageIds []int64
 	for _, userToken := range userTokens {
-		fcmMessageId, err := f.FCMMessage.TxInsert(dtx, utils.JSON{
+		fcmMessageId, err := f.FCMMessage.Insert(l, utils.JSON{
 			"fcm_user_token_id": userToken["id"],
 			"status":            "PENDING",
 			"title":             msgTitle,
 			"body":              msgBody,
-			"data":              msgData,
+			//	"data":              msgDataAsJSON,
 		})
 		if err != nil {
 			return err
@@ -447,9 +449,11 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 	}
 
 	for _, fcmMessage := range fcmMessages {
-		MsgNextRetryTime := fcmMessage["next_retry_time"].(time.Time)
-		if MsgNextRetryTime.After(time.Now()) {
-			continue // Skip messages that are not ready for retry
+		if fcmMessage["next_retry_time"] != nil {
+			MsgNextRetryTime := fcmMessage["next_retry_time"].(time.Time)
+			if MsgNextRetryTime.After(time.Now()) {
+				continue // Skip messages that are not ready for retry
+			}
 		}
 
 		// Wait for rate limit token
@@ -458,14 +462,19 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 			log.Log.Warnf("Rate limit wait error: %v", err)
 			continue
 		}
-		retryCount := fcmMessage["retry_count"].(int)
+		retryCount := fcmMessage["retry_count"].(int64)
 		fcmMessageId := fcmMessage["id"].(int64)
+		fcmToken := fcmMessage["fcm_token"].(string)
+		deviceType := fcmMessage["device_type"].(string)
 		msgTitle := fcmMessage["title"].(string)
 		msgBody := fcmMessage["body"].(string)
-		msgData := fcmMessage["data"].(map[string]string)
-		err = f.sendNotification(ctx, firebaseServiceAccount.Client, fcmMessage["token"].(string), fcmMessage["device_type"].(string), msgTitle, msgBody, msgData)
+		msgData := map[string]string{"retry_count": fmt.Sprintf("%d", retryCount)}
+		if msgDataTemp, ok := fcmMessage["data"].(map[string]string); ok {
+			msgData = msgDataTemp
+		}
+		err = f.sendNotification(ctx, firebaseServiceAccount.Client, fcmToken, deviceType, msgTitle, msgBody, msgData)
 		if err != nil {
-			log.Log.Warnf("Error sending notification %d: %v", fcmMessage["id"], err)
+			log.Log.Warnf("Error sending notification %d: %v", fcmMessageId, err)
 			retryCount++
 			err = f.updateMessageStatus(fcmMessage["id"].(int64), "FAILED", retryCount)
 		} else {
@@ -493,7 +502,7 @@ func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *m
 		message.Android = &messaging.AndroidConfig{
 			Priority: "high",
 		}
-	case "IOS":
+	case "iOS":
 		message.APNS = &messaging.APNSConfig{
 			Headers: map[string]string{
 				"apns-priority": "10",
@@ -507,7 +516,7 @@ func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *m
 	return err
 }
 
-func (f *FirebaseCloudMessaging) updateMessageStatus(messageId int64, status string, retryCount int) (err error) {
+func (f *FirebaseCloudMessaging) updateMessageStatus(messageId int64, status string, retryCount int64) (err error) {
 	p := utils.JSON{
 		"status": status,
 	}
@@ -522,7 +531,7 @@ func (f *FirebaseCloudMessaging) updateMessageStatus(messageId int64, status str
 	return err
 }
 
-func (f *FirebaseCloudMessaging) calculateNextRetryTime(retryCount int) time.Time {
+func (f *FirebaseCloudMessaging) calculateNextRetryTime(retryCount int64) time.Time {
 	delay := time.Duration(math.Min(float64(1*time.Hour), float64(5*time.Second)*math.Pow(2, float64(retryCount))))
 	return time.Now().Add(delay)
 }
