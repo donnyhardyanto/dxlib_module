@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -267,7 +268,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 		return err
 	}
 
-	//	msgDataAsJSON := utils.MapStringStringToJSON(msgData)
+	msgDataAsJSON := utils.MapStringStringToJSON(msgData)
 
 	var fcmMessageIds []int64
 	for _, userToken := range userTokens {
@@ -276,7 +277,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 			"status":            "PENDING",
 			"title":             msgTitle,
 			"body":              msgBody,
-			//	"data":              msgDataAsJSON,
+			"data":              msgDataAsJSON,
 		})
 		if err != nil {
 			return err
@@ -497,12 +498,12 @@ func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *m
 		},
 		Data: msgData,
 	}
-	switch deviceType {
+	switch strings.ToUpper(deviceType) {
 	case "ANDROID":
 		message.Android = &messaging.AndroidConfig{
 			Priority: "high",
 		}
-	case "iOS":
+	case "IOS":
 		message.APNS = &messaging.APNSConfig{
 			Headers: map[string]string{
 				"apns-priority": "10",
