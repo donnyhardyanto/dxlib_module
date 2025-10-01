@@ -268,7 +268,10 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 		return err
 	}
 
-	msgDataAsJSON := utils.MapStringStringToJSON(msgData)
+	msgDataAsJSONString, err := json.Marshal(msgData)
+	if err != nil {
+		return err
+	}
 
 	var fcmMessageIds []int64
 	for _, userToken := range userTokens {
@@ -277,7 +280,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 			"status":            "PENDING",
 			"title":             msgTitle,
 			"body":              msgBody,
-			"data":              msgDataAsJSON,
+			"data":              msgDataAsJSONString,
 		})
 		if err != nil {
 			return err
@@ -442,14 +445,16 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 
 	_, fcmMessages, err := f.FCMMessage.Select(&log.Log, nil, utils.JSON{
 		"fcm_application_id": applicationId,
-		"c1":                 db.SQLExpression{Expression: "status = 'PENDING' OR status = 'FAILED'"},
-		"c2":                 db.SQLExpression{Expression: "(next_retry_time <= NOW()) or (next_retry_time IS NULL)"},
+		"c1":                 db.SQLExpression{Expression: "((status = 'PENDING') OR (status = 'FAILED'))"},
+		"c2":                 db.SQLExpression{Expression: "((next_retry_time <= NOW()) or (next_retry_time IS NULL))"},
 	}, nil, nil, 100)
 	if err != nil {
 		return errors.Errorf("failed to fetch messages: %v", err)
 	}
 
 	for _, fcmMessage := range fcmMessages {
+		log.Log.Debugf("Processing message %d", fcmMessage["id"])
+
 		if fcmMessage["next_retry_time"] != nil {
 			MsgNextRetryTime := fcmMessage["next_retry_time"].(time.Time)
 			if MsgNextRetryTime.After(time.Now()) {
@@ -479,6 +484,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 			retryCount++
 			err = f.updateMessageStatus(fcmMessage["id"].(int64), "FAILED", retryCount)
 		} else {
+			log.Log.Warnf("Notification sent %d", fcmMessageId)
 			err = f.updateMessageStatus(fcmMessage["id"].(int64), "SENT", retryCount)
 		}
 		if err != nil {
