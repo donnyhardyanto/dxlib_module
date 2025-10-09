@@ -37,7 +37,7 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 	if errPrev != nil {
 		text = errPrev.Error() + "\n" + text
 	}
-	if logLevel > log.DXLogLevelError {
+	if logLevel > log.DXLogLevelWarn {
 		return
 	}
 	l := len(text)
