@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"time"
 
+	_ "golang.org/x/image/webp"
+
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/object_storage"
 	"github.com/pkg/errors"
@@ -283,7 +285,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		// Upload the resized image
 		buf := resizedBuf.Bytes()
 		bufLen := int64(len(buf))
-		uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(buf), filename, filename, "image/"+formatName, false, bufLen)
+		uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(buf), filename, filename, "image/png", false, bufLen)
 		if err != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_UPLOAD_RESIZED_IMAGE_TO_OBJECT_STORAGE:(%s)=%s", processedImage.ObjectStorageNameId, err.Error())
 		}

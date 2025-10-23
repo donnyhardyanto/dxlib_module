@@ -81,7 +81,7 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 
 	serviceAccountDataAsBytes, err := json.Marshal(serviceAccountData)
 	if err != nil {
-		return errors.New(fmt.Sprintf("ERROR_CONVERTING_SERVICE_ACCOUNT_DATA:%w", err))
+		return errors.New(fmt.Sprintf("ERROR_CONVERTING_SERVICE_ACCOUNT_DATA:%+v", err))
 	}
 
 	_, err = f.FCMApplication.DoCreate(aepr, map[string]interface{}{
@@ -339,7 +339,7 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 
 	err = f.SendToUser(&aepr.Log, applicationNameId, userId, msgTitle, msgBody, msgData, nil)
 	if err != nil {
-		return errors.Errorf("failed to send test message: %w", err)
+		return errors.Errorf("failed to send test message: %+v", err)
 	}
 
 	return nil

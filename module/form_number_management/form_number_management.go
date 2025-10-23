@@ -36,7 +36,7 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 	// Load timezone location
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
-		return "", errors.Errorf("invalid timezone '%s': %w", timezone, err)
+		return "", errors.Errorf("invalid timezone '%s': %+v", timezone, err)
 	}
 
 	// Get current year and month separately in specified timezone
@@ -69,7 +69,7 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 
 	_, r, err := db.QueryRows(fnm.FormNumberCounter.Database.Connection, nil, query, args)
 	if err != nil {
-		return "", errors.Errorf("failed to generate form number: %w", err)
+		return "", errors.Errorf("failed to generate form number: %+v", err)
 	}
 
 	// SAFER:
