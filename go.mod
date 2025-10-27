@@ -1,9 +1,10 @@
 module github.com/donnyhardyanto/dxlib_module
 
-go 1.25.1
+go 1.25.3
 
 require (
 	firebase.google.com/go/v4 v4.16.1
+	github.com/chai2010/webp v1.1.1
 	github.com/donnyhardyanto/dxlib v1.73.0
 	github.com/google/uuid v1.6.0
 	github.com/pkg/errors v0.9.1
@@ -34,6 +35,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
