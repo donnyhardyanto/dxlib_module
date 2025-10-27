@@ -6,13 +6,16 @@ import (
 	"encoding/base64"
 	"image"
 	_ "image/jpeg"
-	"image/png"
+	_ "image/png"
 	"io"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	_ "golang.org/x/image/webp"
 
+	webp "github.com/chai2010/webp"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/object_storage"
 	"github.com/pkg/errors"
@@ -86,7 +89,7 @@ func (ios *ImageObjectStorage) ValidateImageDimensions(data []byte) error {
 
 	select {
 	case <-ctx.Done():
-		return errors.New("IMAGE_PROCESSING_TIMEOUT:possible_decompression_bomb")
+		return errors.New("IMAGE_PROCESSING_TIMEOUT:POSSIBLE_DECOMPRESSION_BOMP")
 	case result := <-resultCh:
 		if result.err != nil {
 			return errors.Errorf("FAILED_TO_DECODE_IMAGE_CONFIG:%v", result.err)
@@ -156,7 +159,7 @@ func (ios *ImageObjectStorage) DecodeImageWithTimeout(data []byte) (image.Image,
 	// Wait for either the result or timeout
 	select {
 	case <-ctx.Done():
-		return nil, "", errors.New("IMAGE_DECODE_TIMEOUT:possible_decompression_bomb")
+		return nil, "", errors.New("IMAGE_DECODE_TIMEOUT:POSSIBLE_DECOMPRESSION_BOMP")
 	case result := <-resultCh:
 		return result.img, result.format, result.err
 	}
@@ -223,7 +226,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 	// Decode the image with timeout protection
 	img, formatName, err := ios.DecodeImageWithTimeout(buf.Bytes())
 	if err != nil {
-		if err.Error() == "IMAGE_DECODE_TIMEOUT:possible_decompression_bomb" {
+		if err.Error() == "IMAGE_DECODE_TIMEOUT:POSSIBLE_DECOMPRESSION_BOMP" {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "PIXEL_FLOOD_PROTECTION:%s", err.Error())
 		}
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_DECODE_IMAGE:%s=%s", ios.ObjectStorageSourceNameId, err.Error())
@@ -275,22 +278,28 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 			}
 		}
 
-		// Encode the resized image
+		// Encode the resized image to WebP
 		var resizedBuf bytes.Buffer
-		err = png.Encode(&resizedBuf, resizedImg)
-		if err != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "RESIZED_IMAGE_PNG_ENCODE_FAILED:(%dx%d) %s", processedImage.Width, targetHeight, err.Error())
+		if err := webp.Encode(&resizedBuf, resizedImg, &webp.Options{Quality: 80}); err != nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "RESIZED_IMAGE_WEBP_ENCODE_FAILED:(%dx%d) %s", processedImage.Width, targetHeight, err.Error())
 		}
 
 		// Upload the resized image
+		processedWebpName := filename
+		ext2 := filepath.Ext(filename)
+		if ext2 != "" {
+			processedWebpName = strings.TrimSuffix(filename, ext2) + ".webp"
+		} else {
+			processedWebpName = filename + ".webp"
+		}
 		buf := resizedBuf.Bytes()
 		bufLen := int64(len(buf))
-		uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(buf), filename, filename, "image/png", false, bufLen)
+		uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(buf), processedWebpName, processedWebpName, "image/webp", false, bufLen)
 		if err != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_UPLOAD_RESIZED_IMAGE_TO_OBJECT_STORAGE:(%s)=%s", processedImage.ObjectStorageNameId, err.Error())
 		}
 
-		aepr.Log.Infof("Resized (%dx%d) upload info result size: %d", processedImage.Width, targetHeight, uploadInfo.Size)
+		aepr.Log.Infof("Resized WebP (%dx%d) upload info result size: %d", processedImage.Width, targetHeight, uploadInfo.Size)
 	}
 
 	return nil
