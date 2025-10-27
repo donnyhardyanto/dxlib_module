@@ -4,6 +4,7 @@ go 1.25.3
 
 require (
 	firebase.google.com/go/v4 v4.18.0
+	github.com/HugoSmits86/nativewebp v1.2.0
 	github.com/chai2010/webp v1.4.0
 	github.com/donnyhardyanto/dxlib v1.76.1
 	github.com/google/uuid v1.6.0

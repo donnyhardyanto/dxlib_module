@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chai2010/webp"
 	_ "golang.org/x/image/webp"
 
 	"github.com/HugoSmits86/nativewebp"
@@ -282,7 +281,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 
 		// Encode the resized image to WebP
 		var resizedBuf bytes.Buffer
-		if err := nativewebp.Encode(&resizedBuf, resizedImg, &nativewebp.EncodingOptions{Quality: 80}); err != nil {
+		if err := nativewebp.Encode(&resizedBuf, resizedImg, nil); err != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "RESIZED_IMAGE_WEBP_ENCODE_FAILED:(%dx%d) %s", processedImage.Width, targetHeight, err.Error())
 		}
 		/*	if err := webp.Encode(&resizedBuf, resizedImg, &webp.Options{Quality: 80}); err != nil {
