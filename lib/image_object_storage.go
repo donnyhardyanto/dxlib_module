@@ -13,9 +13,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chai2010/webp"
 	_ "golang.org/x/image/webp"
 
-	webp "github.com/chai2010/webp"
+	"github.com/HugoSmits86/nativewebp"
+
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/object_storage"
 	"github.com/pkg/errors"
@@ -280,10 +282,13 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 
 		// Encode the resized image to WebP
 		var resizedBuf bytes.Buffer
-		if err := webp.Encode(&resizedBuf, resizedImg, &webp.Options{Quality: 80}); err != nil {
+		if err := nativewebp.Encode(&resizedBuf, resizedImg, &nativewebp.EncodingOptions{Quality: 80}); err != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "RESIZED_IMAGE_WEBP_ENCODE_FAILED:(%dx%d) %s", processedImage.Width, targetHeight, err.Error())
 		}
-
+		/*	if err := webp.Encode(&resizedBuf, resizedImg, &webp.Options{Quality: 80}); err != nil {
+				return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "RESIZED_IMAGE_WEBP_ENCODE_FAILED:(%dx%d) %s", processedImage.Width, targetHeight, err.Error())
+			}
+		*/
 		// Upload the resized image
 		processedWebpName := filename
 		ext2 := filepath.Ext(filename)
