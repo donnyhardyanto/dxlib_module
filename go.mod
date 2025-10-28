@@ -5,7 +5,7 @@ go 1.25.3
 require (
 	firebase.google.com/go/v4 v4.18.0
 	github.com/HugoSmits86/nativewebp v1.2.0
-	github.com/donnyhardyanto/dxlib v1.77.3
+	github.com/donnyhardyanto/dxlib v1.77.4
 	github.com/google/uuid v1.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
@@ -87,7 +87,7 @@ require (
 	github.com/sijms/go-ora/v2 v2.9.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/tiendc/go-deepcopy v1.7.1 // indirect
-	github.com/tinylib/msgp v1.4.0 // indirect
+	github.com/tinylib/msgp v1.5.0 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/excelize/v2 v2.10.0 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
@@ -108,7 +108,7 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/api v0.253.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
-	google.golang.org/genproto v0.0.0-20250922171735-9219d122eba9 // indirect
+	google.golang.org/genproto v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/grpc v1.76.0 // indirect
