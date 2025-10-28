@@ -1335,7 +1335,7 @@ func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 	user := aepr.LocalData["user"].(utils.JSON)
 	userId := aepr.LocalData["user_id"].(int64)
 	userUid := user["uid"].(string)
-	filename := userUid + ".png"
+	filename := userUid + ".webp"
 
 	err = s.Avatar.Update(aepr, filename, "")
 	if err != nil {
@@ -1352,7 +1352,7 @@ func (s *DxmSelf) SelfAvatarUpdateFileContentBase64(aepr *api.DXAPIEndPointReque
 	user := aepr.LocalData["user"].(utils.JSON)
 	userId := aepr.LocalData["user_id"].(int64)
 	userUid := user["uid"].(string)
-	filename := userUid + ".png"
+	filename := userUid + ".webp"
 
 	_, fileContentBase64, err := aepr.GetParameterValueAsString("content_base64")
 	if err != nil {
@@ -1373,7 +1373,7 @@ func (s *DxmSelf) SelfAvatarUpdateFileContentBase64(aepr *api.DXAPIEndPointReque
 func (s *DxmSelf) SelfAvatarDownloadSource(aepr *api.DXAPIEndPointRequest) (err error) {
 	user := aepr.LocalData["user"].(utils.JSON)
 	userUid := user["uid"].(string)
-	filename := userUid + ".png"
+	filename := userUid + ".webp"
 	err = s.Avatar.DownloadSource(aepr, filename)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "", "SELF_AVATAR_NOT_FOUND")
@@ -1385,7 +1385,7 @@ func (s *DxmSelf) SelfAvatarDownloadSource(aepr *api.DXAPIEndPointRequest) (err 
 func (s *DxmSelf) SelfAvatarDownloadSmall(aepr *api.DXAPIEndPointRequest) (err error) {
 	user := aepr.LocalData["user"].(utils.JSON)
 	userUid := user["uid"].(string)
-	filename := userUid + ".png"
+	filename := userUid + ".webp"
 	err = s.Avatar.DownloadProcessedImage(aepr, "small", filename)
 	if err != nil {
 		aepr.SuppressLogDump = true
@@ -1397,7 +1397,7 @@ func (s *DxmSelf) SelfAvatarDownloadSmall(aepr *api.DXAPIEndPointRequest) (err e
 func (s *DxmSelf) SelfAvatarDownloadMedium(aepr *api.DXAPIEndPointRequest) (err error) {
 	user := aepr.LocalData["user"].(utils.JSON)
 	userUid := user["uid"].(string)
-	filename := userUid + ".png"
+	filename := userUid + ".webp"
 	err = s.Avatar.DownloadProcessedImage(aepr, "medium", filename)
 	if err != nil {
 		aepr.SuppressLogDump = true
@@ -1409,7 +1409,7 @@ func (s *DxmSelf) SelfAvatarDownloadMedium(aepr *api.DXAPIEndPointRequest) (err 
 func (s *DxmSelf) SelfAvatarDownloadBig(aepr *api.DXAPIEndPointRequest) (err error) {
 	user := aepr.LocalData["user"].(utils.JSON)
 	userUid := user["uid"].(string)
-	filename := userUid + ".png"
+	filename := userUid + ".webp"
 	err = s.Avatar.DownloadProcessedImage(aepr, "big", filename)
 	if err != nil {
 		aepr.SuppressLogDump = true

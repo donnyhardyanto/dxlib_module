@@ -44,7 +44,7 @@ func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (
 
 	idAsString := utils.Int64ToString(id)
 
-	filename := idAsString + ".png"
+	filename := idAsString + ".webp"
 
 	err = g.AnnouncementPicture.Update(aepr, filename, "")
 	if err != nil {
@@ -63,7 +63,7 @@ func (g *DxmGeneral) AnnouncementPictureUpdateFileContentBase64(aepr *api.DXAPIE
 
 	idAsString := utils.Int64ToString(id)
 
-	filename := idAsString + ".png"
+	filename := idAsString + ".webp"
 
 	_, fileContentBase64, err := aepr.GetParameterValueAsString("content_base64")
 	if err != nil {
@@ -87,7 +87,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRe
 
 	idAsString := utils.Int64ToString(id)
 
-	filename := idAsString + ".png"
+	filename := idAsString + ".webp"
 
 	err = g.AnnouncementPicture.DownloadSource(aepr, filename)
 	if err != nil {
@@ -115,7 +115,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSourceByUid(aepr *api.DXAPIEndPo
 
 	idAsString := utils.Int64ToString(announcementId)
 
-	filename := idAsString + ".png"
+	filename := idAsString + ".webp"
 
 	err = g.AnnouncementPicture.DownloadSource(aepr, filename)
 	if err != nil {
@@ -143,7 +143,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByUidByProcessedNameId(aepr *api
 
 	idAsString := utils.Int64ToString(announcementId)
 
-	filename := idAsString + ".png"
+	filename := idAsString + ".webp"
 	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, processedImageNameId, filename)
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByProcessedNameId(aepr *api.DXAP
 
 	idAsString := utils.Int64ToString(id)
 
-	filename := idAsString + ".png"
+	filename := idAsString + ".webp"
 	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, processedImageNameId, filename)
 	if err != nil {
 		return err
