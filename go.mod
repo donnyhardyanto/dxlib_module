@@ -5,7 +5,7 @@ go 1.25.3
 require (
 	firebase.google.com/go/v4 v4.18.0
 	github.com/HugoSmits86/nativewebp v1.2.0
-	github.com/donnyhardyanto/dxlib v1.77.0
+	github.com/donnyhardyanto/dxlib v1.77.1
 	github.com/google/uuid v1.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
@@ -108,7 +108,7 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/api v0.253.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
-	google.golang.org/genproto v0.0.0-20251022142026-3a174f9686a8 // indirect
+	google.golang.org/genproto v0.0.0-20250922171735-9219d122eba9 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/grpc v1.76.0 // indirect
