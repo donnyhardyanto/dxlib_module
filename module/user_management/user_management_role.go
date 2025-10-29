@@ -2,6 +2,7 @@ package user_management
 
 import (
 	"encoding/json"
+
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/pkg/errors"
@@ -14,7 +15,7 @@ func (um *DxmUserManagement) RoleList(aepr *api.DXAPIEndPointRequest) (err error
 func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	isOrganizationTypes, organizationTypes, err := aepr.GetParameterValueAsStrings("organization_types")
 	if err != nil {
-		return errors.Wrap(err, "error occurred")
+		return err
 	}
 
 	p := utils.JSON{

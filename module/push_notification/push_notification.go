@@ -92,7 +92,7 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
+	//	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 }
 
