@@ -1464,7 +1464,7 @@ func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
+	//	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 
 }
