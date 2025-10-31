@@ -6,6 +6,12 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"math/rand"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/database/protected/db"
@@ -17,11 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tealeg/xlsx"
 	"github.com/teris-io/shortid"
-	"io"
-	"math/rand"
-	"net/http"
-	"strings"
-	"time"
 )
 
 func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -882,21 +883,6 @@ func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err e
 	return nil
 }
 
-func (um *DxmUserManagement) UserPasswordTxCreate(tx *database.DXDatabaseTx, userId int64, password string) (err error) {
-	hashedPasswordAsHexString, err := um.passwordHashCreate(password)
-	if err != nil {
-		return err
-	}
-	_, err = um.UserPassword.TxInsert(tx, utils.JSON{
-		"user_id": userId,
-		"value":   hashedPasswordAsHexString,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (um *DxmUserManagement) TxUserPasswordCreate(tx *database.DXDatabaseTx, userId int64, password string) (err error) {
 	hashedPasswordAsHexString, err := um.passwordHashCreate(password)
 	if err != nil {
@@ -1147,7 +1133,7 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 	d := database.Manager.Databases[um.DatabaseNameId]
 	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
 
-		err = um.UserPasswordTxCreate(tx, userId, userPasswordNew)
+		err = um.TxUserPasswordCreate(tx, userId, userPasswordNew)
 		if err != nil {
 			return err
 		}

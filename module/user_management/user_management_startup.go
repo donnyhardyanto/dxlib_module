@@ -3,6 +3,7 @@ package user_management
 import (
 	"database/sql"
 	"fmt"
+
 	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/database"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
@@ -38,7 +39,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 		// if define in vault, use it
 		s := app.App.InitVault.GetStringOrDefault("SUPERADMIN_INITIAL_PASSWORD", "")
 		if s != "" {
-			err = um.UserPasswordTxCreate(tx, userSuperAdmin["id"].(int64), s)
+			err = um.TxUserPasswordCreate(tx, userSuperAdmin["id"].(int64), s)
 			if err != nil {
 				l.Errorf(err, "Failed to insert superadmin user password: %s", err.Error())
 				return err
@@ -67,7 +68,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 			return err
 		}
 
-		err = um.UserPasswordTxCreate(tx, userSuperAdmin["id"].(int64), userInputPassword1)
+		err = um.TxUserPasswordCreate(tx, userSuperAdmin["id"].(int64), userInputPassword1)
 
 		if err != nil {
 			l.Errorf(err, "Failed to insert superadmin user password: %s", err.Error())

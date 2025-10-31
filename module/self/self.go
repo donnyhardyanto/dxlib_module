@@ -1309,7 +1309,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
 		}
 
-		err = user_management.ModuleUserManagement.UserPasswordTxCreate(tx, userId, userPasswordNew)
+		err = user_management.ModuleUserManagement.TxUserPasswordCreate(tx, userId, userPasswordNew)
 		if err != nil {
 			return err
 		}
