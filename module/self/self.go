@@ -1122,23 +1122,23 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 
 	authHeader := aepr.Request.Header.Get("Authorization")
 	if authHeader == "" {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "NOT_ERROR:AUTHORIZATION_HEADER_NOT_FOUND")
 	}
 
 	const bearerSchema = "Bearer "
 	if !strings.HasPrefix(authHeader, bearerSchema) {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "INVALID_AUTHORIZATION_HEADER")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "NOT_ERROR:INVALID_AUTHORIZATION_HEADER")
 	}
 
 	sessionKey := authHeader[len(bearerSchema):]
 
 	sessionObject, err := SessionKeyToSessionObject(aepr, sessionKey)
 	if err != nil {
-		return err
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
 	}
 
 	if sessionObject == nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "SESSION_EXPIRED")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
 	}
 
 	allowed := false
@@ -1156,7 +1156,7 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 		}
 	}
 	if !allowed {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 	return nil
 }
@@ -1187,7 +1187,7 @@ func (s *DxmSelf) MiddlewareRequestRateLimitCheck(aepr *api.DXAPIEndPointRequest
 		if blocked {
 			w.Header().Set("Retry-After", fmt.Sprintf("%d", int(remaining.Seconds())))
 		}
-		return aepr.WriteResponseAndNewErrorf(http.StatusTooManyRequests, "", "RATE_LIMIT_EXCEEDED")
+		return aepr.WriteResponseAndNewErrorf(http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "NOT_ERROR:RATE_LIMIT_EXCEEDED")
 	}
 
 	// Add rate limit headers
