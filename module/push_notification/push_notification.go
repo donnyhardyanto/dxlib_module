@@ -360,6 +360,11 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 		return err
 	}
 
+	msgDataAsJSONString, err := json.Marshal(msgData)
+	if err != nil {
+		return errors.Wrap(err, "FAILED_TO_MARSHAL_MSG_DATA")
+	}
+
 	for _, fcmApplication := range fcmApplications {
 
 		fcmApplicationId := fcmApplication["id"].(int64)
@@ -380,7 +385,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 				"status":            "PENDING",
 				"title":             msgTitle,
 				"body":              msgBody,
-				"data":              msgData,
+				"data":              msgDataAsJSONString,
 			})
 			if err != nil {
 				return err
