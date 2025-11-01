@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/database"
@@ -1112,6 +1111,10 @@ func generateRandomString(n int) string {
 
 func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
+	if err != nil {
+		return err
+	}
+
 	_, user, err := um.User.SelectOne(&aepr.Log, nil, utils.JSON{
 		"id": userId,
 	}, nil, nil)
