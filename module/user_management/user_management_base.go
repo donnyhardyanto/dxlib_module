@@ -93,7 +93,7 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
 	for key, value := range templateData {
 		placeholder := fmt.Sprintf("<%s>", key)
-		aValue := fmt.Sprint("%v", value)
+		aValue := fmt.Sprintf("%v", value)
 		templateBody = strings.ReplaceAll(templateBody, placeholder, aValue)
 		templateTitle = strings.ReplaceAll(templateTitle, placeholder, aValue)
 	}
