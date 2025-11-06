@@ -224,12 +224,16 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 	}
 	userTokenId := userToken["id"].(int64)
 
+	msgDataAsString, err := json.Marshal(msgData)
+	if err != nil {
+		return err
+	}
 	fcmMessageId, err := f.FCMMessage.TxInsert(dtx, utils.JSON{
 		"fcm_user_token_id": userTokenId,
 		"status":            "PENDING",
 		"title":             msgTitle,
 		"body":              msgBody,
-		"data":              msgData,
+		"data":              msgDataAsString,
 	})
 	if err != nil {
 		return err
