@@ -284,10 +284,6 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		if err := nativewebp.Encode(&resizedBuf, resizedImg, nil); err != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "RESIZED_IMAGE_WEBP_ENCODE_FAILED:(%dx%d) %s", processedImage.Width, targetHeight, err.Error())
 		}
-		/*	if err := webp.Encode(&resizedBuf, resizedImg, &webp.Options{Quality: 80}); err != nil {
-				return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "RESIZED_IMAGE_WEBP_ENCODE_FAILED:(%dx%d) %s", processedImage.Width, targetHeight, err.Error())
-			}
-		*/
 		// Upload the resized image
 		processedWebpName := filename
 		ext2 := filepath.Ext(filename)
