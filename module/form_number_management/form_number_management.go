@@ -94,6 +94,8 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 		// Reconstruct YYMM format for backward compatibility
 		formNumberLastYearMonth := fmt.Sprintf("%02d%02d", formNumberLastYear%100, formNumberLastMonth)
 		formNumber = fmt.Sprintf(formNumberTemplate, formNumberPrefix, formNumberLastYearMonth, formNumberLastSequence)
+	default:
+		return "", errors.Errorf("invalid form number type '%s'", formNumberType)
 	}
 
 	return formNumber, nil

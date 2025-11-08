@@ -1242,6 +1242,8 @@ func PasswordFormatValidation(password string) (err error) {
 			if !strings.ContainsRune(allowedSpecialChars, char) {
 				hasForbiddenSpecial = true
 			}
+		default:
+			hasForbiddenSpecial = true
 		}
 	}
 
