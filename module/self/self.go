@@ -1060,7 +1060,7 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 
 	authHeader := aepr.Request.Header.Get("Authorization")
 	if authHeader == "" {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
 	}
 
 	const bearerSchema = "Bearer "
@@ -1078,69 +1078,29 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	return nil
 }
 
-/*func (s *DxmSelf) MiddlewareUserPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
-	aepr.Log.Debugf("Middleware Start: %s", aepr.EndPoint.Uri)
-	defer aepr.Log.Debugf("Middleware Done: %s", aepr.EndPoint.Uri)
-
-	authHeader := aepr.Request.Header.Get("Authorization")
-	if authHeader == "" {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
-	}
-
-	const bearerSchema = "Bearer "
-	if !strings.HasPrefix(authHeader, bearerSchema) {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "INVALID_AUTHORIZATION_HEADER")
-	}
-
-	sessionKey := authHeader[len(bearerSchema):]
-	sessionObject, err := SessionKeyToSessionObject(aepr, sessionKey)
-	if err != nil {
-		return err
-	}
-
-	allowed := false
-	userEffectivePrivilegeIds := sessionObject["user_effective_privilege_ids"].(map[string]any)
-	if aepr.EndPoint.Privileges == nil {
-		allowed = true
-	}
-	if len(aepr.EndPoint.Privileges) == 0 {
-		allowed = true
-	} else {
-		for k := range userEffectivePrivilegeIds {
-			if slices.Contains(aepr.EndPoint.Privileges, k) {
-				allowed = true
-			}
-		}
-	}
-	if !allowed {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "", "USER_ROLE_PRIVILEGE_FORBIDDEN")
-	}
-	return nil
-}*/
-
 func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
 	aepr.Log.Debugf("Middleware Start: %s", aepr.EndPoint.Uri)
 	defer aepr.Log.Debugf("Middleware Done: %s", aepr.EndPoint.Uri)
 
 	authHeader := aepr.Request.Header.Get("Authorization")
 	if authHeader == "" {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "NOT_ERROR:AUTHORIZATION_HEADER_NOT_FOUND")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "NOT_ERROR:AUTHORIZATION_HEADER_NOT_FOUND")
 	}
 
 	const bearerSchema = "Bearer "
 	if !strings.HasPrefix(authHeader, bearerSchema) {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "NOT_ERROR:INVALID_AUTHORIZATION_HEADER")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "NOT_ERROR:INVALID_AUTHORIZATION_HEADER")
 	}
 
 	sessionKey := authHeader[len(bearerSchema):]
 
 	sessionObject, err := SessionKeyToSessionObject(aepr, sessionKey)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
 	}
 
 	if sessionObject == nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
 	}
 
 	allowed := false
@@ -1158,7 +1118,7 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 		}
 	}
 	if !allowed {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 	return nil
 }
