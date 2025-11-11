@@ -75,7 +75,7 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 		"user_management.v_user_organization_membership", "id", "id", "uid", "data")
 	um.Privilege = table.Manager.NewTable(databaseNameId, "user_management.privilege",
 		"user_management.privilege",
-		"user_management.privilege", "nameid", "id", "uid", "data")
+		"user_management.v_privilege", "nameid", "id", "uid", "data")
 	um.RolePrivilege = table.Manager.NewTable(databaseNameId, "user_management.role_privilege",
 		"user_management.role_privilege",
 		"user_management.v_role_privilege", "id", "id", "uid", "data")
