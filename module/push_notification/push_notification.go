@@ -25,25 +25,18 @@ import (
 )
 
 const (
-	FCM_SERVICE_ACCOUNT_SOURCE_RAW   = "RAW"
-	FCM_SERVICE_ACCOUNT_SOURCE_VAULT = "VAULT"
-	/*
-		IF service_account_source == FCM_SERVICE_ACCOUNT_SOURCE_VAULT then
-			service_account_data = {
-				"VAULT_NAME": VAULT_NAME,
-				"VAULT_KEY": VAULT_KEY,
-			}
-	*/
-	FCM_SERVICE_ACCOUNT_SOURCE_FILE = "FILE"
-	FCM_SERVICE_ACCOUNT_SOURCE_ENV  = "ENV"
+	FcmServiceAccountSourceRaw   = "RAW"
+	FcmServiceAccountSourceVault = "VAULT"
+	FcmServiceAccountSourceFile  = "FILE"
+	FcmServiceAccountSourceEnv   = "ENV"
 )
 
 var (
-	FCM_SERVICE_ACCOUNT_SOURCE_VALUES = []string{
-		FCM_SERVICE_ACCOUNT_SOURCE_RAW,
-		FCM_SERVICE_ACCOUNT_SOURCE_FILE,
-		FCM_SERVICE_ACCOUNT_SOURCE_VAULT,
-		FCM_SERVICE_ACCOUNT_SOURCE_ENV,
+	FcmServiceAccountSourceValues = []string{
+		FcmServiceAccountSourceRaw,
+		FcmServiceAccountSourceFile,
+		FcmServiceAccountSourceVault,
+		FcmServiceAccountSourceEnv,
 	}
 )
 
@@ -103,7 +96,7 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 	if err != nil {
 		return nil
 	}
-	if !utils.TsIsContain(FCM_SERVICE_ACCOUNT_SOURCE_VALUES, serviceAccountSource) {
+	if !utils.TsIsContain[string](FcmServiceAccountSourceValues, serviceAccountSource) {
 		return errors.Errorf("INVALID_FCM_SERVICE_ACCOUNT_SOURCE_VALUE:%v", serviceAccountSource)
 	}
 	_, serviceAccountData, err := aepr.GetParameterValueAsJSON("service_account_data")
@@ -437,9 +430,9 @@ func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON 
 	}
 
 	switch fcmApplicationServiceAccountSource {
-	case FCM_SERVICE_ACCOUNT_SOURCE_RAW:
+	case FcmServiceAccountSourceRaw:
 		dataAsJSON = serviceAccountData
-	case FCM_SERVICE_ACCOUNT_SOURCE_FILE:
+	case FcmServiceAccountSourceFile:
 		serviceAccountFilename, err := utils.GetStringFromKV(serviceAccountData, "filename")
 		if err != nil {
 			return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
@@ -452,7 +445,7 @@ func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON 
 		if err := json.Unmarshal(dataAsBytes, &dataAsJSON); err != nil {
 			return nil, errors.Wrapf(err, "ERROR_PARSING_SERVICE_ACCOUNT_JSON:%d:%v", fcmApplicationId, err)
 		}
-	case FCM_SERVICE_ACCOUNT_SOURCE_ENV:
+	case FcmServiceAccountSourceEnv:
 		envVarName, err := utils.GetStringFromKV(serviceAccountData, "env_var_name")
 		if err != nil {
 			return nil, errors.Wrapf(err, "ERROR_GET_ENV_VAR_NAME:%d:%v", fcmApplicationId, err)
@@ -464,7 +457,7 @@ func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON 
 		if err := json.Unmarshal([]byte(envVarValue), &dataAsJSON); err != nil {
 			return nil, errors.Wrapf(err, "ERROR_PARSING_SERVICE_ACCOUNT_JSON_FROM_ENV:%d:%v", fcmApplicationId, err)
 		}
-	case FCM_SERVICE_ACCOUNT_SOURCE_VAULT:
+	case FcmServiceAccountSourceVault:
 		vaultVarName, err := utils.GetStringFromKV(serviceAccountData, "vault_var_name")
 		if err != nil {
 			return nil, errors.Wrapf(err, "ERROR_GET_ENV_VAR_NAME:%d:%v", fcmApplicationId, err)
