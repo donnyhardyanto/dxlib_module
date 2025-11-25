@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
 	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/database/protected/db"
 	"github.com/donnyhardyanto/dxlib/log"
@@ -20,6 +22,29 @@ import (
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/pkg/errors"
+)
+
+const (
+	FCM_SERVICE_ACCOUNT_SOURCE_RAW   = "RAW"
+	FCM_SERVICE_ACCOUNT_SOURCE_VAULT = "VAULT"
+	/*
+		IF service_account_source == FCM_SERVICE_ACCOUNT_SOURCE_VAULT then
+			service_account_data = {
+				"VAULT_NAME": VAULT_NAME,
+				"VAULT_KEY": VAULT_KEY,
+			}
+	*/
+	FCM_SERVICE_ACCOUNT_SOURCE_FILE = "FILE"
+	FCM_SERVICE_ACCOUNT_SOURCE_ENV  = "ENV"
+)
+
+var (
+	FCM_SERVICE_ACCOUNT_SOURCE_VALUES = []string{
+		FCM_SERVICE_ACCOUNT_SOURCE_RAW,
+		FCM_SERVICE_ACCOUNT_SOURCE_FILE,
+		FCM_SERVICE_ACCOUNT_SOURCE_VAULT,
+		FCM_SERVICE_ACCOUNT_SOURCE_ENV,
+	}
 )
 
 type DxmPushNotification struct {
@@ -74,6 +99,13 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 	if err != nil {
 		return err
 	}
+	_, serviceAccountSource, err := aepr.GetParameterValueAsString("service_account_source")
+	if err != nil {
+		return nil
+	}
+	if !utils.TsIsContain(FCM_SERVICE_ACCOUNT_SOURCE_VALUES, serviceAccountSource) {
+		return errors.Errorf("INVALID_FCM_SERVICE_ACCOUNT_SOURCE_VALUE:%v", serviceAccountSource)
+	}
 	_, serviceAccountData, err := aepr.GetParameterValueAsJSON("service_account_data")
 	if err != nil {
 		return err
@@ -85,8 +117,9 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 	}
 
 	_, err = f.FCMApplication.DoCreate(aepr, map[string]interface{}{
-		"nameid":               nameId,
-		"service_account_data": serviceAccountDataAsBytes,
+		"nameid":                 nameId,
+		"service_account_source": serviceAccountSource,
+		"service_account_data":   serviceAccountDataAsBytes,
 	})
 	if err != nil {
 		return err
@@ -96,19 +129,6 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 	return nil
 }
 
-/*func (f *FirebaseCloudMessaging) ApplicationRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMApplication.RequestRead(aepr)
-}*/
-
-/*func (f *FirebaseCloudMessaging) ApplicationEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMApplication.RequestEdit(aepr)
-}*/
-
-/*
-	func (f *FirebaseCloudMessaging) ApplicationDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-		return f.FCMApplication.RequestSoftDelete(aepr)
-	}
-*/
 func (f *FirebaseCloudMessaging) UserTokenList(aepr *api.DXAPIEndPointRequest) (err error) {
 	return f.FCMUserToken.RequestPagingList(aepr)
 }
@@ -408,6 +428,55 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 	return nil
 }
 
+func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON utils.JSON, err error) {
+	fcmApplicationId := fcmApplication["id"].(int64)
+	fcmApplicationServiceAccountSource := fcmApplication["service_account_source"].(string)
+	serviceAccountData, err := utils.GetJSONFromKV(fcmApplication, "service_account_data")
+	if err != nil {
+		return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
+	}
+
+	switch fcmApplicationServiceAccountSource {
+	case FCM_SERVICE_ACCOUNT_SOURCE_RAW:
+		dataAsJSON = serviceAccountData
+	case FCM_SERVICE_ACCOUNT_SOURCE_FILE:
+		serviceAccountFilename, err := utils.GetStringFromKV(serviceAccountData, "filename")
+		if err != nil {
+			return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
+
+		}
+		dataAsBytes, err := os.ReadFile(serviceAccountFilename)
+		if err != nil {
+			return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
+		}
+		if err := json.Unmarshal(dataAsBytes, &dataAsJSON); err != nil {
+			return nil, errors.Wrapf(err, "ERROR_PARSING_SERVICE_ACCOUNT_JSON:%d:%v", fcmApplicationId, err)
+		}
+	case FCM_SERVICE_ACCOUNT_SOURCE_ENV:
+		envVarName, err := utils.GetStringFromKV(serviceAccountData, "env_var_name")
+		if err != nil {
+			return nil, errors.Wrapf(err, "ERROR_GET_ENV_VAR_NAME:%d:%v", fcmApplicationId, err)
+		}
+		envVarValue := os.Getenv(envVarName)
+		if envVarValue == "" {
+			return nil, errors.Errorf("ERROR_ENV_VAR_NOT_FOUND:%d:%s", fcmApplicationId, envVarName)
+		}
+		if err := json.Unmarshal([]byte(envVarValue), &dataAsJSON); err != nil {
+			return nil, errors.Wrapf(err, "ERROR_PARSING_SERVICE_ACCOUNT_JSON_FROM_ENV:%d:%v", fcmApplicationId, err)
+		}
+	case FCM_SERVICE_ACCOUNT_SOURCE_VAULT:
+		vaultVarName, err := utils.GetStringFromKV(serviceAccountData, "vault_var_name")
+		if err != nil {
+			return nil, errors.Wrapf(err, "ERROR_GET_ENV_VAR_NAME:%d:%v", fcmApplicationId, err)
+		}
+		vaultVarValue := app.App.InitVault.GetStringOrDefault(vaultVarName, "")
+		if err := json.Unmarshal([]byte(vaultVarValue), &dataAsJSON); err != nil {
+			return nil, errors.Wrapf(err, "ERROR_PARSING_SERVICE_ACCOUNT_JSON_FROM_VAULT:%d:%v", fcmApplicationId, err)
+		}
+	}
+	return dataAsJSON, nil
+}
+
 func (f *FirebaseCloudMessaging) Execute() (err error) {
 
 	_, fcmApplications, err := f.FCMApplication.SelectAll(&log.Log)
@@ -421,12 +490,12 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 	for _, fcmApplication := range fcmApplications {
 		wg.Add(1)
 		fcmApplicationId := fcmApplication["id"].(int64)
-		serviceAccountData, err := utils.GetJSONFromKV(fcmApplication, "service_account_data")
+		dataAsJSON, err := GetFCMApplicationServiceAccountData(fcmApplication)
 		if err != nil {
 			log.Log.Errorf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
 			continue
 		}
-		_, err = fcm.Manager.StoreApplication(context.Background(), fcmApplicationId, serviceAccountData)
+		_, err = fcm.Manager.StoreApplication(context.Background(), fcmApplicationId, dataAsJSON)
 		if err != nil {
 			log.Log.Warnf("ERROR_GET_FIREBASE_APP:%d:%v", fcmApplicationId, err)
 			continue
@@ -436,7 +505,7 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 			fcmApplicationId := fcmApplication["id"].(int64)
 			err := f.processMessages(fcmApplicationId)
 			if err != nil {
-				log.Log.Warnf("Error processing messages for fcmApplication %s: %v", fcmApplication["nameid"], err)
+				log.Log.Warnf("ERROR_PROCESSING_MESSAGES_FOR_SENDING_FROM_FCM_APPLICAtiON:%s:%v", fcmApplication["nameid"], err)
 			}
 		}()
 	}
