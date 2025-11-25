@@ -101,6 +101,11 @@ func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userI
 	msgBody := templateBody
 	msgTitle := templateTitle
 
+	attachedDataAsJSON := utils.MapStringStringToJSON(attachedData)
+	attachedDataAsJSONString, err := utils.JSONToString(attachedDataAsJSON)
+	if err != nil {
+		return err
+	}
 	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(l, userId, msgTitle, msgBody, attachedData,
 		func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
 			_, err2 = um.UserMessage.TxInsert(dtx, utils.JSON{
@@ -109,7 +114,7 @@ func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userI
 				"user_id":            userId,
 				"title":              msgTitle,
 				"body":               msgBody,
-				"data":               attachedData,
+				"data":               attachedDataAsJSONString,
 			})
 			if err2 != nil {
 				return err2

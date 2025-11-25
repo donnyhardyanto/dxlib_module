@@ -19,9 +19,6 @@ type DxmAudit struct {
 }
 
 func (al *DxmAudit) Init(databaseNameId string) {
-	/*	al.EventLog = table.Manager.NewTable(databaseNameId, "log.event",
-		"log.event",
-		"log.event", "id", "id")*/
 	al.UserActivityLog = table.Manager.NewRawTable(databaseNameId, "audit_log.user_activity_log",
 		"audit_log.user_activity_log",
 		"audit_log.user_activity_log", "id", "id", "uid", "data")
