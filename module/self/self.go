@@ -805,11 +805,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	captchaText := string(lvPayloadCaptchaText.Value)
 
 	if captchaId != storedCaptchaId {
-		aepr.WriteResponseAsErrorMessage(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 	if captchaText != storedCaptchaText {
-		aepr.WriteResponseAsErrorMessage(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 
