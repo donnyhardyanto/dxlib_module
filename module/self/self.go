@@ -1096,11 +1096,11 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 
 	sessionObject, err := SessionKeyToSessionObject(aepr, sessionKey)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		return aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
 	}
 
 	if sessionObject == nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		return aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
 	}
 
 	allowed := false
@@ -1428,7 +1428,6 @@ func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	//	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 
 }
