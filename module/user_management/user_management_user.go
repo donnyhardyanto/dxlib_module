@@ -40,7 +40,7 @@ func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err
 	}
 
 	// Determine the file type and parse accordingly
-	contentType := aepr.Request.Header.Get("Content-Type")
+	contentType := utils.GetStringFromMapStringStringDefault(aepr.EffectiveRequestHeader, "Content-Type", "")
 	if strings.Contains(contentType, "csv") {
 		err = um.parseAndCreateUsersFromCSV(&buf, aepr)
 	} else if strings.Contains(contentType, "excel") || strings.Contains(contentType, "spreadsheetml") {

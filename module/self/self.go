@@ -495,9 +495,13 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
+	if api.OnE2EEPrekeyUnPack == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyUnPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
+	}
+
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := api.OnE2EEPrekeyUnPack(aepr.EndPoint.EndPointType, preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR_%v", err.Error())
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
 	}
 
 	lvPayloadLoginId := lvPayloadElements[0]
@@ -650,7 +654,13 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
-	dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
+
+	if api.OnE2EEPrekeyPack == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
+	}
+
+	dataBlockEnvelopeAsHexString, err := api.OnE2EEPrekeyPack(aepr.EndPoint.EndPointType, preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
+	//dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
 	if err != nil {
 		return err
 	}
@@ -787,10 +797,30 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, storedCaptchaId, storedCaptchaText, err := user_management.ModuleUserManagement.PreKeyUnpackCaptcha(preKeyIndex, dataAsHexString)
-	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR_%v", err.Error())
+	if api.OnE2EEPrekeyUnPack == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyUnPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
 	}
+
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := api.OnE2EEPrekeyUnPack(aepr.EndPoint.EndPointType, preKeyIndex, dataAsHexString)
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
+	}
+
+	preKeyData, err := user_management.ModuleUserManagement.PreKeyRedis.Get(preKeyIndex)
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
+	}
+	if preKeyData == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:PREKEY_NOT_FOUND")
+	}
+
+	storedCaptchaId := preKeyData["captcha_id"].(string)
+	storedCaptchaText := preKeyData["captcha_text"].(string)
+
+	//	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, storedCaptchaId, storedCaptchaText, err := user_management.ModuleUserManagement.PreKeyUnpackCaptcha(preKeyIndex, dataAsHexString)
+	//if err != nil {
+	//	return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR_%v", err.Error())
+	//}
 
 	lvPayloadLoginId := lvPayloadElements[0]
 	lvPayloadPassword := lvPayloadElements[1]
@@ -805,11 +835,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	captchaText := string(lvPayloadCaptchaText.Value)
 
 	if captchaId != storedCaptchaId {
-		aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 	if captchaText != storedCaptchaText {
-		aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 
@@ -930,7 +960,13 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
-	dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
+
+	if api.OnE2EEPrekeyPack == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
+	}
+
+	dataBlockEnvelopeAsHexString, err := api.OnE2EEPrekeyPack(aepr.EndPoint.EndPointType, preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
+	//dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
 	if err != nil {
 		return err
 	}
@@ -1058,7 +1094,7 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	aepr.Log.Debugf("Middleware Start: %s", aepr.EndPoint.Uri)
 	defer aepr.Log.Debugf("Middleware Done: %s", aepr.EndPoint.Uri)
 
-	authHeader := aepr.Request.Header.Get("Authorization")
+	authHeader := utils.GetStringFromMapStringStringDefault(aepr.EffectiveRequestHeader, "Authorization", "")
 	if authHeader == "" {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
 	}
@@ -1082,7 +1118,7 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 	aepr.Log.Debugf("Middleware Start: %s", aepr.EndPoint.Uri)
 	defer aepr.Log.Debugf("Middleware Done: %s", aepr.EndPoint.Uri)
 
-	authHeader := aepr.Request.Header.Get("Authorization")
+	authHeader := utils.GetStringFromMapStringStringDefault(aepr.EffectiveRequestHeader, "Authorization", "")
 	if authHeader == "" {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "NOT_ERROR:AUTHORIZATION_HEADER_NOT_FOUND")
 	}
@@ -1131,7 +1167,9 @@ func (s *DxmSelf) MiddlewareRequestRateLimitCheck(aepr *api.DXAPIEndPointRequest
 	}
 	identifier := aepr.Request.RemoteAddr
 	// You might want to use X-Forwarded-For header if behind a proxy
-	if forwardedFor := aepr.Request.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+	forwardedFor := utils.GetStringFromMapStringStringDefault(aepr.EffectiveRequestHeader, "X-Forwarded-For", "")
+
+	if forwardedFor != "" {
 		identifier = forwardedFor
 	}
 

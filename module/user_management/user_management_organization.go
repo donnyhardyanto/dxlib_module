@@ -30,7 +30,7 @@ func (um *DxmUserManagement) OrganizationCreateBulk(aepr *api.DXAPIEndPointReque
 	}
 
 	// Determine the file type and parse accordingly
-	contentType := aepr.Request.Header.Get("Content-Type")
+	contentType := utils.GetStringFromMapStringStringDefault(aepr.EffectiveRequestHeader, "Content-Type", "")
 	if strings.Contains(contentType, "csv") {
 		err = um.parseAndCreateOrganizationsFromCSV(&buf, aepr)
 	} else if strings.Contains(contentType, "excel") || strings.Contains(contentType, "spreadsheetml") {
