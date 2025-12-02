@@ -671,6 +671,154 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	return err
 }
 
+func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, userLoginId, err := aepr.GetParameterValueAsString("user_login_id")
+	if err != nil {
+		return err
+	}
+	_, userPassword, err := aepr.GetParameterValueAsString("user_login_password")
+	if err != nil {
+		return err
+	}
+	_, organizationUId, err := aepr.GetParameterValueAsString("organization_uid", "")
+	if err != nil {
+		return err
+	}
+
+	var user utils.JSON
+	var userOrganizationMemberships []utils.JSON
+	var userLoggedOrganizationId int64
+	var userLoggedOrganizationUid string
+	var userLoggedOrganization utils.JSON
+	var verificationResult bool
+	if s.OnAuthenticateUser != nil {
+		verificationResult, user, userLoggedOrganization, err = s.OnAuthenticateUser(aepr, userLoginId, userPassword, organizationUId)
+		if err != nil {
+			return err
+		}
+		if !verificationResult {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+		}
+
+		userId := user["id"].(int64)
+
+		us := utils.JSON{
+			"user_id": userId,
+		}
+
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
+		}
+
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
+			map[string]string{"order_index": "asc"}, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+		}
+
+		userLoggedOrganizationId = userLoggedOrganization["id"].(int64)
+		userLoggedOrganizationUid = userLoggedOrganization["uid"].(string)
+	} else {
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+			"loginid": userLoginId,
+		}, nil, nil)
+		if err != nil {
+			return err
+		}
+		if user == nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+		}
+
+		userId := user["id"].(int64)
+
+		us := utils.JSON{
+			"user_id": userId,
+		}
+
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
+		}
+
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
+			map[string]string{"order_index": "asc"}, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+		}
+
+		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
+		userLoggedOrganizationUid = userOrganizationMemberships[0]["organization_uid"].(string)
+
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
+		if err != nil {
+			return err
+		}
+
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPassword)
+		if err != nil {
+			return err
+		}
+
+		if !verificationResult {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+		}
+	}
+
+	sessionKey, err := GenerateSessionKey()
+	if err != nil {
+		return err
+	}
+
+	userId, ok := user["id"].(int64)
+	if !ok {
+		return aepr.WriteResponseAndLogAsErrorf(500, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
+	}
+	a := []any{userOrganizationMemberships}
+	sessionObject, allowed, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
+	if err2 != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err2.Error())
+	}
+
+	/*	allowed := false
+		for k := range userEffectivePrivilegeIds {
+			if slices.Contains(aepr.EndPoint.Privileges, k) {
+				allowed = true
+			}
+		}*/
+	if !allowed {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
+	}
+
+	/*	if s.OnCreateSessionObject != nil {
+		sessionObject, err = s.OnCreateSessionObject(aepr, user, userLoggedOrganization, sessionObject)
+		if err != nil {
+			return err
+		}
+	}*/
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
+	if err != nil {
+		return err
+	}
+	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
+
+	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		"session_object": sessionObject,
+	})
+	return err
+}
+
 func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId int64, sessionKey string, user utils.JSON, userLoggedOrganizationId int64,
 	userLoggedOrganizationUid string, userLoggedOrganization utils.JSON, userOrganizationMemberships []any) (sessionObject utils.JSON, allowed bool, err error) {
 	var userEffectivePrivilegeIds map[string]int64
@@ -973,6 +1121,166 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		"d": dataBlockEnvelopeAsHexString,
+	})
+	return err
+}
+
+func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error) {
+
+	_, userLoginId, err := aepr.GetParameterValueAsString("user_login_id")
+	if err != nil {
+		return err
+	}
+	_, userPassword, err := aepr.GetParameterValueAsString("user_login_password")
+	if err != nil {
+		return err
+	}
+	_, organizationUId, err := aepr.GetParameterValueAsString("organization_uid", "")
+	if err != nil {
+		return err
+	}
+	_, captchaId, err := aepr.GetParameterValueAsString("captcha_id", "")
+	if err != nil {
+		return err
+	}
+	_, captchaText, err := aepr.GetParameterValueAsString("captcha_text", "")
+	if err != nil {
+		return err
+	}
+
+	preKeyIndex, err := utils.GetStringFromKV(aepr.EncryptionParameters, "PRE_KEY_INDEX")
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
+	}
+
+	preKeyData, err := user_management.ModuleUserManagement.PreKeyRedis.Get(preKeyIndex)
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
+	}
+	if preKeyData == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:PREKEY_NOT_FOUND")
+	}
+
+	storedCaptchaId := preKeyData["captcha_id"].(string)
+	storedCaptchaText := preKeyData["captcha_text"].(string)
+
+	if captchaId != storedCaptchaId {
+		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		return
+	}
+	if captchaText != storedCaptchaText {
+		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		return
+	}
+
+	var user utils.JSON
+	var userOrganizationMemberships []utils.JSON
+	var userLoggedOrganizationId int64
+	var userLoggedOrganizationUid string
+	var userLoggedOrganization utils.JSON
+	var verificationResult bool
+	if s.OnAuthenticateUser != nil {
+		verificationResult, user, userLoggedOrganization, err = s.OnAuthenticateUser(aepr, userLoginId, userPassword, organizationUId)
+		if err != nil {
+			return err
+		}
+		if !verificationResult {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+		}
+	} else {
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+			"loginid": userLoginId,
+		}, nil, nil)
+		if err != nil {
+			return err
+		}
+		if user == nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+		}
+
+		userId := user["id"].(int64)
+
+		us := utils.JSON{
+			"user_id": userId,
+		}
+
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
+		}
+
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
+			map[string]string{"order_index": "asc"}, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+		}
+
+		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
+		userLoggedOrganizationUid = userOrganizationMemberships[0]["organization_uid"].(string)
+
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
+		if err != nil {
+			return err
+		}
+
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPassword)
+		if err != nil {
+			return err
+		}
+
+		if !verificationResult {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+		}
+	}
+
+	sessionKey, err := GenerateSessionKey()
+	if err != nil {
+		return err
+	}
+
+	userId, ok := user["id"].(int64)
+	if !ok {
+		return aepr.WriteResponseAndLogAsErrorf(500, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
+	}
+	a := []any{userOrganizationMemberships}
+	sessionObject, allowed, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
+	if err2 != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err2.Error())
+	}
+
+	/*	allowed := false
+		for k := range userEffectivePrivilegeIds {
+			if slices.Contains(aepr.EndPoint.Privileges, k) {
+				allowed = true
+			}
+		}*/
+	if !allowed {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
+	}
+
+	/*	if s.OnCreateSessionObject != nil {
+		sessionObject, err = s.OnCreateSessionObject(aepr, user, userLoggedOrganization, sessionObject)
+		if err != nil {
+			return err
+		}
+	}*/
+	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
+	if err != nil {
+		return err
+	}
+
+	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
+
+	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		"session_object": sessionObject,
 	})
 	return err
 }
@@ -1280,6 +1588,68 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 	userPasswordNew := string(lvPayloadNewPassword.Value)
 	userPasswordOld := string(lvPayloadOldPassword.Value)
+
+	err = PasswordFormatValidation(userPasswordNew)
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "", "INVALID_PASSWORD_FORMAT:%s", err.Error())
+	}
+
+	userId := aepr.LocalData["user_id"].(int64)
+	var verificationResult bool
+
+	d := database.Manager.Databases[s.DatabaseNameId]
+	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+			"id": userId,
+		}, nil, nil)
+		if err != nil {
+			return err
+		}
+		if user == nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusNotFound, "", "USER_NOT_FOUND")
+		}
+
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
+		if err != nil {
+			return err
+		}
+
+		if !verificationResult {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+		}
+
+		err = user_management.ModuleUserManagement.TxUserPasswordCreate(tx, userId, userPasswordNew)
+		if err != nil {
+			return err
+		}
+		aepr.Log.Infof("User password changed")
+
+		_, err = user_management.ModuleUserManagement.User.Update(utils.JSON{
+			"must_change_password": false,
+		}, utils.JSON{
+			"id": userId,
+		})
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, userPasswordNew, err := aepr.GetParameterValueAsString("user_login_password_new")
+	if err != nil {
+		return err
+	}
+	_, userPasswordOld, err := aepr.GetParameterValueAsString("user_login_password_old")
+	if err != nil {
+		return err
+	}
 
 	err = PasswordFormatValidation(userPasswordNew)
 	if err != nil {
