@@ -466,6 +466,8 @@ func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON 
 		if err := json.Unmarshal([]byte(vaultVarValue), &dataAsJSON); err != nil {
 			return nil, errors.Wrapf(err, "ERROR_PARSING_SERVICE_ACCOUNT_JSON_FROM_VAULT:%d:%v", fcmApplicationId, err)
 		}
+	default:
+		return nil, errors.Errorf("UNKNOWN_SERVICE_ACCOUNT_SOURCE:%d:%s", fcmApplicationId, fcmApplicationServiceAccountSource)
 	}
 	return dataAsJSON, nil
 }
