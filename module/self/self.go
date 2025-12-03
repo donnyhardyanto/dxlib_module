@@ -499,7 +499,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyUnPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
 	}
 
-	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := api.OnE2EEPrekeyUnPack(aepr.EndPoint.EndPointType, preKeyIndex, dataAsHexString)
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := api.OnE2EEPrekeyUnPack(aepr, preKeyIndex, dataAsHexString)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
 	}
@@ -659,7 +659,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
 	}
 
-	dataBlockEnvelopeAsHexString, err := api.OnE2EEPrekeyPack(aepr.EndPoint.EndPointType, preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
+	dataBlockEnvelopeAsHexString, err := api.OnE2EEPrekeyPack(aepr, preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
 	//dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
 	if err != nil {
 		return err
@@ -949,7 +949,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyUnPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
 	}
 
-	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := api.OnE2EEPrekeyUnPack(aepr.EndPoint.EndPointType, preKeyIndex, dataAsHexString)
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := api.OnE2EEPrekeyUnPack(aepr, preKeyIndex, dataAsHexString)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
 	}
@@ -1113,7 +1113,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
 	}
 
-	dataBlockEnvelopeAsHexString, err := api.OnE2EEPrekeyPack(aepr.EndPoint.EndPointType, preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
+	dataBlockEnvelopeAsHexString, err := api.OnE2EEPrekeyPack(aepr, preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
 	//dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
 	if err != nil {
 		return err
