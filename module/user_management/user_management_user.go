@@ -650,6 +650,155 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	return nil
 }
 
+func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err error) {
+	organizationId, ok := aepr.ParameterValues["organization_id"].Value.(int64)
+	if !ok {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
+	}
+	_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
+	}
+
+	roleId, ok := aepr.ParameterValues["role_id"].Value.(int64)
+	if !ok {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING", "")
+	}
+	_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
+	}
+
+	userPassword, ok := aepr.ParameterValues["password"].Value.(string)
+	if !ok {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "PASSWORD_MISSING", "")
+	}
+
+	attribute, ok := aepr.ParameterValues["attribute"].Value.(string)
+	if !ok {
+		attribute = ""
+	}
+
+	loginId := aepr.ParameterValues["loginid"].Value.(string)
+	email := aepr.ParameterValues["email"].Value.(string)
+	fullname := aepr.ParameterValues["fullname"].Value.(string)
+	phonenumber := aepr.ParameterValues["phonenumber"].Value.(string)
+	status := UserStatusActive
+
+	p := utils.JSON{
+		"loginid":              loginId,
+		"email":                email,
+		"fullname":             fullname,
+		"phonenumber":          phonenumber,
+		"status":               status,
+		"attribute":            attribute,
+		"must_change_password": false,
+		"is_avatar_exist":      false,
+	}
+
+	identityNumber, ok := aepr.ParameterValues["identity_number"].Value.(string)
+	if ok {
+		p["identity_number"] = identityNumber
+	}
+
+	identityType, ok := aepr.ParameterValues["identity_type"].Value.(string)
+	if ok {
+		p["identity_type"] = identityType
+	}
+
+	gender, ok := aepr.ParameterValues["gender"].Value.(string)
+	if ok {
+		p["gender"] = gender
+	}
+
+	addressOnIdentityCard, ok := aepr.ParameterValues["gender"].Value.(string)
+	if ok {
+		p["address_on_identity_card"] = addressOnIdentityCard
+	}
+
+	membershipNumber, ok := aepr.ParameterValues["membership_number"].Value.(string)
+	if !ok {
+		membershipNumber = ""
+	}
+
+	var userId int64
+	var userOrganizationMembershipId int64
+	var userRoleMembershipId int64
+
+	err = um.User.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+		_, user, err2 := um.User.TxSelectOne(tx, utils.JSON{
+			"loginid": loginId,
+		}, nil)
+		if err2 != nil {
+			return err2
+		}
+		if user != nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
+		}
+		userId, err2 = um.User.TxInsert(tx, p)
+		if err2 != nil {
+			return err2
+		}
+
+		userOrganizationMembershipId, err2 = um.UserOrganizationMembership.TxInsert(tx, map[string]any{
+			"user_id":           userId,
+			"organization_id":   organizationId,
+			"membership_number": membershipNumber,
+		})
+		if err2 != nil {
+			return err2
+		}
+
+		userRoleMembershipId, err2 = um.UserRoleMembership.TxInsert(tx, map[string]any{
+			"user_id":         userId,
+			"organization_id": organizationId,
+			"role_id":         roleId,
+		})
+		if err2 != nil {
+			return err2
+		}
+
+		err2 = um.TxUserPasswordCreate(tx, userId, userPassword)
+		if err2 != nil {
+			return err2
+		}
+
+		if um.OnUserAfterCreate != nil {
+			_, user, err2 = um.User.TxSelectOne(tx, utils.JSON{
+				"id": userId,
+			}, nil)
+			if err2 != nil {
+				return err2
+			}
+			err2 = um.OnUserAfterCreate(aepr, tx, user, userPassword)
+		}
+
+		_, userRoleMembership, err := um.UserRoleMembership.TxSelectOne(tx, utils.JSON{
+			"id": userRoleMembershipId,
+		}, nil)
+		if err != nil {
+			return err
+		}
+		if um.OnUserRoleMembershipAfterCreate != nil {
+			err2 = um.OnUserRoleMembershipAfterCreate(aepr, tx, userRoleMembership, organizationId)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		"data": utils.JSON{
+			"id":                              userId,
+			"user_organization_membership_id": userOrganizationMembershipId,
+			"user_role_membership_id":         userRoleMembershipId,
+		}})
+
+	return nil
+}
+
 func (um *DxmUserManagement) UserRead(aepr *api.DXAPIEndPointRequest) (err error) {
 	return um.User.RequestRead(aepr)
 }
