@@ -241,7 +241,7 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	}
 	preKeyString := "PREKEY_" + uuidA.String()
 
-	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "PREKEY_TTL_SECOND")
+	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "PREKEY_TTL_CAPTCHA_SECOND")
 	if err != nil {
 		return err
 	}
@@ -499,7 +499,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyUnPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
 	}
 
-	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := api.OnE2EEPrekeyUnPack(aepr, preKeyIndex, dataAsHexString)
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, _, err := api.OnE2EEPrekeyUnPack(aepr, preKeyIndex, dataAsHexString)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
 	}
@@ -949,15 +949,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyUnPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
 	}
 
-	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := api.OnE2EEPrekeyUnPack(aepr, preKeyIndex, dataAsHexString)
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, preKeyData, err := api.OnE2EEPrekeyUnPack(aepr, preKeyIndex, dataAsHexString)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
 	}
 
-	preKeyData, err := user_management.ModuleUserManagement.PreKeyRedis.Get(preKeyIndex)
-	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
-	}
 	if preKeyData == nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:PREKEY_NOT_FOUND")
 	}
