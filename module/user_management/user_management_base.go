@@ -12,6 +12,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
+	"github.com/repoareta/pgn-partner-common/infrastructure/base"
 )
 
 const (
@@ -34,6 +35,8 @@ type DxmUserManagement struct {
 	PreKeyRedis                          *redis.DXRedis
 	User                                 *table.DXTable
 	UserPassword                         *table.DXTable
+	UserMessageChannnelType              *table.DXRawTable
+	UserMessageCategory                  *table.DXRawTable
 	UserMessage                          *table.DXTable
 	Role                                 *table.DXTable
 	Organization                         *table.DXTable
@@ -85,12 +88,15 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.MenuItem = table.Manager.NewTable(databaseNameId, "user_management.menu_item",
 		"user_management.menu_item",
 		"user_management.v_menu_item", "composite_nameid", "id", "uid", "data")
-	um.UserMessage = table.Manager.NewTable(databaseNameId, "user_management.user_message",
-		"user_management.user_message",
+	um.UserMessageChannnelType = table.Manager.NewRawTable(databaseNameId, "user_management.user_message_channel_type", "user_management.user_message_channel_type",
+		"user_management.user_message_channel_type", "nameid", "id", "uid", "data")
+	um.UserMessageCategory = table.Manager.NewRawTable(databaseNameId, "user_management.user_message_category", "user_management.user_message_category",
+		"user_management.user_message_category", "nameid", "id", "uid", "data")
+	um.UserMessage = table.Manager.NewTable(databaseNameId, "user_management.user_message", "user_management.v_user_message",
 		"user_management.user_message", "id", "id", "uid", "data")
 }
 
-func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
+func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
 	for key, value := range templateData {
 		placeholder := fmt.Sprintf("<%s>", key)
 		aValue := fmt.Sprintf("%v", value)
@@ -109,12 +115,14 @@ func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userI
 	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(l, userId, msgTitle, msgBody, attachedData,
 		func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
 			_, err2 = um.UserMessage.TxInsert(dtx, utils.JSON{
-				"fcm_message_id":     fcmMessageId,
-				"fcm_application_id": fcmApplicationId,
-				"user_id":            userId,
-				"title":              msgTitle,
-				"body":               msgBody,
-				"data":               attachedDataAsJSONString,
+				"user_message_channel_type_id": base.UserMessageChannelTypeIdFCM,
+				"user_message_category_id":     userMessageCategoryId,
+				"fcm_message_id":               fcmMessageId,
+				"fcm_application_id":           fcmApplicationId,
+				"user_id":                      userId,
+				"title":                        msgTitle,
+				"body":                         msgBody,
+				"data":                         attachedDataAsJSONString,
 			})
 			if err2 != nil {
 				return err2
