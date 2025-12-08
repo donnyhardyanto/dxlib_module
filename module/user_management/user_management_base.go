@@ -96,7 +96,7 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 		"user_management.user_message", "id", "id", "uid", "data")
 }
 
-func (um *DxmUserManagement) UserMessageCreateAllApplication(l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
+func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
 	for key, value := range templateData {
 		placeholder := fmt.Sprintf("<%s>", key)
 		aValue := fmt.Sprintf("%v", value)
