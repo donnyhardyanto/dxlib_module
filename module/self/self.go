@@ -17,8 +17,10 @@ import (
 	"github.com/donnyhardyanto/dxlib/configuration"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/endpoint_rate_limiter"
+	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"github.com/pkg/errors"
+	"github.com/repoareta/pgn-partner-common/infrastructure/base"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/donnyhardyanto/dxlib/api"
@@ -38,11 +40,15 @@ import (
 
 type DxmSelf struct {
 	dxlibModule.DXModule
-	UserOrganizationMembershipType user_management.UserOrganizationMembershipType
-	Avatar                         *lib.ImageObjectStorage
-	OnInitialize                   func(s *DxmSelf) (err error)
-	OnAuthenticateUser             func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organization utils.JSON /*organizations []utils.JSON*/, err error)
-	OnCreateSessionObject          func(aepr *api.DXAPIEndPointRequest, user utils.JSON, organization utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
+	UserOrganizationMembershipType        user_management.UserOrganizationMembershipType
+	Avatar                                *lib.ImageObjectStorage
+	GlobalStoreRedis                      *redis.DXRedis
+	KeyGlobalStoreSystem                  string
+	KeyGlobalStoreSystemMode              string
+	ValueGlobalStoreSystemModeMaintenance string
+	OnInitialize                          func(s *DxmSelf) (err error)
+	OnAuthenticateUser                    func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organization utils.JSON /*organizations []utils.JSON*/, err error)
+	OnCreateSessionObject                 func(aepr *api.DXAPIEndPointRequest, user utils.JSON, organization utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
 }
 
 func (s *DxmSelf) Init(databaseNameId string) {
@@ -1394,6 +1400,7 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	return sessionObject, nil
 }
 
+/*
 func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err error) {
 	aepr.Log.Debugf("Middleware Start: %s", aepr.EndPoint.Uri)
 	defer aepr.Log.Debugf("Middleware Done: %s", aepr.EndPoint.Uri)
@@ -1416,6 +1423,53 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 	}
 
 	return nil
+}
+*/
+
+func CheckUserPrivilegeForEndPoint(aepr *api.DXAPIEndPointRequest, userEffectivePrivilegeIds utils.JSON) (allowed bool) {
+	if aepr.EndPoint.Privileges == nil {
+		return true
+	}
+	if len(aepr.EndPoint.Privileges) == 0 {
+		return true
+	} else {
+
+		for k := range userEffectivePrivilegeIds {
+			if slices.Contains(aepr.EndPoint.Privileges, k) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffectivePrivilegeIds utils.JSON) (allowed bool) {
+	globalStoreSystemValue, err := s.GlobalStoreRedis.Get(s.KeyGlobalStoreSystem)
+	if err != nil {
+		// if no key set, that means Normal mode
+		return CheckUserPrivilegeForEndPoint(aepr, userEffectivePrivilegeIds)
+	}
+	modeAsAny, ok := globalStoreSystemValue[s.KeyGlobalStoreSystemMode]
+	if !ok {
+		// if no key set, that means Normal mode
+		return CheckUserPrivilegeForEndPoint(aepr, userEffectivePrivilegeIds)
+	}
+	modeValue, ok := modeAsAny.(string)
+	if !ok {
+		// if no key set, that means Normal mode
+		return CheckUserPrivilegeForEndPoint(aepr, userEffectivePrivilegeIds)
+	}
+	if modeValue != s.ValueGlobalStoreSystemModeMaintenance {
+		// if not Maintenance mode, then Normal mode
+		return CheckUserPrivilegeForEndPoint(aepr, userEffectivePrivilegeIds)
+	}
+	// The system now in maintenance mode
+	_, ok = userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
+	if !ok {
+		// If user has no PrivilegeNameIdSetMaintenance then false
+		return false
+	}
+	return CheckUserPrivilegeForEndPoint(aepr, userEffectivePrivilegeIds)
 }
 
 func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -1443,20 +1497,10 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 		return aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
 	}
 
-	allowed := false
 	userEffectivePrivilegeIds := sessionObject["user_effective_privilege_ids"].(map[string]any)
-	if aepr.EndPoint.Privileges == nil {
-		allowed = true
-	}
-	if len(aepr.EndPoint.Privileges) == 0 {
-		allowed = true
-	} else {
-		for k := range userEffectivePrivilegeIds {
-			if slices.Contains(aepr.EndPoint.Privileges, k) {
-				allowed = true
-			}
-		}
-	}
+
+	allowed := s.CheckMaintenanceMode(aepr, userEffectivePrivilegeIds)
+
 	if !allowed {
 		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
