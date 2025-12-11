@@ -1942,7 +1942,44 @@ func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 
 	return nil
+}
 
+func (s *DxmSelf) SelfUserMessagePagingListAll(aepr *api.DXAPIEndPointRequest) (err error) {
+	userId := aepr.LocalData["user_id"].(int64)
+	err = user_management.ModuleUserManagement.UserMessage.DoRequestPagingList(aepr,
+		"user_id=:user_id", "id desc", utils.JSON{
+			"user_id":    userId,
+			"is_deleted": false,
+		}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest) (err error) {
+	userId := aepr.LocalData["user_id"].(int64)
+	_, userMessageId, err := aepr.GetParameterValueAsInt64("user_message_id")
+	if err != nil {
+		return err
+	}
+	_, _, err = user_management.ModuleUserManagement.UserMessage.ShouldSelectOne(&aepr.Log, utils.JSON{
+		"id":      userMessageId,
+		"user_id": userId,
+	}, nil, nil)
+	if err != nil {
+		return err
+	}
+	_, err = user_management.ModuleUserManagement.UserMessage.Update(utils.JSON{
+		"is_read": true,
+	}, utils.JSON{
+		"id":      userMessageId,
+		"user_id": userId,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 var ModuleSelf = DxmSelf{
