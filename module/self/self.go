@@ -47,6 +47,7 @@ type DxmSelf struct {
 	KeyGlobalStoreSystem                  string
 	KeyGlobalStoreSystemMode              string
 	ValueGlobalStoreSystemModeMaintenance string
+	ValueGlobalStoreSystemModeNormal      string
 	OnInitialize                          func(s *DxmSelf) (err error)
 	OnAuthenticateUser                    func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organization utils.JSON /*organizations []utils.JSON*/, err error)
 	OnCreateSessionObject                 func(aepr *api.DXAPIEndPointRequest, user utils.JSON, organization utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
@@ -1976,6 +1977,26 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest)
 		"id":      userMessageId,
 		"user_id": userId,
 	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *DxmSelf) SelfSystemSetModeToMaintenance(aepr *api.DXAPIEndPointRequest) (err error) {
+	err = s.GlobalStoreRedis.Set(s.KeyGlobalStoreSystem, utils.JSON{
+		s.KeyGlobalStoreSystemMode: s.ValueGlobalStoreSystemModeMaintenance,
+	}, 0)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *DxmSelf) SelfSystemSetModeToNormal(aepr *api.DXAPIEndPointRequest) (err error) {
+	err = s.GlobalStoreRedis.Set(s.KeyGlobalStoreSystem, utils.JSON{
+		s.KeyGlobalStoreSystemMode: s.ValueGlobalStoreSystemModeNormal,
+	}, 0)
 	if err != nil {
 		return err
 	}
