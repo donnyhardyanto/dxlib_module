@@ -1492,24 +1492,24 @@ func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err erro
 }
 */
 
-func CheckUserPrivilegeForEndPoint(aepr *api.DXAPIEndPointRequest, userEffectivePrivilegeIds utils.JSON) (allowed bool) {
+func CheckUserPrivilegeForEndPoint(aepr *api.DXAPIEndPointRequest, userEffectivePrivilegeIds utils.JSON) (err error) {
 	if aepr.EndPoint.Privileges == nil {
-		return true
+		return nil
 	}
 	if len(aepr.EndPoint.Privileges) == 0 {
-		return true
+		return nil
 	} else {
 
 		for k := range userEffectivePrivilegeIds {
 			if slices.Contains(aepr.EndPoint.Privileges, k) {
-				return true
+				return nil
 			}
 		}
 	}
-	return false
+	return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 }
 
-func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffectivePrivilegeIds utils.JSON) (allowed bool) {
+func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffectivePrivilegeIds utils.JSON) (err error) {
 	globalStoreSystemValue, err := s.GlobalStoreRedis.Get(s.KeyGlobalStoreSystem)
 	if err != nil {
 		// if no key set, that means Normal mode
@@ -1532,8 +1532,9 @@ func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffec
 	// The system now in maintenance mode
 	_, ok = userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 	if !ok {
+		err = aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
 		// If user has no PrivilegeNameIdSetMaintenance then false
-		return false
+		return err
 	}
 	return CheckUserPrivilegeForEndPoint(aepr, userEffectivePrivilegeIds)
 }
@@ -1565,10 +1566,9 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 
 	userEffectivePrivilegeIds := sessionObject["user_effective_privilege_ids"].(map[string]any)
 
-	allowed := s.CheckMaintenanceMode(aepr, userEffectivePrivilegeIds)
-
-	if !allowed {
-		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
+	err = s.CheckMaintenanceMode(aepr, userEffectivePrivilegeIds)
+	if err != nil {
+		return err
 	}
 	return nil
 }
