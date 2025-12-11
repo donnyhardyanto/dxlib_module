@@ -2,6 +2,7 @@ package self
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -1129,36 +1130,78 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 
 func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error) {
 
-	_, userLoginId, err := aepr.GetParameterValueAsString("user_login_id")
+	_, preKeyIndex, err := aepr.GetParameterValueAsString("i")
 	if err != nil {
 		return err
 	}
-	_, userPassword, err := aepr.GetParameterValueAsString("user_login_password")
-	if err != nil {
-		return err
-	}
-	_, organizationUId, err := aepr.GetParameterValueAsString("organization_uid", "")
-	if err != nil {
-		return err
-	}
-	_, captchaId, err := aepr.GetParameterValueAsString("captcha_id", "")
-	if err != nil {
-		return err
-	}
-	_, captchaText, err := aepr.GetParameterValueAsString("captcha_text", "")
+	_, dataAsHexString, err := aepr.GetParameterValueAsString("d")
 	if err != nil {
 		return err
 	}
 
-	preKeyIndex, err := utils.GetStringFromKV(aepr.EncryptionParameters, "PRE_KEY_INDEX")
+	if api.OnE2EEPrekeyUnPack == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyUnPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
+	}
+
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, preKeyData, err := api.OnE2EEPrekeyUnPack(aepr, preKeyIndex, dataAsHexString)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
 	}
 
-	preKeyData, err := user_management.ModuleUserManagement.PreKeyRedis.Get(preKeyIndex)
+	lvPayloadHeader := lvPayloadElements[0]
+	lvPayloadBody := lvPayloadElements[1]
+
+	payLoadHeaderAsBase64 := lvPayloadHeader.Value
+	payLoadHeaderAsBytes, err := base64.StdEncoding.DecodeString(string(payLoadHeaderAsBase64))
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:INVALID_DECODED_PAYLOAD_HEADER_FROM_BASE64")
 	}
+	payloadHeader := map[string]string{}
+	err = json.Unmarshal(payLoadHeaderAsBytes, &payloadHeader)
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:INVALID_UNMARSHAL_PAYLOAD_HEADER_BYTES")
+	}
+
+	aepr.EncryptionParameters = utils.JSON{
+		"PRE_KEY_INDEX":              preKeyIndex,
+		"SHARED_KEY_2_AS_BYTES":      sharedKey2AsBytes,
+		"ED_B0_PRIVATE_KEY_AS_BYTES": edB0PrivateKeyAsBytes,
+		"PRE_KEY_DATA":               preKeyData,
+	}
+	aepr.EffectiveRequestHeader = payloadHeader
+
+	payLoadBodyAsBase64 := lvPayloadBody.Value
+	payLoadBodyAsBytes, err := base64.StdEncoding.DecodeString(string(payLoadBodyAsBase64))
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:INVALID_DECODED_PAYLOAD_BODY_FROM_BASE64")
+	}
+	payloadBodyAsJSON := utils.JSON{}
+	err = json.Unmarshal(payLoadBodyAsBytes, &payloadBodyAsJSON)
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:INVALID_UNMARSHAL_PAYLOAD_BODY_BYTES")
+	}
+
+	userLoginId, err := utils.GetStringFromKV(payloadBodyAsJSON, "user_login_id")
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:INVALID_UNMARSHAL_PAYLOAD_BODY_BYTES")
+	}
+	userPassword, err := utils.GetStringFromKV(payloadBodyAsJSON, "user_login_password")
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:INVALID_UNMARSHAL_PAYLOAD_BODY_BYTES")
+	}
+	organizationUId, err := utils.GetStringFromKV(payloadBodyAsJSON, "organization_uid")
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:INVALID_UNMARSHAL_PAYLOAD_BODY_BYTES")
+	}
+	captchaId, err := utils.GetStringFromKV(payloadBodyAsJSON, "captcha_id")
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:INVALID_UNMARSHAL_PAYLOAD_BODY_BYTES")
+	}
+	captchaText, err := utils.GetStringFromKV(payloadBodyAsJSON, "captcha_text")
+	if err != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:INVALID_UNMARSHAL_PAYLOAD_BODY_BYTES")
+	}
+
 	if preKeyData == nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:PREKEY_NOT_FOUND")
 	}
@@ -1281,9 +1324,31 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 		return err
 	}
 
+	sessionObjectJSON, err := json.Marshal(sessionObject)
+	if err != nil {
+		return err
+	}
+
+	sessionObjectJSONString := string(sessionObjectJSON)
+
+	lvSessionObject, err := lv.NewLV([]byte(sessionObjectJSONString))
+	if err != nil {
+		return err
+	}
+
+	if api.OnE2EEPrekeyPack == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "NOT_IMPLEMENTED", "NOT_IMPLEMENTED:OnE2EEPrekeyPack_IS_NIL:%v", aepr.EndPoint.EndPointType)
+	}
+
+	dataBlockEnvelopeAsHexString, err := api.OnE2EEPrekeyPack(aepr, preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
+	if err != nil {
+		return err
+	}
+
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
-		"session_object": sessionObject,
+		"d": dataBlockEnvelopeAsHexString,
 	})
+
 	return err
 }
 
