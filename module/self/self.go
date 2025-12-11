@@ -48,6 +48,8 @@ type DxmSelf struct {
 	KeyGlobalStoreSystemMode              string
 	ValueGlobalStoreSystemModeMaintenance string
 	ValueGlobalStoreSystemModeNormal      string
+	OnSystemSetToModeMaintenance          func(s *DxmSelf) (err error)
+	OnSystemSetToModeNormal               func(s *DxmSelf) (err error)
 	OnInitialize                          func(s *DxmSelf) (err error)
 	OnAuthenticateUser                    func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organization utils.JSON /*organizations []utils.JSON*/, err error)
 	OnCreateSessionObject                 func(aepr *api.DXAPIEndPointRequest, user utils.JSON, organization utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
@@ -1990,6 +1992,9 @@ func (s *DxmSelf) SelfSystemSetModeToMaintenance(aepr *api.DXAPIEndPointRequest)
 	if err != nil {
 		return err
 	}
+	if s.OnSystemSetToModeMaintenance != nil {
+		err = s.OnSystemSetToModeMaintenance(s)
+	}
 	return nil
 }
 
@@ -1999,6 +2004,9 @@ func (s *DxmSelf) SelfSystemSetModeToNormal(aepr *api.DXAPIEndPointRequest) (err
 	}, 0)
 	if err != nil {
 		return err
+	}
+	if s.OnSystemSetToModeNormal != nil {
+		err = s.OnSystemSetToModeNormal(s)
 	}
 	return nil
 }
