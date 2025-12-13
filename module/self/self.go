@@ -18,14 +18,14 @@ import (
 	"github.com/donnyhardyanto/dxlib/configuration"
 	"github.com/donnyhardyanto/dxlib/database"
 	"github.com/donnyhardyanto/dxlib/endpoint_rate_limiter"
+	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"github.com/pkg/errors"
 	"github.com/repoareta/pgn-partner-common/infrastructure/base"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/donnyhardyanto/dxlib/api"
-	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/datablock"
@@ -48,8 +48,8 @@ type DxmSelf struct {
 	KeyGlobalStoreSystemMode              string
 	ValueGlobalStoreSystemModeMaintenance string
 	ValueGlobalStoreSystemModeNormal      string
-	OnSystemSetToModeMaintenance          func(s *DxmSelf) (err error)
-	OnSystemSetToModeNormal               func(s *DxmSelf) (err error)
+	OnSystemSetToModeMaintenance          func(l *log.DXLog) (err error)
+	OnSystemSetToModeNormal               func(l *log.DXLog) (err error)
 	OnInitialize                          func(s *DxmSelf) (err error)
 	OnAuthenticateUser                    func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organization utils.JSON /*organizations []utils.JSON*/, err error)
 	OnCreateSessionObject                 func(aepr *api.DXAPIEndPointRequest, user utils.JSON, organization utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
@@ -61,7 +61,7 @@ func (s *DxmSelf) Init(databaseNameId string) {
 	if s.OnInitialize != nil {
 		err := s.OnInitialize(s)
 		if err != nil {
-			log.Panic(err)
+			logrus.Panic(err)
 		}
 	}
 }
@@ -312,7 +312,7 @@ func isMenuItemExists(menu []utils.JSON, aMenuItem utils.JSON) bool {
 	return false
 }
 
-func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *dxlibLog.DXLog, menuitem utils.JSON, menu *[]utils.JSON) error {
+func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *log.DXLog, menuitem utils.JSON, menu *[]utils.JSON) error {
 	if menuitem == nil {
 		return nil
 	}
@@ -373,7 +373,7 @@ func pruneMenuItems(menuItem *utils.JSON) {
 	}
 }
 
-func (s *DxmSelf) fetchMenuTree(l *dxlibLog.DXLog, userEffectivePrivilegeIds map[string]int64) ([]*utils.JSON, error) {
+func (s *DxmSelf) fetchMenuTree(l *log.DXLog, userEffectivePrivilegeIds map[string]int64) ([]*utils.JSON, error) {
 	// select all menu items available
 	allMenuItems := map[int64]utils.JSON{}
 	_, menuItems, err := user_management.ModuleUserManagement.MenuItem.Select(l, nil, nil, nil, map[string]string{"id": "ASC"}, nil)
@@ -1993,7 +1993,7 @@ func (s *DxmSelf) SelfSystemSetModeToMaintenance(aepr *api.DXAPIEndPointRequest)
 		return err
 	}
 	if s.OnSystemSetToModeMaintenance != nil {
-		err = s.OnSystemSetToModeMaintenance(s)
+		err = s.OnSystemSetToModeMaintenance(&aepr.Log)
 	}
 	return nil
 }
@@ -2006,7 +2006,7 @@ func (s *DxmSelf) SelfSystemSetModeToNormal(aepr *api.DXAPIEndPointRequest) (err
 		return err
 	}
 	if s.OnSystemSetToModeNormal != nil {
-		err = s.OnSystemSetToModeNormal(s)
+		err = s.OnSystemSetToModeNormal(&aepr.Log)
 	}
 	return nil
 }
