@@ -48,11 +48,14 @@ type DxmPushNotification struct {
 }
 
 type FCMMessageFunc func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
+type FCMTopicMessageFunc func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
+
 type FirebaseCloudMessaging struct {
-	FCMApplication *table.DXTable
-	FCMUserToken   *table.DXTable
-	FCMMessage     *table.DXTable
-	DatabaseNameId string
+	FCMApplication  *table.DXTable
+	FCMUserToken    *table.DXTable
+	FCMMessage      *table.DXTable
+	FCMTopicMessage *table.DXTable
+	DatabaseNameId  string
 }
 
 type EmailMessaging struct {
@@ -81,11 +84,10 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.FCMMessage = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_message",
 		"push_notification.fcm_message",
 		"push_notification.v_fcm_message", "id", "id", "uid", "data")
+	f.FCMTopicMessage = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_topic_message",
+		"push_notification.fcm_topic_message",
+		"push_notification.v_fcm_topic_message", "id", "id", "uid", "data")
 }
-
-/*func (f *FirebaseCloudMessaging) ApplicationRequestPagingList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMApplication.RequestPagingList(aepr)
-}*/
 
 func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, nameId, err := aepr.GetParameterValueAsString("nameid")
@@ -120,30 +122,6 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 
 	//	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
-}
-
-func (f *FirebaseCloudMessaging) UserTokenList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMUserToken.RequestPagingList(aepr)
-}
-
-func (f *FirebaseCloudMessaging) UserTokenRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMUserToken.RequestRead(aepr)
-}
-
-func (f *FirebaseCloudMessaging) UserTokenHardDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMUserToken.RequestHardDelete(aepr)
-}
-
-func (f *FirebaseCloudMessaging) MessageList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMMessage.RequestPagingList(aepr)
-}
-
-func (f *FirebaseCloudMessaging) MessageRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMMessage.RequestRead(aepr)
-}
-
-func (f *FirebaseCloudMessaging) MessageHardDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return f.FCMMessage.RequestHardDelete(aepr)
 }
 
 func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, deviceType string, userId int64, token string) (err error) {
@@ -209,6 +187,47 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 		"data": utils.JSON{
 			"id": userTokenId,
 		}})
+	return nil
+}
+
+func (f *FirebaseCloudMessaging) SendTopic(l *log.DXLog, applicationNameId string, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
+	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
+	var dtx *database.DXDatabaseTx
+	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
+	if err != nil {
+		return err
+	}
+	defer dtx.Finish(l, err)
+
+	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
+	if err != nil {
+		return err
+	}
+	fcmApplicationId := fcmApplication["id"].(int64)
+
+	msgDataAsString, err := json.Marshal(msgData)
+	if err != nil {
+		return err
+	}
+
+	fcmTopicMessageId, err := f.FCMTopicMessage.TxInsert(dtx, utils.JSON{
+		"fcm_application_id": fcmApplicationId,
+		"status":             "PENDING",
+		"topic":              topic,
+		"title":              msgTitle,
+		"body":               msgBody,
+		"data":               msgDataAsString,
+	})
+	if err != nil {
+		return err
+	}
+
+	if onFCMTopicMessage != nil {
+		err = onFCMTopicMessage(dtx, l, fcmTopicMessageId, fcmApplicationId, applicationNameId)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -420,6 +439,53 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 
 	return nil
 }
+func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
+	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
+	var dtx *database.DXDatabaseTx
+	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
+	if err != nil {
+		return err
+	}
+	defer dtx.Finish(l, err)
+
+	_, fcmApplications, err := f.FCMApplication.SelectAll(l)
+	if err != nil {
+		return err
+	}
+
+	msgDataAsJSONString, err := json.Marshal(msgData)
+	if err != nil {
+		return errors.Wrap(err, "FAILED_TO_MARSHAL_MSG_DATA")
+	}
+
+	for _, fcmApplication := range fcmApplications {
+
+		fcmApplicationId := fcmApplication["id"].(int64)
+		fcmApplicationNameId := fcmApplication["nameid"].(string)
+
+		fcmTopicMessageId, err := f.FCMTopicMessage.TxInsert(dtx, utils.JSON{
+			"fcm_application_id": fcmApplicationId,
+			"status":             "PENDING",
+			"topic":              topic,
+			"title":              msgTitle,
+			"body":               msgBody,
+			"data":               msgDataAsJSONString,
+		})
+		if err != nil {
+			return err
+		}
+
+		if onFCMTopicMessage != nil {
+			err = onFCMTopicMessage(dtx, l, fcmTopicMessageId, fcmApplicationId, fcmApplicationNameId)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
 
 func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON utils.JSON, err error) {
 	fcmApplicationId := fcmApplication["id"].(int64)
@@ -498,9 +564,14 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 		go func() {
 			defer wg.Done()
 			fcmApplicationId := fcmApplication["id"].(int64)
-			err := f.processMessages(fcmApplicationId)
+			fcmApplicationNameId := fcmApplication["nameid"].(string)
+			err := f.processSendTopic(fcmApplicationId)
 			if err != nil {
-				log.Log.Warnf("ERROR_PROCESSING_MESSAGES_FOR_SENDING_FROM_FCM_APPLICAtiON:%s:%v", fcmApplication["nameid"], err)
+				log.Log.Warnf("ERROR_PROCESSING_TOPIC_MESSAGES_FOR_SENDING_FROM_FCM_APPLICATION:%s:%v", fcmApplicationNameId, err)
+			}
+			err = f.processMessages(fcmApplicationId)
+			if err != nil {
+				log.Log.Warnf("ERROR_PROCESSING_MESSAGES_FOR_SENDING_FROM_FCM_APPLICAtiON:%s:%v", fcmApplicationNameId, err)
 			}
 		}()
 	}
@@ -553,15 +624,74 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 		}
 		err = f.sendNotification(ctx, firebaseServiceAccount.Client, fcmToken, deviceType, msgTitle, msgBody, msgData)
 		if err != nil {
-			log.Log.Warnf("Error sending notification %d: %v", fcmMessageId, err)
+			log.Log.Warnf("ERROR SEND NOTIFICATION %d: %v", fcmMessageId, err)
 			retryCount++
-			err = f.updateMessageStatus(fcmMessage["id"].(int64), "FAILED", retryCount)
+			err = f.updateMessageStatus(fcmMessageId, "FAILED", retryCount)
 		} else {
-			log.Log.Warnf("Notification sent %d", fcmMessageId)
-			err = f.updateMessageStatus(fcmMessage["id"].(int64), "SENT", retryCount)
+			log.Log.Warnf("SENT NOTIFICATION:%%d", fcmMessageId)
+			err = f.updateMessageStatus(fcmMessageId, "SENT", retryCount)
 		}
 		if err != nil {
-			log.Log.Warnf("Error updating message %d status: %v", fcmMessageId, err)
+			log.Log.Warnf("ERROR UPDATING FCM MESSAGE ID %d STATUS: %+v", fcmMessageId, err)
+		}
+	}
+
+	return nil
+}
+
+func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
+	ctx := context.Background()
+
+	firebaseServiceAccount, err := fcm.Manager.GetServiceAccount(applicationId)
+	if err != nil {
+		return errors.Errorf("failed to get Firebase app: %v", err)
+	}
+
+	_, fcmTopicMessages, err := f.FCMTopicMessage.Select(&log.Log, nil, utils.JSON{
+		"fcm_application_id": applicationId,
+		"c1":                 db.SQLExpression{Expression: "((status = 'PENDING') OR (status = 'FAILED'))"},
+		"c2":                 db.SQLExpression{Expression: "((next_retry_time <= NOW()) or (next_retry_time IS NULL))"},
+	}, nil, nil, 100)
+	if err != nil {
+		return errors.Errorf("failed to fetch messages: %v", err)
+	}
+
+	for _, fcmTopicMessage := range fcmTopicMessages {
+		log.Log.Debugf("Processing topic message %d", fcmTopicMessage["id"])
+
+		if fcmTopicMessage["next_retry_time"] != nil {
+			MsgNextRetryTime := fcmTopicMessage["next_retry_time"].(time.Time)
+			if MsgNextRetryTime.After(time.Now()) {
+				continue // Skip messages that are not ready for retry
+			}
+		}
+
+		// Wait for rate limit token
+		err = fcm.Manager.Limiter.Wait(ctx)
+		if err != nil {
+			log.Log.Warnf("Rate limit wait error: %v", err)
+			continue
+		}
+		retryCount := fcmTopicMessage["retry_count"].(int64)
+		fcmTopicMessageId := fcmTopicMessage["id"].(int64)
+		msgTopic := fcmTopicMessage["topic"].(string)
+		msgTitle := fcmTopicMessage["title"].(string)
+		msgBody := fcmTopicMessage["body"].(string)
+		msgData := map[string]string{"retry_count": fmt.Sprintf("%d", retryCount)}
+		if msgDataTemp, ok := fcmTopicMessage["data"].(map[string]string); ok {
+			msgData = msgDataTemp
+		}
+		err = f.sendTopicNotification(ctx, firebaseServiceAccount.Client, msgTopic, msgTitle, msgBody, msgData)
+		if err != nil {
+			log.Log.Warnf("ERROR_SEND_TOPIC_NOTIFICATION:%d:%+v", fcmTopicMessageId, err)
+			retryCount++
+			err = f.updateMessageStatus(fcmTopicMessageId, "FAILED", retryCount)
+		} else {
+			log.Log.Warnf("SENT_TOPIC_NOTIFICATION:%d", fcmTopicMessageId)
+			err = f.updateMessageStatus(fcmTopicMessageId, "SENT", retryCount)
+		}
+		if err != nil {
+			log.Log.Warnf("ERROR_UPDATING_FCM_TOPIC_MESSAGE_ID %d STATUS: %+v", fcmTopicMessageId, err)
 		}
 	}
 
@@ -590,6 +720,20 @@ func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *m
 		}
 	default:
 		return errors.Errorf("UNKNOWN_DEVICE_TYPE: %s", deviceType)
+	}
+
+	_, err := client.Send(ctx, message)
+	return err
+}
+
+func (f *FirebaseCloudMessaging) sendTopicNotification(ctx context.Context, client *messaging.Client, topic string, msgTitle string, msgBody string, msgData map[string]string) error {
+	message := &messaging.Message{
+		Notification: &messaging.Notification{
+			Title: msgTitle,
+			Body:  msgBody,
+		},
+		Topic: topic,
+		Data:  msgData,
 	}
 
 	_, err := client.Send(ctx, message)
