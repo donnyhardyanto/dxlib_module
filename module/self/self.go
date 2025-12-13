@@ -670,7 +670,6 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 
 	dataBlockEnvelopeAsHexString, err := api.OnE2EEPrekeyPack(aepr, preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
-	//dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
 	if err != nil {
 		return err
 	}
@@ -971,11 +970,6 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	storedCaptchaId := preKeyData["captcha_id"].(string)
 	storedCaptchaText := preKeyData["captcha_text"].(string)
 
-	//	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, storedCaptchaId, storedCaptchaText, err := user_management.ModuleUserManagement.PreKeyUnpackCaptcha(preKeyIndex, dataAsHexString)
-	//if err != nil {
-	//	return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR_%v", err.Error())
-	//}
-
 	lvPayloadLoginId := lvPayloadElements[0]
 	lvPayloadPassword := lvPayloadElements[1]
 	lvPayloadOrganizationUId := lvPayloadElements[2]
@@ -1120,7 +1114,6 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 
 	dataBlockEnvelopeAsHexString, err := api.OnE2EEPrekeyPack(aepr, preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
-	//dataBlockEnvelopeAsHexString, err := datablock.PackLVPayload(preKeyIndex, edB0PrivateKeyAsBytes, sharedKey2AsBytes, lvSessionObject)
 	if err != nil {
 		return err
 	}

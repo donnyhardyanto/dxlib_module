@@ -5,7 +5,6 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/pkg/errors"
 )
 
 func (um *DxmUserManagement) RoleList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -44,12 +43,12 @@ func (um *DxmUserManagement) RoleEdit(aepr *api.DXAPIEndPointRequest) (err error
 	t := um.Role
 	_, id, err := aepr.GetParameterValueAsInt64(t.FieldNameForRowId)
 	if err != nil {
-		return errors.Wrap(err, "error occured")
+		return err
 	}
 
 	_, newFieldValues, err := aepr.GetParameterValueAsJSON("new")
 	if err != nil {
-		return errors.Wrap(err, "error occured")
+		return err
 	}
 
 	p := utils.JSON{}
@@ -84,7 +83,7 @@ func (um *DxmUserManagement) RoleEdit(aepr *api.DXAPIEndPointRequest) (err error
 
 	err = t.DoEdit(aepr, id, p)
 	if err != nil {
-		return errors.Wrap(err, "error occured")
+		return err
 	}
 	return nil
 }

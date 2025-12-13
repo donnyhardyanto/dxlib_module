@@ -54,8 +54,7 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 		"stack":     stack,
 	})
 	if err != nil {
-		//log.Log.Panic(location, err)
-		//return
+		return nil
 	}
 	return nil
 }
