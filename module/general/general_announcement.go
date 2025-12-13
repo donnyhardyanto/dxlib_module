@@ -6,32 +6,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (g *DxmGeneral) AnnouncementList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcement.RequestPagingList(aepr)
-}
-
-func (g *DxmGeneral) AnnouncementListAll(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcement.RequestPagingListAll(aepr)
-}
-
 func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = g.Announcement.DoCreate(aepr, map[string]any{
 		"title":   aepr.ParameterValues["title"].Value.(string),
 		"content": aepr.ParameterValues["content"].Value.(string),
 	})
 	return err
-}
-
-func (g *DxmGeneral) AnnouncementRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcement.RequestRead(aepr)
-}
-
-func (g *DxmGeneral) AnnouncementEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcement.RequestEdit(aepr)
-}
-
-func (g *DxmGeneral) AnnouncementDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return g.Announcement.RequestSoftDelete(aepr)
 }
 
 func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (err error) {

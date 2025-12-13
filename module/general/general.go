@@ -1,6 +1,7 @@
 package general
 
 import (
+	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/table"
@@ -48,6 +49,17 @@ func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.
 		return nil, "", "", "", errors.New("INVALID_TEMPLATE_BODY")
 	}
 	return templateMessage, templateTitle, templateContentType, templateBody, nil
+}
+
+func (g *DxmGeneral) TemplateCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, err = g.Template.DoCreate(aepr, map[string]any{
+		"nameid":       aepr.ParameterValues["nameid"].Value.(string),
+		"type":         aepr.ParameterValues["type"].Value.(string),
+		"content_type": aepr.ParameterValues["content_type"].Value.(string),
+		"subject":      aepr.ParameterValues["subject"].Value.(string),
+		"body":         aepr.ParameterValues["body"].Value.(string),
+	})
+	return err
 }
 
 var ModuleGeneral DxmGeneral
