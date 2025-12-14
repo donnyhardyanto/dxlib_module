@@ -86,7 +86,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		"push_notification.v_fcm_message", "id", "id", "uid", "data")
 	f.FCMTopicMessage = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_topic_message",
 		"push_notification.fcm_topic_message",
-		"push_notification.v_fcm_topic_message", "id", "id", "uid", "data")
+		"push_notification.fcm_topic_message", "id", "id", "uid", "data")
 }
 
 func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
