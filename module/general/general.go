@@ -28,7 +28,7 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		"general.announcement", "uid", "id", "uid", "data")
 	g.Template = table.Manager.NewTable(g.DatabaseNameId,
 		"general.template", "general.template",
-		"settings.template", "nameid", "id", "uid", "data")
+		"general.template", "nameid", "id", "uid", "data")
 }
 
 func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.JSON, templateTitle string, templateContentType string, templateBody string, err error) {
