@@ -1978,6 +1978,19 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest)
 	return nil
 }
 
+func (s *DxmSelf) SelfUserMessageAllIsReadSetToTrue(aepr *api.DXAPIEndPointRequest) (err error) {
+	userId := aepr.LocalData["user_id"].(int64)
+	_, err = user_management.ModuleUserManagement.UserMessage.Update(utils.JSON{
+		"is_read": true,
+	}, utils.JSON{
+		"user_id": userId,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *DxmSelf) SelfSystemSetModeToMaintenance(aepr *api.DXAPIEndPointRequest) (err error) {
 	err = s.GlobalStoreRedis.Set(s.KeyGlobalStoreSystem, utils.JSON{
 		s.KeyGlobalStoreSystemMode: s.ValueGlobalStoreSystemModeMaintenance,
