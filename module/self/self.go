@@ -1527,8 +1527,8 @@ func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffec
 	// The system now in maintenance mode
 	_, ok = userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 	if !ok {
-		err = aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
-		// If user has no PrivilegeNameIdSetMaintenance then false
+		err = aepr.WriteResponseAndNewErrorf(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+		// If the user has no PrivilegeNameIdSetMaintenance then false
 		return err
 	}
 	return CheckUserPrivilegeForEndPoint(aepr, userEffectivePrivilegeIds)
@@ -1988,6 +1988,37 @@ func (s *DxmSelf) SelfUserMessageAllIsReadSetToTrue(aepr *api.DXAPIEndPointReque
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (s *DxmSelf) SystemModeIsMaintenance() (isMaintenance bool) {
+	globalStoreSystemValue, err := s.GlobalStoreRedis.Get(s.KeyGlobalStoreSystem)
+	if err != nil {
+		return false
+	}
+	modeAsAny, ok := globalStoreSystemValue[s.KeyGlobalStoreSystemMode]
+	if !ok {
+		// if no key set, that means Normal mode
+		return false
+	}
+	modeValue, ok := modeAsAny.(string)
+	if !ok {
+		// if no key set, that means Normal mode
+		return false
+	}
+	if modeValue != s.ValueGlobalStoreSystemModeMaintenance {
+		// if not Maintenance mode, then Normal mode
+		return false
+	}
+
+	return true
+}
+
+func (s *DxmSelf) SelfSystemModeIsMaintenance(aepr *api.DXAPIEndPointRequest) (err error) {
+	isModeMaintenance := s.SystemModeIsMaintenance()
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		"value": isModeMaintenance,
+	})
 	return nil
 }
 
