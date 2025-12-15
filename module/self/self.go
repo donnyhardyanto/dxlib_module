@@ -33,7 +33,6 @@ import (
 	utilsJSON "github.com/donnyhardyanto/dxlib/utils/json"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
 	"github.com/donnyhardyanto/dxlib_module/lib"
-	"github.com/donnyhardyanto/dxlib_module/module/general"
 	"github.com/donnyhardyanto/dxlib_module/module/user_management"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/ed25519"
@@ -146,10 +145,12 @@ func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 	preKeyString := "PREKEY_" + uuidA.String()
 
-	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "PREKEY_TTL_SECOND")
-	if err != nil {
-		return err
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	preKeyTTLAsInt, ok := configSystem["prekey_ttl_second"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:PREKEY_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
+
 	preKeyTTLAsDuration := time.Duration(preKeyTTLAsInt) * time.Second
 	err = user_management.ModuleUserManagement.PreKeyRedis.Set(preKeyString, utils.JSON{
 		"shared_key_1":   sharedKey1AsHexString,
@@ -251,10 +252,12 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	}
 	preKeyString := "PREKEY_" + uuidA.String()
 
-	preKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "PREKEY_TTL_CAPTCHA_SECOND")
-	if err != nil {
-		return err
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	preKeyTTLAsInt, ok := configSystem["prekey_ttl_captcha_second"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:PREKEY_TTL_SECOND_CAPTCHA_NOT_FOUND_OR_NOT_INT")
 	}
+
 	preKeyTTLAsDuration := time.Duration(preKeyTTLAsInt) * time.Second
 	err = user_management.ModuleUserManagement.PreKeyRedis.Set(preKeyString, utils.JSON{
 		"captcha_id":     captchaID,
@@ -642,10 +645,13 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 	}*/
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
-	if err != nil {
-		return err
+
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	sessionKeyTTLAsInt, ok := configSystem["session_ttl_second"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
+
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
 	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
@@ -811,10 +817,13 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 	}*/
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
-	if err != nil {
-		return err
+
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	sessionKeyTTLAsInt, ok := configSystem["session_ttl_second"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
+
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
 	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
@@ -1085,9 +1094,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 	}*/
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
-	if err != nil {
-		return err
+
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	sessionKeyTTLAsInt, ok := configSystem["session_ttl_second"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
@@ -1308,9 +1319,10 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 	}*/
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
-	if err != nil {
-		return err
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	sessionKeyTTLAsInt, ok := configSystem["session_ttl_second"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
@@ -1373,10 +1385,12 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
-	if err != nil {
-		return err
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	sessionKeyTTLAsInt, ok := configSystem["session_ttl_second"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
+
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
 	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
@@ -1391,9 +1405,11 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string) (sessionObject utils.JSON, err error) {
-	sessionKeyTTLAsInt, err := general.ModuleGeneral.Property.GetAsInt(&aepr.Log, "SESSION_TTL_SECOND")
-	if err != nil {
-		return nil, err
+
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	sessionKeyTTLAsInt, ok := configSystem["session_ttl_second"].(int)
+	if !ok {
+		return nil, errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
@@ -1527,9 +1543,9 @@ func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffec
 	// The system now in maintenance mode
 	_, ok = userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 	if !ok {
-		err = aepr.WriteResponseAndNewErrorf(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
 		// If the user has no PrivilegeNameIdSetMaintenance then false
-		return err
+		return nil
 	}
 	return CheckUserPrivilegeForEndPoint(aepr, userEffectivePrivilegeIds)
 }
