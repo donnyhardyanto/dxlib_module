@@ -684,10 +684,10 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 		if err != nil {
 			log.Log.Warnf("ERROR_SEND_TOPIC_NOTIFICATION:%d:%+v", fcmTopicMessageId, err)
 			retryCount++
-			err = f.updateMessageStatus(fcmTopicMessageId, "FAILED", retryCount)
+			err = f.updateTopicMessageStatus(fcmTopicMessageId, "FAILED", retryCount)
 		} else {
 			log.Log.Warnf("SENT_TOPIC_NOTIFICATION:%d", fcmTopicMessageId)
-			err = f.updateMessageStatus(fcmTopicMessageId, "SENT", retryCount)
+			err = f.updateTopicMessageStatus(fcmTopicMessageId, "SENT", retryCount)
 		}
 		if err != nil {
 			log.Log.Warnf("ERROR_UPDATING_FCM_TOPIC_MESSAGE_ID %d STATUS: %+v", fcmTopicMessageId, err)
@@ -749,6 +749,21 @@ func (f *FirebaseCloudMessaging) updateMessageStatus(messageId int64, status str
 		p["next_retry_time"] = nextRetryTime
 	}
 	_, err = f.FCMMessage.Update(p, utils.JSON{
+		"id": messageId,
+	})
+	return err
+}
+
+func (f *FirebaseCloudMessaging) updateTopicMessageStatus(messageId int64, status string, retryCount int64) (err error) {
+	p := utils.JSON{
+		"status": status,
+	}
+	if status != "SENT" {
+		nextRetryTime := f.calculateNextRetryTime(retryCount)
+		p["retry_count"] = retryCount
+		p["next_retry_time"] = nextRetryTime
+	}
+	_, err = f.FCMTopicMessage.Update(p, utils.JSON{
 		"id": messageId,
 	})
 	return err
