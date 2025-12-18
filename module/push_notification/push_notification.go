@@ -627,7 +627,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 			retryCount++
 			err = f.updateMessageStatus(fcmMessageId, "FAILED", retryCount)
 		} else {
-			log.Log.Warnf("SENT NOTIFICATION:%%d", fcmMessageId)
+			log.Log.Warnf("SENT NOTIFICATION:%d", fcmMessageId)
 			err = f.updateMessageStatus(fcmMessageId, "SENT", retryCount)
 		}
 		if err != nil {
