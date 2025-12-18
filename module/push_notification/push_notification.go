@@ -2,10 +2,12 @@ package push_notification
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -38,6 +40,23 @@ var (
 		FcmServiceAccountSourceVault,
 		FcmServiceAccountSourceEnv,
 	}
+)
+
+var (
+	FCMMessageMaxRetryAttemptCount        int64 = 10    // Maximum number of retry attempts
+	FCMMessageExpirationInSeconds         int64 = 86400 // Messages expire after 24 hours
+	FCMMessageMaxRetryDelayInSeconds      int64 = 3600
+	FCMTopicMessageMaxRetryAttemptCount   int64 = 10    // Maximum number of retry attempts
+	FCMTopicMessageExpirationInSeconds    int64 = 86400 // Messages expire after 24 hours
+	FCMTopicMessageMaxRetryDelayInSeconds int64 = 3600
+)
+
+const (
+	StatusPending         = "PENDING"
+	StatusSent            = "SENT"
+	StatusFailed          = "FAILED"
+	StatusFailedPermanent = "FAILED_PERMANENT"
+	StatusExpired         = "EXPIRED"
 )
 
 type DxmPushNotification struct {
@@ -211,7 +230,7 @@ func (f *FirebaseCloudMessaging) SendTopic(l *log.DXLog, applicationNameId strin
 
 	fcmTopicMessageId, err := f.FCMTopicMessage.TxInsert(dtx, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
-		"status":             "PENDING",
+		"status":             StatusPending,
 		"topic":              topic,
 		"title":              msgTitle,
 		"body":               msgBody,
@@ -261,7 +280,7 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 	}
 	fcmMessageId, err := f.FCMMessage.TxInsert(dtx, utils.JSON{
 		"fcm_user_token_id": userTokenId,
-		"status":            "PENDING",
+		"status":            StatusPending,
 		"title":             msgTitle,
 		"body":              msgBody,
 		"data":              msgDataAsString,
@@ -312,7 +331,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 	for _, userToken := range userTokens {
 		fcmMessageId, err := f.FCMMessage.Insert(l, utils.JSON{
 			"fcm_user_token_id": userToken["id"],
-			"status":            "PENDING",
+			"status":            StatusPending,
 			"title":             msgTitle,
 			"body":              msgBody,
 			"data":              msgDataAsJSONString,
@@ -417,7 +436,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 		for _, userToken := range userTokens {
 			fcmMessageId, err := f.FCMMessage.TxInsert(dtx, utils.JSON{
 				"fcm_user_token_id": userToken["id"],
-				"status":            "PENDING",
+				"status":            StatusPending,
 				"title":             msgTitle,
 				"body":              msgBody,
 				"data":              msgDataAsJSONString,
@@ -464,7 +483,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic str
 
 		fcmTopicMessageId, err := f.FCMTopicMessage.TxInsert(dtx, utils.JSON{
 			"fcm_application_id": fcmApplicationId,
-			"status":             "PENDING",
+			"status":             StatusPending,
 			"topic":              topic,
 			"title":              msgTitle,
 			"body":               msgBody,
@@ -579,6 +598,7 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 }
 
 func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
+
 	ctx := context.Background()
 
 	firebaseServiceAccount, err := fcm.Manager.GetServiceAccount(applicationId)
@@ -588,7 +608,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 
 	_, fcmMessages, err := f.FCMMessage.Select(&log.Log, nil, utils.JSON{
 		"fcm_application_id": applicationId,
-		"c1":                 db.SQLExpression{Expression: "((status = 'PENDING') OR (status = 'FAILED'))"},
+		"c1":                 db.SQLExpression{Expression: fmt.Sprintf("((status = '%s') OR (status = '%s'))", StatusPending, StatusFailed)},
 		"c2":                 db.SQLExpression{Expression: "((next_retry_time <= NOW()) or (next_retry_time IS NULL))"},
 	}, nil, nil, 100)
 	if err != nil {
@@ -596,12 +616,46 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 	}
 
 	for _, fcmMessage := range fcmMessages {
-		log.Log.Debugf("Processing message %d", fcmMessage["id"])
+		fcmMessageId := fcmMessage["id"].(int64)
+		log.Log.Debugf("Processing message %d", fcmMessageId)
+
+		retryCount := fcmMessage["retry_count"].(int64)
+		fcmToken := fcmMessage["fcm_token"].(string)
+		deviceType := fcmMessage["device_type"].(string)
+		msgTitle := fcmMessage["title"].(string)
+		msgBody := fcmMessage["body"].(string)
+		msgData := map[string]string{"retry_count": fmt.Sprintf("%d", retryCount)}
+		if msgDataTemp, ok := fcmMessage["data"].(map[string]string); ok {
+			msgData = msgDataTemp
+		}
 
 		if fcmMessage["next_retry_time"] != nil {
 			MsgNextRetryTime := fcmMessage["next_retry_time"].(time.Time)
 			if MsgNextRetryTime.After(time.Now()) {
 				continue // Skip messages that are not ready for retry
+			}
+		}
+
+		// Check if a message has exceeded the maximum retry count
+		if retryCount >= FCMMessageMaxRetryAttemptCount {
+			log.Log.Warnf("Message %d exceeded max retry count (%d), marking as permanently failed", fcmMessageId, FCMMessageMaxRetryAttemptCount)
+			err = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
+			if err != nil {
+				log.Log.Warnf("Failed to update message status to FAILED_PERMANENT: %v", err)
+			}
+			continue
+		}
+
+		// Check if a message has expired
+		if createdAt, ok := fcmMessage["created_at"].(time.Time); ok {
+			expirationDuration := time.Duration(FCMMessageExpirationInSeconds) * time.Second
+			if time.Since(createdAt) > expirationDuration {
+				log.Log.Warnf("Message %d has expired (created: %v), marking as expired", fcmMessageId, createdAt)
+				err = f.updateMessageStatus(fcmMessageId, StatusExpired, retryCount)
+				if err != nil {
+					log.Log.Warnf("Failed to update message status to EXPIRED: %v", err)
+				}
+				continue
 			}
 		}
 
@@ -611,24 +665,15 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 			log.Log.Warnf("Rate limit wait error: %v", err)
 			continue
 		}
-		retryCount := fcmMessage["retry_count"].(int64)
-		fcmMessageId := fcmMessage["id"].(int64)
-		fcmToken := fcmMessage["fcm_token"].(string)
-		deviceType := fcmMessage["device_type"].(string)
-		msgTitle := fcmMessage["title"].(string)
-		msgBody := fcmMessage["body"].(string)
-		msgData := map[string]string{"retry_count": fmt.Sprintf("%d", retryCount)}
-		if msgDataTemp, ok := fcmMessage["data"].(map[string]string); ok {
-			msgData = msgDataTemp
-		}
-		err = f.sendNotification(ctx, firebaseServiceAccount.Client, fcmToken, deviceType, msgTitle, msgBody, msgData)
+
+		err = f.sendNotificationWithErrorHandling(ctx, firebaseServiceAccount.Client, fcmToken, deviceType, msgTitle, msgBody, msgData, fcmMessageId, retryCount)
 		if err != nil {
 			log.Log.Warnf("ERROR SEND NOTIFICATION %d: %v", fcmMessageId, err)
 			retryCount++
-			err = f.updateMessageStatus(fcmMessageId, "FAILED", retryCount)
+			err = f.updateMessageStatus(fcmMessageId, StatusFailed, retryCount)
 		} else {
 			log.Log.Warnf("SENT NOTIFICATION:%d", fcmMessageId)
-			err = f.updateMessageStatus(fcmMessageId, "SENT", retryCount)
+			err = f.updateMessageStatus(fcmMessageId, StatusSent, retryCount)
 		}
 		if err != nil {
 			log.Log.Warnf("ERROR UPDATING FCM MESSAGE ID %d STATUS: %+v", fcmMessageId, err)
@@ -648,7 +693,7 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 
 	_, fcmTopicMessages, err := f.FCMTopicMessage.Select(&log.Log, nil, utils.JSON{
 		"fcm_application_id": applicationId,
-		"c1":                 db.SQLExpression{Expression: "((status = 'PENDING') OR (status = 'FAILED'))"},
+		"c1":                 db.SQLExpression{Expression: fmt.Sprintf("((status = '%s') OR (status = '%s'))", StatusPending, StatusFailed)},
 		"c2":                 db.SQLExpression{Expression: "((next_retry_time <= NOW()) or (next_retry_time IS NULL))"},
 	}, nil, nil, 100)
 	if err != nil {
@@ -656,21 +701,9 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 	}
 
 	for _, fcmTopicMessage := range fcmTopicMessages {
-		log.Log.Debugf("Processing topic message %d", fcmTopicMessage["id"])
+		fcmMessageId := fcmTopicMessage["id"].(int64)
+		log.Log.Debugf("Processing topic message %d", fcmMessageId)
 
-		if fcmTopicMessage["next_retry_time"] != nil {
-			MsgNextRetryTime := fcmTopicMessage["next_retry_time"].(time.Time)
-			if MsgNextRetryTime.After(time.Now()) {
-				continue // Skip messages that are not ready for retry
-			}
-		}
-
-		// Wait for rate limit token
-		err = fcm.Manager.Limiter.Wait(ctx)
-		if err != nil {
-			log.Log.Warnf("Rate limit wait error: %v", err)
-			continue
-		}
 		retryCount := fcmTopicMessage["retry_count"].(int64)
 		fcmTopicMessageId := fcmTopicMessage["id"].(int64)
 		msgTopic := fcmTopicMessage["topic"].(string)
@@ -680,14 +713,52 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 		if msgDataTemp, ok := fcmTopicMessage["data"].(map[string]string); ok {
 			msgData = msgDataTemp
 		}
-		err = f.sendTopicNotification(ctx, firebaseServiceAccount.Client, msgTopic, msgTitle, msgBody, msgData)
+
+		if fcmTopicMessage["next_retry_time"] != nil {
+			MsgNextRetryTime := fcmTopicMessage["next_retry_time"].(time.Time)
+			if MsgNextRetryTime.After(time.Now()) {
+				continue // Skip messages that are not ready for retry
+			}
+		}
+
+		// Check if a message has exceeded the maximum retry count
+		if retryCount >= FCMTopicMessageMaxRetryAttemptCount {
+			log.Log.Warnf("Topic message %d exceeded max retry count (%d), marking as permanently failed", fcmTopicMessageId, FCMMessageMaxRetryAttemptCount)
+			err = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
+			if err != nil {
+				log.Log.Warnf("Failed to update topic message status to FAILED_PERMANENT: %v", err)
+			}
+			continue
+		}
+
+		// Check if a message has expired
+		if createdAt, ok := fcmTopicMessage["created_at"].(time.Time); ok {
+			expirationDuration := time.Duration(FCMTopicMessageExpirationInSeconds) * time.Second
+			if time.Since(createdAt) > expirationDuration {
+				log.Log.Warnf("Topic message %d has expired (created: %v), marking as expired", fcmTopicMessageId, createdAt)
+				err = f.updateTopicMessageStatus(fcmTopicMessageId, StatusExpired, retryCount)
+				if err != nil {
+					log.Log.Warnf("Failed to update topic message status to EXPIRED: %v", err)
+				}
+				continue
+			}
+		}
+
+		// Wait for rate limit token
+		err = fcm.Manager.Limiter.Wait(ctx)
+		if err != nil {
+			log.Log.Warnf("Rate limit wait error: %v", err)
+			continue
+		}
+
+		err = f.sendTopicNotificationWithErrorHandling(ctx, firebaseServiceAccount.Client, msgTopic, msgTitle, msgBody, msgData, fcmTopicMessageId, retryCount)
 		if err != nil {
 			log.Log.Warnf("ERROR_SEND_TOPIC_NOTIFICATION:%d:%+v", fcmTopicMessageId, err)
 			retryCount++
-			err = f.updateTopicMessageStatus(fcmTopicMessageId, "FAILED", retryCount)
+			err = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailed, retryCount)
 		} else {
 			log.Log.Warnf("SENT_TOPIC_NOTIFICATION:%d", fcmTopicMessageId)
-			err = f.updateTopicMessageStatus(fcmTopicMessageId, "SENT", retryCount)
+			err = f.updateTopicMessageStatus(fcmTopicMessageId, StatusSent, retryCount)
 		}
 		if err != nil {
 			log.Log.Warnf("ERROR_UPDATING_FCM_TOPIC_MESSAGE_ID %d STATUS: %+v", fcmTopicMessageId, err)
@@ -695,6 +766,28 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 	}
 
 	return nil
+}
+
+// Add this new helper function for sending notifications with proper error handling
+func (f *FirebaseCloudMessaging) sendNotificationWithErrorHandling(ctx context.Context, client *messaging.Client, token, deviceType, msgTitle, msgBody string, msgData map[string]string, fcmMessageId, retryCount int64) error {
+	err := f.sendNotification(ctx, client, token, deviceType, msgTitle, msgBody, msgData)
+
+	if err != nil {
+		// Check if this is a permanent error that shouldn't be retried
+		if isPermanentFCMError(err) {
+			log.Log.Warnf("Permanent FCM error for message %d: %v, marking as permanently failed", fcmMessageId, err)
+			return f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
+		}
+
+		// Temporary error - retry
+		log.Log.Warnf("Temporary error sending notification %d (attempt %d): %v", fcmMessageId, retryCount+1, err)
+		retryCount++
+		return f.updateMessageStatus(fcmMessageId, StatusFailed, retryCount)
+	}
+
+	// Success
+	log.Log.Infof("Successfully sent notification: %d", fcmMessageId)
+	return f.updateMessageStatus(fcmMessageId, StatusSent, retryCount)
 }
 
 func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *messaging.Client, token, deviceType string, msgTitle string, msgBody string, msgData map[string]string) error {
@@ -725,6 +818,28 @@ func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *m
 	return err
 }
 
+// Add this new helper function for sending topic notifications with proper error handling
+func (f *FirebaseCloudMessaging) sendTopicNotificationWithErrorHandling(ctx context.Context, client *messaging.Client, topic, msgTitle, msgBody string, msgData map[string]string, fcmTopicMessageId, retryCount int64) error {
+	err := f.sendTopicNotification(ctx, client, topic, msgTitle, msgBody, msgData)
+
+	if err != nil {
+		// Check if this is a permanent error that shouldn't be retried
+		if isPermanentFCMError(err) {
+			log.Log.Warnf("Permanent FCM error for topic message %d: %v, marking as permanently failed", fcmTopicMessageId, err)
+			return f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
+		}
+
+		// Temporary error - retry
+		log.Log.Warnf("Temporary error sending topic notification %d (attempt %d): %v", fcmTopicMessageId, retryCount+1, err)
+		retryCount++
+		return f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailed, retryCount)
+	}
+
+	// Success
+	log.Log.Infof("Successfully sent topic notification: %d", fcmTopicMessageId)
+	return f.updateTopicMessageStatus(fcmTopicMessageId, StatusSent, retryCount)
+}
+
 func (f *FirebaseCloudMessaging) sendTopicNotification(ctx context.Context, client *messaging.Client, topic string, msgTitle string, msgBody string, msgData map[string]string) error {
 	message := &messaging.Message{
 		Notification: &messaging.Notification{
@@ -739,12 +854,62 @@ func (f *FirebaseCloudMessaging) sendTopicNotification(ctx context.Context, clie
 	return err
 }
 
+// Add this new helper function to determine if an FCM error is permanent
+func isPermanentFCMError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// Check for specific FCM error types that indicate permanent failures
+	errStr := err.Error()
+
+	// These error patterns indicate permanent failures that shouldn't be retried
+	permanentErrorPatterns := []string{
+		"registration-token-not-registered",
+		"invalid-registration-token",
+		"invalid-argument",
+		"invalid-recipient",
+		"invalid-package-name",
+		"mismatched-credential",
+		"invalid-apns-credentials",
+		"unregistered",
+		"InvalidRegistration",
+		"NotRegistered",
+		"InvalidPackageName",
+		"MismatchSenderId",
+		"not-found",
+		"permission-denied",
+		"unauthenticated",
+		"authentication-error",
+	}
+
+	for _, pattern := range permanentErrorPatterns {
+		if strings.Contains(strings.ToLower(errStr), strings.ToLower(pattern)) {
+			return true
+		}
+	}
+
+	// Firebase v4 uses standard error strings, check for HTTP status codes in error message
+	// 400 Bad Request - Invalid arguments
+	// 401 Unauthorized - Authentication issues
+	// 403 Forbidden - Permission denied
+	// 404 Not Found - Token not registered
+	if strings.Contains(errStr, "400") ||
+		strings.Contains(errStr, "401") ||
+		strings.Contains(errStr, "403") ||
+		strings.Contains(errStr, "404") {
+		return true
+	}
+
+	return false
+}
+
 func (f *FirebaseCloudMessaging) updateMessageStatus(messageId int64, status string, retryCount int64) (err error) {
 	p := utils.JSON{
 		"status": status,
 	}
-	if status != "SENT" {
-		nextRetryTime := f.calculateNextRetryTime(retryCount)
+	if status != StatusSent {
+		nextRetryTime := f.calculateMessageNextRetryTime(retryCount)
 		p["retry_count"] = retryCount
 		p["next_retry_time"] = nextRetryTime
 	}
@@ -758,8 +923,8 @@ func (f *FirebaseCloudMessaging) updateTopicMessageStatus(messageId int64, statu
 	p := utils.JSON{
 		"status": status,
 	}
-	if status != "SENT" {
-		nextRetryTime := f.calculateNextRetryTime(retryCount)
+	if status != StatusSent {
+		nextRetryTime := f.calculateTopicMessageNextRetryTime(retryCount)
 		p["retry_count"] = retryCount
 		p["next_retry_time"] = nextRetryTime
 	}
@@ -769,9 +934,66 @@ func (f *FirebaseCloudMessaging) updateTopicMessageStatus(messageId int64, statu
 	return err
 }
 
-func (f *FirebaseCloudMessaging) calculateNextRetryTime(retryCount int64) time.Time {
-	delay := time.Duration(math.Min(float64(1*time.Hour), float64(5*time.Second)*math.Pow(2, float64(retryCount))))
-	return time.Now().Add(delay)
+// Update the calculateMessageNextRetryTime function using crypto/rand
+func (f *FirebaseCloudMessaging) calculateMessageNextRetryTime(retryCount int64) time.Time {
+	// Exponential backoff with jitter
+	baseDelay := float64(5 * time.Second)
+	maxDelay := float64(FCMMessageMaxRetryDelayInSeconds) * float64(time.Second)
+
+	// Calculate exponential delay
+	delay := baseDelay * math.Pow(2, float64(retryCount))
+
+	// Cap at maximum delay
+	if delay > maxDelay {
+		delay = maxDelay
+	}
+
+	// Add jitter (±10% randomization) using crypto/rand
+	jitterRange := int64(delay * 0.1)
+
+	// Generate random jitter between -jitterRange and +jitterRange
+	maxJitter := big.NewInt(jitterRange * 2)
+	randomBig, err := rand.Int(rand.Reader, maxJitter)
+	if err != nil {
+		// If a random generation fails, use no jitter
+		return time.Now().Add(time.Duration(delay))
+	}
+
+	jitter := randomBig.Int64() - jitterRange
+	finalDelay := time.Duration(delay) + time.Duration(jitter)
+
+	return time.Now().Add(finalDelay)
+}
+
+// Update the calculateTopicMessageNextRetryTime function using crypto/rand
+func (f *FirebaseCloudMessaging) calculateTopicMessageNextRetryTime(retryCount int64) time.Time {
+	// Exponential backoff with jitter
+	baseDelay := float64(5 * time.Second)
+	maxDelay := float64(FCMTopicMessageMaxRetryDelayInSeconds) * float64(time.Second)
+
+	// Calculate exponential delay
+	delay := baseDelay * math.Pow(2, float64(retryCount))
+
+	// Cap at maximum delay
+	if delay > maxDelay {
+		delay = maxDelay
+	}
+
+	// Add jitter (±10% randomization) using crypto/rand
+	jitterRange := int64(delay * 0.1)
+
+	// Generate random jitter between -jitterRange and +jitterRange
+	maxJitter := big.NewInt(jitterRange * 2)
+	randomBig, err := rand.Int(rand.Reader, maxJitter)
+	if err != nil {
+		// If a random generation fails, use no jitter
+		return time.Now().Add(time.Duration(delay))
+	}
+
+	jitter := randomBig.Int64() - jitterRange
+	finalDelay := time.Duration(delay) + time.Duration(jitter)
+
+	return time.Now().Add(finalDelay)
 }
 
 var ModulePushNotification DxmPushNotification

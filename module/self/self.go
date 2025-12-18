@@ -150,7 +150,7 @@ func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
 	}
-	preKeyTTLAsInt, ok := configSystemSession["prekey_ttl_second"].(int)
+	preKeyTTLAsInt, ok := configSystemSession["prekey_ttl_in_seconds"].(int)
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:PREKEY_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
@@ -261,7 +261,7 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
 	}
-	preKeyTTLAsInt, ok := configSystemSession["prekey_ttl_captcha_second"].(int)
+	preKeyTTLAsInt, ok := configSystemSession["prekey_ttl_captcha_in_seconds"].(int)
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:PREKEY_TTL_SECOND_CAPTCHA_NOT_FOUND_OR_NOT_INT")
 	}
@@ -659,7 +659,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
 	}
-	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_second"].(int)
+	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
@@ -835,7 +835,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
 	}
-	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_second"].(int)
+	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
@@ -1116,7 +1116,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
 	}
-	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_second"].(int)
+	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
@@ -1344,7 +1344,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
 	}
-	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_second"].(int)
+	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
@@ -1414,7 +1414,7 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
 	}
-	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_second"].(int)
+	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
@@ -1439,7 +1439,7 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	if !ok {
 		return nil, errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
 	}
-	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_second"].(int)
+	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
 		return nil, errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
