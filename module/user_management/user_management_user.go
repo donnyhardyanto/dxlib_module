@@ -771,16 +771,23 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 				return err2
 			}
 			err2 = um.OnUserAfterCreate(aepr, tx, user, userPassword)
+			if err2 != nil {
+				return err2
+			}
+
 		}
 
-		_, userRoleMembership, err := um.UserRoleMembership.TxSelectOne(tx, utils.JSON{
+		_, userRoleMembership, err2 := um.UserRoleMembership.TxSelectOne(tx, utils.JSON{
 			"id": userRoleMembershipId,
 		}, nil)
-		if err != nil {
-			return err
+		if err2 != nil {
+			return err2
 		}
 		if um.OnUserRoleMembershipAfterCreate != nil {
 			err2 = um.OnUserRoleMembershipAfterCreate(aepr, tx, userRoleMembership, organizationId)
+			if err2 != nil {
+				return err2
+			}
 		}
 		return nil
 	})
