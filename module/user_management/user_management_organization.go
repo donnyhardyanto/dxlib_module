@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
+
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/pkg/errors"
 	"github.com/tealeg/xlsx"
-	"io"
-	"net/http"
-	"strings"
 )
 
 func (um *DxmUserManagement) OrganizationCreateBulk(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -279,6 +280,11 @@ func (um *DxmUserManagement) doOrganizationCreate(log *dxlibLog.DXLog, organizat
 }
 
 func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (err error) {
+	userOrganizationId, ok := aepr.LocalData["organization_id"].(int64)
+	if !ok {
+		return errors.New("USER_HAS_NO_ORGANIZATION_ID_OR_NOT_INT64")
+	}
+
 	isExistFilterWhere, filterWhere, err := aepr.GetParameterValueAsString("filter_where")
 	if err != nil {
 		return err
@@ -286,6 +292,20 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 	if !isExistFilterWhere {
 		filterWhere = ""
 	}
+
+	if userOrganizationId != 1 {
+		orgCond := fmt.Sprintf(
+			"(id = %d OR parent_id = %d)",
+			userOrganizationId, userOrganizationId,
+		)
+
+		if strings.TrimSpace(filterWhere) == "" {
+			filterWhere = orgCond
+		} else {
+			filterWhere = fmt.Sprintf("(%s) AND %s", filterWhere, orgCond)
+		}
+	}
+
 	isExistFilterOrderBy, filterOrderBy, err := aepr.GetParameterValueAsString("filter_order_by")
 	if err != nil {
 		return err

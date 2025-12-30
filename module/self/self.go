@@ -985,11 +985,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, preKeyData, err := api.OnE2EEPrekeyUnPack(aepr, preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "REFRESH_CAPTCHA", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
 	}
 
 	if preKeyData == nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:PREKEY_NOT_FOUND")
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "REFRESH_CAPTCHA", "NOT_ERROR:UNPACK_ERROR:PREKEY_NOT_FOUND")
 	}
 
 	storedCaptchaId := preKeyData["captcha_id"].(string)
