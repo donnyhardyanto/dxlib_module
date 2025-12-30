@@ -148,11 +148,11 @@ func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
 	}
 	preKeyTTLAsInt, ok := configSystemSession["prekey_ttl_in_seconds"].(int)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:PREKEY_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PREKEY_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 
 	preKeyTTLAsDuration := time.Duration(preKeyTTLAsInt) * time.Second
@@ -259,11 +259,11 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
 	}
 	preKeyTTLAsInt, ok := configSystemSession["prekey_ttl_captcha_in_seconds"].(int)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:PREKEY_TTL_SECOND_CAPTCHA_NOT_FOUND_OR_NOT_INT")
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PREKEY_TTL_SECOND_CAPTCHA_NOT_FOUND_OR_NOT_INT")
 	}
 
 	preKeyTTLAsDuration := time.Duration(preKeyTTLAsInt) * time.Second
@@ -657,11 +657,11 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
@@ -833,11 +833,11 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
@@ -1114,11 +1114,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
@@ -1342,11 +1342,11 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
@@ -1412,11 +1412,11 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
@@ -1437,11 +1437,11 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return nil, errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSION_NOT_FOUND")
+		return nil, errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
-		return nil, errors.New("SHOULD_NOT_HAPPEN:SESSION_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
+		return nil, errors.New("SHOULD_NOT_HAPPEN:SESSIONS_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
 	}
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
@@ -1645,18 +1645,27 @@ func (s *DxmSelf) SelfLogout(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func PasswordFormatValidation(password string) (err error) {
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+	}
+	minimumPasswordLength, ok := configSystemSession["minimum_password_length"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_MINIMUM_PASSWORD_LENGTH_NOT_FOUND_OR_NOT_INT")
+	}
 
-	if len(password) < 8 {
-		return errors.Errorf("password must be at least 8 characters long")
+	if len(password) < minimumPasswordLength {
+		return errors.Errorf("MUST_HAVE_MINIMUM_LENGTH")
 	}
 
 	hasUpper := false
 	hasLower := false
 	hasNumber := false
-	hasForbiddenSpecial := false
+	//	hasForbiddenSpecial := false
 
 	// Define allowed special characters
-	allowedSpecialChars := "#$@!&*"
+	//	allowedSpecialChars := "#$@!&*_,./?;{}[]<>|\\^~`"
 
 	for _, char := range password {
 		switch {
@@ -1666,28 +1675,28 @@ func PasswordFormatValidation(password string) (err error) {
 			hasLower = true
 		case unicode.IsNumber(char):
 			hasNumber = true
-		case !unicode.IsLetter(char) && !unicode.IsNumber(char):
-			// Check if this special character is allowed
-			if !strings.ContainsRune(allowedSpecialChars, char) {
-				hasForbiddenSpecial = true
-			}
+			//		case !unicode.IsLetter(char) && !unicode.IsNumber(char):
+			//			// Check if this special character is allowed
+			//			if !strings.ContainsRune(allowedSpecialChars, char) {
+			//				hasForbiddenSpecial = true
+			//			}
 		default:
-			hasForbiddenSpecial = true
+			//			hasForbiddenSpecial = true
 		}
 	}
 
 	if !hasUpper {
-		return errors.Errorf("password must contain at least one uppercase letter")
+		return errors.Errorf("MUST_HAVE_AT_LEAST_ONE_UPPERCASE_LETTER")
 	}
 	if !hasLower {
-		return errors.Errorf("password must contain at least one lowercase letter")
+		return errors.Errorf("MUST_HAVE_AT_LEAST_ONE_LOWERCASE_LETTER")
 	}
 	if !hasNumber {
-		return errors.Errorf("password must contain at least one number")
+		return errors.Errorf("MUST_HAVE_AT_LEAST_ONE_NUMBER")
 	}
-	if hasForbiddenSpecial {
-		return errors.Errorf("password must not contain special characters other than #$@!&*")
-	}
+	//	if hasForbiddenSpecial {
+	//		return errors.Errorf("MUST_NOT_HAVE_FORBIDDEN_CHARACTER")
+	//	}
 	return nil
 }
 
@@ -1703,7 +1712,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 	lvPayloadElements, _, _, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "", "UNPACK_ERROR:%s", err.Error())
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "UNPACK_ERROR:%s", err.Error())
 	}
 
 	lvPayloadNewPassword := lvPayloadElements[0]
@@ -1714,7 +1723,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 	err = PasswordFormatValidation(userPasswordNew)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "", "INVALID_PASSWORD_FORMAT:%s", err.Error())
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
 	}
 
 	userId := aepr.LocalData["user_id"].(int64)
@@ -1730,7 +1739,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusNotFound, "", "USER_NOT_FOUND")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
 		}
 
 		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
@@ -1776,7 +1785,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 
 	err = PasswordFormatValidation(userPasswordNew)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "", "INVALID_PASSWORD_FORMAT:%s", err.Error())
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
 	}
 
 	userId := aepr.LocalData["user_id"].(int64)
@@ -1792,7 +1801,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusNotFound, "", "USER_NOT_FOUND")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
 		}
 
 		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
