@@ -1509,32 +1509,6 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	return sessionObject, nil
 }
 
-/*
-func (s *DxmSelf) MiddlewareUserLogged(aepr *api.DXAPIEndPointRequest) (err error) {
-	aepr.Log.Debugf("Middleware Start: %s", aepr.EndPoint.Uri)
-	defer aepr.Log.Debugf("Middleware Done: %s", aepr.EndPoint.Uri)
-
-	authHeader := utils.GetStringFromMapStringStringDefault(aepr.EffectiveRequestHeader, "Authorization", "")
-	if authHeader == "" {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", "AUTHORIZATION_HEADER_NOT_FOUND")
-	}
-
-	const bearerSchema = "Bearer "
-	if !strings.HasPrefix(authHeader, bearerSchema) {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "INVALID_AUTHORIZATION_HEADER")
-	}
-
-	sessionKey := authHeader[len(bearerSchema):]
-
-	_, err = SessionKeyToSessionObject(aepr, sessionKey)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-*/
-
 func CheckUserPrivilegeForEndPoint(aepr *api.DXAPIEndPointRequest, userEffectivePrivilegeIds utils.JSON) (err error) {
 	if aepr.EndPoint.Privileges == nil {
 		return nil
