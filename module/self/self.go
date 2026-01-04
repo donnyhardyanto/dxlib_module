@@ -50,13 +50,13 @@ type DxmSelf struct {
 	OnSystemSetToModeMaintenance          func(l *log.DXLog) (err error)
 	OnSystemSetToModeNormal               func(l *log.DXLog) (err error)
 	OnInitialize                          func(s *DxmSelf) (err error)
-	OnAuthenticateUser                    func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organization utils.JSON /*organizations []utils.JSON*/, err error)
+	OnAuthenticateUser                    func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organization utils.JSON, err error)
 	OnCreateSessionObject                 func(aepr *api.DXAPIEndPointRequest, user utils.JSON, organization utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
 }
 
 func (s *DxmSelf) Init(databaseNameId string) {
 	s.DatabaseNameId = databaseNameId
-	// Initialize rate limiter with Redis client from your existing ModuleUserManagement
+	// Initialize rate limiter with a Redis client from your existing ModuleUserManagement
 	if s.OnInitialize != nil {
 		err := s.OnInitialize(s)
 		if err != nil {
@@ -637,22 +637,9 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err2.Error())
 	}
 
-	/*	allowed := false
-		for k := range userEffectivePrivilegeIds {
-			if slices.Contains(aepr.EndPoint.Privileges, k) {
-				allowed = true
-			}
-		}*/
 	if !allowed {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
-
-	/*	if s.OnCreateSessionObject != nil {
-		sessionObject, err = s.OnCreateSessionObject(aepr, user, userLoggedOrganization, sessionObject)
-		if err != nil {
-			return err
-		}
-	}*/
 
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
@@ -813,22 +800,9 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err2.Error())
 	}
 
-	/*	allowed := false
-		for k := range userEffectivePrivilegeIds {
-			if slices.Contains(aepr.EndPoint.Privileges, k) {
-				allowed = true
-			}
-		}*/
 	if !allowed {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
-
-	/*	if s.OnCreateSessionObject != nil {
-		sessionObject, err = s.OnCreateSessionObject(aepr, user, userLoggedOrganization, sessionObject)
-		if err != nil {
-			return err
-		}
-	}*/
 
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
@@ -1094,22 +1068,9 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err2.Error())
 	}
 
-	/*	allowed := false
-		for k := range userEffectivePrivilegeIds {
-			if slices.Contains(aepr.EndPoint.Privileges, k) {
-				allowed = true
-			}
-		}*/
 	if !allowed {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
-
-	/*	if s.OnCreateSessionObject != nil {
-		sessionObject, err = s.OnCreateSessionObject(aepr, user, userLoggedOrganization, sessionObject)
-		if err != nil {
-			return err
-		}
-	}*/
 
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
@@ -1323,22 +1284,10 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err2.Error())
 	}
 
-	/*	allowed := false
-		for k := range userEffectivePrivilegeIds {
-			if slices.Contains(aepr.EndPoint.Privileges, k) {
-				allowed = true
-			}
-		}*/
 	if !allowed {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
-	/*	if s.OnCreateSessionObject != nil {
-		sessionObject, err = s.OnCreateSessionObject(aepr, user, userLoggedOrganization, sessionObject)
-		if err != nil {
-			return err
-		}
-	}*/
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
@@ -1515,14 +1464,14 @@ func CheckUserPrivilegeForEndPoint(aepr *api.DXAPIEndPointRequest, userEffective
 	}
 	if len(aepr.EndPoint.Privileges) == 0 {
 		return nil
-	} else {
+	}
 
-		for k := range userEffectivePrivilegeIds {
-			if slices.Contains(aepr.EndPoint.Privileges, k) {
-				return nil
-			}
+	for k := range userEffectivePrivilegeIds {
+		if slices.Contains(aepr.EndPoint.Privileges, k) {
+			return nil
 		}
 	}
+
 	return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 }
 
@@ -1650,23 +1599,47 @@ func PasswordFormatValidation(password string) (err error) {
 	if !ok {
 		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
 	}
-	minimumPasswordLength, ok := configSystemSession["minimum_password_length"].(int)
+
+	passwordMinLength, ok := configSystemSession["password_min_length"].(int)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_MINIMUM_PASSWORD_LENGTH_NOT_FOUND_OR_NOT_INT")
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MIN_LENGTH_NOT_FOUND_OR_NOT_INT")
 	}
 
-	if len(password) < minimumPasswordLength {
-		return errors.Errorf("MUST_HAVE_MINIMUM_LENGTH")
+	passwordMaxLength, ok := configSystemSession["password_max_length"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MAX_LENGTH_NOT_FOUND_OR_NOT_INT")
+	}
+
+	passwordMustHaveChars, ok := configSystemSession["password_must_have_chars"].(string)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MUST_HAVE_CHARS_NOT_FOUND_OR_NOT_STRING")
+	}
+
+	passwordMustHaveCharsMinCount, ok := configSystemSession["password_must_have_chars_min_count"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MUST_HAVE_CHARS_MIN_COUNT_NOT_FOUND_OR_NOT_INT")
+	}
+
+	passwordMustHaveCharsMaxCount, ok := configSystemSession["password_must_have_chars_max_count"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MUST_HAVE_CHARS_MAX_COUNT_NOT_FOUND_OR_NOT_INT")
+	}
+
+	if len(password) < passwordMinLength {
+		return errors.Errorf("PASSWORD_MUST_HAVE_MINIMUM_LENGTH")
+	}
+
+	if passwordMaxLength > 0 {
+		if len(password) > passwordMaxLength {
+			return errors.Errorf("PASSWORD_MUST_HAVE_MAXIMUM_LENGTH")
+		}
 	}
 
 	hasUpper := false
 	hasLower := false
 	hasNumber := false
-	//	hasForbiddenSpecial := false
 
-	// Define allowed special characters
-	//	allowedSpecialChars := "#$@!&*_,./?;{}[]<>|\\^~`"
-
+	numberMustHaveChars := 0
 	for _, char := range password {
 		switch {
 		case unicode.IsUpper(char):
@@ -1675,13 +1648,11 @@ func PasswordFormatValidation(password string) (err error) {
 			hasLower = true
 		case unicode.IsNumber(char):
 			hasNumber = true
-			//		case !unicode.IsLetter(char) && !unicode.IsNumber(char):
-			//			// Check if this special character is allowed
-			//			if !strings.ContainsRune(allowedSpecialChars, char) {
-			//				hasForbiddenSpecial = true
-			//			}
+
 		default:
-			//			hasForbiddenSpecial = true
+		}
+		if strings.ContainsRune(passwordMustHaveChars, char) {
+			numberMustHaveChars++
 		}
 	}
 
@@ -1694,9 +1665,18 @@ func PasswordFormatValidation(password string) (err error) {
 	if !hasNumber {
 		return errors.Errorf("MUST_HAVE_AT_LEAST_ONE_NUMBER")
 	}
-	//	if hasForbiddenSpecial {
-	//		return errors.Errorf("MUST_NOT_HAVE_FORBIDDEN_CHARACTER")
-	//	}
+
+	if passwordMustHaveCharsMinCount > 0 {
+		if numberMustHaveChars < passwordMustHaveCharsMinCount {
+			return errors.Errorf("PASSWORD_MUST_HAVE_MINIMUM_NUMBER_OF_MUST_HAVE_CHARS")
+		}
+	}
+	if passwordMustHaveCharsMaxCount > 0 {
+		if numberMustHaveChars > passwordMustHaveCharsMaxCount {
+			return errors.Errorf("PASSWORD_MUST_HAVE_MAXIMUM_NUMBER_OF__MUST_HAVE_CHARS")
+		}
+	}
+
 	return nil
 }
 
