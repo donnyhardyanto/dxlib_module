@@ -22,7 +22,6 @@ import (
 	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"github.com/pkg/errors"
-	"github.com/repoareta/pgn-partner-common/infrastructure/base"
 	"github.com/sirupsen/logrus"
 
 	"github.com/donnyhardyanto/dxlib/api"
@@ -32,6 +31,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils/crypto/x25519"
 	utilsJSON "github.com/donnyhardyanto/dxlib/utils/json"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
+	"github.com/donnyhardyanto/dxlib_module/base"
 	"github.com/donnyhardyanto/dxlib_module/lib"
 	"github.com/donnyhardyanto/dxlib_module/module/user_management"
 	"github.com/google/uuid"
@@ -548,7 +548,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userId := user["id"].(int64)
@@ -568,7 +568,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userLoggedOrganizationId = userLoggedOrganization["id"].(int64)
@@ -581,7 +581,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userId := user["id"].(int64)
@@ -601,7 +601,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
@@ -618,7 +618,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	}
 
@@ -711,7 +711,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userId := user["id"].(int64)
@@ -731,7 +731,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userLoggedOrganizationId = userLoggedOrganization["id"].(int64)
@@ -744,7 +744,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userId := user["id"].(int64)
@@ -764,7 +764,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
@@ -781,7 +781,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	}
 
@@ -1002,7 +1002,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
@@ -1012,7 +1012,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userId := user["id"].(int64)
@@ -1032,7 +1032,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
@@ -1049,7 +1049,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	}
 
@@ -1218,7 +1218,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
@@ -1228,7 +1228,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userId := user["id"].(int64)
@@ -1248,7 +1248,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 
 		if len(userOrganizationMemberships) == 0 {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
@@ -1265,7 +1265,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "NOT_ERROR:INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	}
 
@@ -1719,7 +1719,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
 		}
 
 		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
@@ -1728,7 +1728,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", base.MsgInvalidCredential)
 		}
 
 		err = user_management.ModuleUserManagement.TxUserPasswordCreate(tx, userId, userPasswordNew)
@@ -1781,7 +1781,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 			return err
 		}
 		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INVALID_CREDENTIAL", "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
 		}
 
 		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
@@ -1790,7 +1790,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "INVALID_CREDENTIAL")
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", base.MsgInvalidCredential)
 		}
 
 		err = user_management.ModuleUserManagement.TxUserPasswordCreate(tx, userId, userPasswordNew)
