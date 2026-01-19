@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/donnyhardyanto/dxlib/database/database_type"
+	"github.com/donnyhardyanto/dxlib/base"
 	"github.com/donnyhardyanto/dxlib/database/protected/db"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/table"
@@ -48,19 +48,19 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 	var args []interface{}
 
 	switch fnm.FormNumberCounter.Database.DatabaseType {
-	case database_type.PostgreSQL:
+	case base.DXDatabaseTypePostgreSQL:
 		query = fnm.getPostgreSQLQuery()
 		args = []interface{}{nameid, year, month}
 
-	case database_type.Oracle:
+	case base.DXDatabaseTypeOracle:
 		query = fnm.getOracleQuery()
 		args = []interface{}{nameid, year, month} // 3 parameters instead of 6
 
-	case database_type.SQLServer:
+	case base.DXDatabaseTypeSQLServer:
 		query = fnm.getSQLServerQuery()
 		args = []interface{}{nameid, year, month}
 
-	case database_type.MariaDB:
+	case base.DXDatabaseTypeMariaDB:
 		query = fnm.getMariaDBQuery()
 		args = []interface{}{nameid, year, month, year, month} // 5 parameters: INSERT (3) + UPDATE (2)
 	default:
