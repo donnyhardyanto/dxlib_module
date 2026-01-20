@@ -19,7 +19,7 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/object_storage"
-	"github.com/pkg/errors"
+	"github.com/donnyhardyanto/dxlib/errors"
 	"golang.org/x/image/draw"
 )
 

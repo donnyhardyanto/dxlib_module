@@ -11,7 +11,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/pkg/errors"
+	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/tealeg/xlsx"
 )
 

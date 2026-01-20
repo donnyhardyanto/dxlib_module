@@ -3,7 +3,7 @@ package general
 import (
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/pkg/errors"
+	"github.com/donnyhardyanto/dxlib/errors"
 )
 
 func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err error) {

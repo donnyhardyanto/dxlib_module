@@ -19,7 +19,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils/crypto/rand"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
 	security "github.com/donnyhardyanto/dxlib/utils/security"
-	"github.com/pkg/errors"
+	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/tealeg/xlsx"
 	"github.com/teris-io/shortid"
 )

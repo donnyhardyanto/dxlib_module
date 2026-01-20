@@ -23,7 +23,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/messaging/fcm"
 	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/pkg/errors"
+	"github.com/donnyhardyanto/dxlib/errors"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/database/protected/db"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/table"
-	"github.com/pkg/errors"
+	"github.com/donnyhardyanto/dxlib/errors"
 )
 
 type DxmFormNumberManagement struct {
