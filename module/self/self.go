@@ -22,7 +22,8 @@ import (
 	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+	"log/slog"
+	"os"
 
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
@@ -60,7 +61,8 @@ func (s *DxmSelf) Init(databaseNameId string) {
 	if s.OnInitialize != nil {
 		err := s.OnInitialize(s)
 		if err != nil {
-			logrus.Panic(err)
+			slog.Error("initialization failed", slog.Any("error", err))
+			os.Exit(1)
 		}
 	}
 }
