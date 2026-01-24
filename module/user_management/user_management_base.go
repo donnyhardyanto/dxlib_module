@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/database3"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/redis"
-	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/donnyhardyanto/dxlib/table3"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"github.com/repoareta/pgn-partner-common/infrastructure/base"
@@ -33,67 +33,58 @@ type DxmUserManagement struct {
 	UserOrganizationMembershipType       UserOrganizationMembershipType
 	SessionRedis                         *redis.DXRedis
 	PreKeyRedis                          *redis.DXRedis
-	User                                 *table.DXTable
-	UserPassword                         *table.DXTable
-	UserMessageChannnelType              *table.DXRawTable
-	UserMessageCategory                  *table.DXRawTable
-	UserMessage                          *table.DXTable
-	Role                                 *table.DXTable
-	Organization                         *table.DXTable
-	OrganizationRoles                    *table.DXTable
-	UserOrganizationMembership           *table.DXTable
-	Privilege                            *table.DXTable
-	RolePrivilege                        *table.DXTable
-	UserRoleMembership                   *table.DXTable
-	MenuItem                             *table.DXTable
-	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
-	OnUserResetPassword                  func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
-	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON, organizationId int64) (err error)
-	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
-	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
+	User                                 *table3.DXTable3
+	UserPassword                         *table3.DXTable3
+	UserMessageChannnelType              *table3.DXRawTable3
+	UserMessageCategory                  *table3.DXRawTable3
+	UserMessage                          *table3.DXTable3
+	Role                                 *table3.DXTable3
+	Organization                         *table3.DXTable3
+	OrganizationRoles                    *table3.DXTable3
+	UserOrganizationMembership           *table3.DXTable3
+	Privilege                            *table3.DXTable3
+	RolePrivilege                        *table3.DXTable3
+	UserRoleMembership                   *table3.DXTable3
+	MenuItem                             *table3.DXTable3
+	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, user utils.JSON, userPassword string) (err error)
+	OnUserResetPassword                  func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, user utils.JSON, userPassword string) (err error)
+	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, userRoleMembership utils.JSON, organizationId int64) (err error)
+	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, userRoleMembership utils.JSON) (err error)
+	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, userRoleMembership utils.JSON) (err error)
 }
 
 func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.DatabaseNameId = databaseNameId
-	um.User = table.Manager.NewTable(databaseNameId, "user_management.user",
-		"user_management.user",
-		"user_management.v_user", "loginid", "id", "uid", "data")
-	um.UserPassword = table.Manager.NewTable(databaseNameId, "user_management.user_password",
-		"user_management.user_password",
-		"user_management.user_password", "id", "id", "uid", "data")
-	um.Role = table.Manager.NewTable(databaseNameId, "user_management.role",
-		"user_management.role",
-		"user_management.role", "nameid", "id", "uid", "data")
+	// NewDXTable3Simple(databaseNameId, tableName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId)
+	um.User = table3.NewDXTable3Simple(databaseNameId, "user_management.user",
+		"user_management.v_user", "id", "uid", "loginid")
+	um.UserPassword = table3.NewDXTable3Simple(databaseNameId, "user_management.user_password",
+		"user_management.user_password", "id", "uid", "")
+	um.Role = table3.NewDXTable3Simple(databaseNameId, "user_management.role",
+		"user_management.role", "id", "uid", "nameid")
 	um.Role.FieldTypeMapping = map[string]string{
 		"organization_types": "array-string",
 	}
-	um.Organization = table.Manager.NewTable(databaseNameId, "user_management.organization",
-		"user_management.organization",
-		"user_management.organization", "code", "id", "uid", "data")
-	um.OrganizationRoles = table.Manager.NewTable(databaseNameId, "user_management.organization_role",
-		"user_management.organization_role",
-		"user_management.v_organization_role", "id", "id", "uid", "data")
-	um.UserOrganizationMembership = table.Manager.NewTable(databaseNameId, "user_management.user_organization_membership",
-		"user_management.user_organization_membership",
-		"user_management.v_user_organization_membership", "id", "id", "uid", "data")
-	um.Privilege = table.Manager.NewTable(databaseNameId, "user_management.privilege",
-		"user_management.privilege",
-		"user_management.v_privilege", "nameid", "id", "uid", "data")
-	um.RolePrivilege = table.Manager.NewTable(databaseNameId, "user_management.role_privilege",
-		"user_management.role_privilege",
-		"user_management.v_role_privilege", "id", "id", "uid", "data")
-	um.UserRoleMembership = table.Manager.NewTable(databaseNameId, "user_management.user_role_membership",
-		"user_management.user_role_membership",
-		"user_management.v_user_role_membership", "id", "id", "uid", "data")
-	um.MenuItem = table.Manager.NewTable(databaseNameId, "user_management.menu_item",
-		"user_management.menu_item",
-		"user_management.v_menu_item", "composite_nameid", "id", "uid", "data")
-	um.UserMessageChannnelType = table.Manager.NewRawTable(databaseNameId, "user_management.user_message_channel_type", "user_management.user_message_channel_type",
-		"user_management.user_message_channel_type", "nameid", "id", "uid", "data")
-	um.UserMessageCategory = table.Manager.NewRawTable(databaseNameId, "user_management.user_message_category", "user_management.user_message_category",
-		"user_management.user_message_category", "nameid", "id", "uid", "data")
-	um.UserMessage = table.Manager.NewTable(databaseNameId, "user_management.user_message", "user_management.v_user_message",
-		"user_management.user_message", "id", "id", "uid", "data")
+	um.Organization = table3.NewDXTable3Simple(databaseNameId, "user_management.organization",
+		"user_management.organization", "id", "uid", "code")
+	um.OrganizationRoles = table3.NewDXTable3Simple(databaseNameId, "user_management.organization_role",
+		"user_management.v_organization_role", "id", "uid", "")
+	um.UserOrganizationMembership = table3.NewDXTable3Simple(databaseNameId, "user_management.user_organization_membership",
+		"user_management.v_user_organization_membership", "id", "uid", "")
+	um.Privilege = table3.NewDXTable3Simple(databaseNameId, "user_management.privilege",
+		"user_management.v_privilege", "id", "uid", "nameid")
+	um.RolePrivilege = table3.NewDXTable3Simple(databaseNameId, "user_management.role_privilege",
+		"user_management.v_role_privilege", "id", "uid", "")
+	um.UserRoleMembership = table3.NewDXTable3Simple(databaseNameId, "user_management.user_role_membership",
+		"user_management.v_user_role_membership", "id", "uid", "")
+	um.MenuItem = table3.NewDXTable3Simple(databaseNameId, "user_management.menu_item",
+		"user_management.v_menu_item", "id", "uid", "composite_nameid")
+	um.UserMessageChannnelType = table3.NewDXRawTable3Simple(databaseNameId, "user_management.user_message_channel_type",
+		"user_management.user_message_channel_type", "id", "uid", "nameid")
+	um.UserMessageCategory = table3.NewDXRawTable3Simple(databaseNameId, "user_management.user_message_category",
+		"user_management.user_message_category", "id", "uid", "nameid")
+	um.UserMessage = table3.NewDXTable3Simple(databaseNameId, "user_management.user_message",
+		"user_management.v_user_message", "id", "uid", "")
 }
 
 func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
@@ -113,8 +104,8 @@ func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, us
 		return err
 	}
 	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(l, userId, msgTitle, msgBody, attachedData,
-		func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
-			_, err2 = um.UserMessage.TxInsert(dtx, utils.JSON{
+		func(dtx *database3.DXDatabaseTx3, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
+			_, _, err2 = um.UserMessage.TxInsert(dtx, utils.JSON{
 				"user_message_channel_type_id": base.UserMessageChannelTypeIdFCM,
 				"user_message_category_id":     userMessageCategoryId,
 				"fcm_message_id":               fcmMessageId,
@@ -123,7 +114,7 @@ func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, us
 				"title":                        msgTitle,
 				"body":                         msgBody,
 				"data":                         attachedDataAsJSONString,
-			})
+			}, nil)
 			if err2 != nil {
 				return err2
 			}

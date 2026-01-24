@@ -6,27 +6,25 @@ import (
 	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
-	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/donnyhardyanto/dxlib/table3"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
 type DxmAudit struct {
 	dxlibModule.DXModule
-	/*	EventLog        *table.DXTable
+	/*	EventLog        *table3.DXTable3
 	 */
-	UserActivityLog *table.DXRawTable
-	ErrorLog        *table.DXRawTable
+	UserActivityLog *table3.DXRawTable3
+	ErrorLog        *table3.DXRawTable3
 }
 
 func (al *DxmAudit) Init(databaseNameId string) {
-	al.UserActivityLog = table.Manager.NewRawTable(databaseNameId, "audit_log.user_activity_log",
-		"audit_log.user_activity_log",
-		"audit_log.user_activity_log", "id", "id", "uid", "data")
+	al.UserActivityLog = table3.NewDXRawTable3Simple(databaseNameId, "audit_log.user_activity_log",
+		"audit_log.user_activity_log", "id", "uid", "id")
 	al.UserActivityLog.FieldMaxLengths = map[string]int{"error_message": 16000}
 
-	al.ErrorLog = table.Manager.NewRawTable(databaseNameId, "audit_log.error_log",
-		"audit_log.error_log",
-		"audit_log.error_log", "id", "id", "uid", "data")
+	al.ErrorLog = table3.NewDXRawTable3Simple(databaseNameId, "audit_log.error_log",
+		"audit_log.error_log", "id", "uid", "id")
 	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }
 
@@ -45,7 +43,7 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 		st = text
 	}
 	logLevelAsString := log.DXLogLevelAsString[logLevel]
-	_, err = ModuleAuditLog.ErrorLog.Insert(&log.Log, utils.JSON{
+	_, err = ModuleAuditLog.ErrorLog.InsertReturningId(&log.Log, utils.JSON{
 		"at":        time.Now(),
 		"prefix":    app.App.NameId + " " + app.App.Version,
 		"log_level": logLevelAsString,

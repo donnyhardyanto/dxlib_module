@@ -2,33 +2,30 @@ package general
 
 import (
 	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
-	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/donnyhardyanto/dxlib/table3"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib_module/lib"
-	"github.com/donnyhardyanto/dxlib/errors"
 )
 
 type DxmGeneral struct {
 	dxlibModule.DXModule
-	Property            *table.DXPropertyTable
-	Announcement        *table.DXTable
+	Property            *table3.DXPropertyTable3
+	Announcement        *table3.DXTable3
 	AnnouncementPicture *lib.ImageObjectStorage
-	Template            *table.DXTable
+	Template            *table3.DXTable3
 }
 
 func (g *DxmGeneral) Init(databaseNameId string) {
 	g.DatabaseNameId = databaseNameId
-	g.Property = table.Manager.NewPropertyTable(databaseNameId, "general.property",
-		"general.property",
-		"general.property", "nameid", "id", "uid", "data")
-	g.Announcement = table.Manager.NewTable(databaseNameId, "general.announcement",
-		"general.announcement",
-		"general.announcement", "uid", "id", "uid", "data")
-	g.Template = table.Manager.NewTable(g.DatabaseNameId,
-		"general.template", "general.template",
-		"general.template", "nameid", "id", "uid", "data")
+	g.Property = table3.NewDXPropertyTable3Simple(databaseNameId, "general.property",
+		"general.property", "id", "uid", "nameid")
+	g.Announcement = table3.NewDXTable3Simple(databaseNameId, "general.announcement",
+		"general.announcement", "id", "uid", "uid")
+	g.Template = table3.NewDXTable3Simple(g.DatabaseNameId,
+		"general.template", "general.template", "id", "uid", "nameid")
 }
 
 func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.JSON, templateTitle string, templateContentType string, templateBody string, err error) {

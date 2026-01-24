@@ -1,11 +1,13 @@
 package user_management
 
 import (
+	"database/sql"
+	"sync"
+
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/database3"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"sync"
 )
 
 func (um *DxmUserManagement) RolePrivilegeList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -24,13 +26,13 @@ func (um *DxmUserManagement) RolePrivilegeDelete(aepr *api.DXAPIEndPointRequest)
 	return um.RolePrivilege.RequestHardDelete(aepr)
 }
 
-func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64, err error) {
+func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database3.DXDatabaseTx3, roleId int64, privilegeNameId string) (id int64, err error) {
 	_, privilege, err := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
 	if err != nil {
 		return 0, err
 	}
 	privilegeId := privilege["id"].(int64)
-	id, err = um.RolePrivilege.TxInsert(dtx, utils.JSON{
+	id, err = um.RolePrivilege.TxInsertReturningId(dtx, utils.JSON{
 		"role_id":      roleId,
 		"privilege_id": privilegeId,
 	})
@@ -40,14 +42,14 @@ func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database.DXDatabaseTx, r
 	return id, nil
 }
 
-func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64) {
+func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database3.DXDatabaseTx3, roleId int64, privilegeNameId string) (id int64) {
 	_, privilege, err := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
 	if err != nil {
 		dtx.Log.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.Privilege.TxShouldGetByNameId", err)
 		return 0
 	}
 	privilegeId := privilege["id"].(int64)
-	id, err = um.RolePrivilege.TxInsert(dtx, utils.JSON{
+	id, err = um.RolePrivilege.TxInsertReturningId(dtx, utils.JSON{
 		"role_id":      roleId,
 		"privilege_id": privilegeId,
 	})
@@ -59,14 +61,13 @@ func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database.DXDatabaseT
 }
 
 func (um *DxmUserManagement) RolePrivilegeSxMustInsert(log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
-	d := database.Manager.Databases[um.DatabaseNameId]
-	err := d.Tx(log, database.LevelReadCommitted, func(dtx *database.DXDatabaseTx) (err2 error) {
+	err := um.RolePrivilege.Database.Tx(log, sql.LevelReadCommitted, func(dtx *database3.DXDatabaseTx3) (err2 error) {
 		_, privilege, err2 := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
 		if err2 != nil {
 			return err2
 		}
 		privilegeId := privilege["id"].(int64)
-		id, err2 = um.RolePrivilege.TxInsert(dtx, utils.JSON{
+		id, err2 = um.RolePrivilege.TxInsertReturningId(dtx, utils.JSON{
 			"role_id":      roleId,
 			"privilege_id": privilegeId,
 		})
@@ -98,7 +99,7 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 
 	privilegeId := privilege["id"].(int64)
 
-	id, err = um.RolePrivilege.Insert(log, utils.JSON{
+	id, err = um.RolePrivilege.InsertReturningId(log, utils.JSON{
 		"role_id":      roleId,
 		"privilege_id": privilegeId,
 	})
@@ -129,15 +130,14 @@ func (um *DxmUserManagement) RolePrivilegeWgMustInsert(wg *sync.WaitGroup, log *
 func (um *DxmUserManagement) RolePrivilegeSWgMustInsert(wg *sync.WaitGroup, log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
 	wg.Add(1)
 	alog := log
-	d := database.Manager.Databases[um.DatabaseNameId]
 
 	go func(aroleId int64, aprivilegeNameId string) {
 		var err error
 
-		d.ConcurrencySemaphore <- struct{}{}
+		um.RolePrivilege.Database.Database.ConcurrencySemaphore <- struct{}{}
 		defer func() {
 			// Release semaphore
-			<-d.ConcurrencySemaphore
+			<-um.RolePrivilege.Database.Database.ConcurrencySemaphore
 			wg.Done()
 			if err != nil {
 				alog.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert", err)

@@ -17,13 +17,13 @@ import (
 	"firebase.google.com/go/v4/messaging"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/app"
-	"github.com/donnyhardyanto/dxlib/database"
-	"github.com/donnyhardyanto/dxlib/database/protected/db"
+	"github.com/donnyhardyanto/dxlib/database2/db"
+	"github.com/donnyhardyanto/dxlib/database3"
+	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/messaging/fcm"
-	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/donnyhardyanto/dxlib/table3"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/donnyhardyanto/dxlib/errors"
 )
 
 const (
@@ -66,46 +66,45 @@ type DxmPushNotification struct {
 	Whatapp WhatappMessaging
 }
 
-type FCMMessageFunc func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
-type FCMTopicMessageFunc func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
+type FCMMessageFunc func(dtx *database3.DXDatabaseTx3, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
+type FCMTopicMessageFunc func(dtx *database3.DXDatabaseTx3, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
 
 type FirebaseCloudMessaging struct {
-	FCMApplication  *table.DXTable
-	FCMUserToken    *table.DXTable
-	FCMMessage      *table.DXTable
-	FCMTopicMessage *table.DXTable
+	FCMApplication  *table3.DXTable3
+	FCMUserToken    *table3.DXTable3
+	FCMMessage      *table3.DXTable3
+	FCMTopicMessage *table3.DXTable3
 	DatabaseNameId  string
+	Database        *database3.DXDatabase3
 }
 
 type EmailMessaging struct {
-	EMailMessage   *table.DXTable
+	EMailMessage   *table3.DXTable3
 	DatabaseNameId string
 }
 
 type SMSMessaging struct {
-	SMSMessage     *table.DXTable
+	SMSMessage     *table3.DXTable3
 	DatabaseNameId string
 }
 
 type WhatappMessaging struct {
-	WAMessage      *table.DXTable
+	WAMessage      *table3.DXTable3
 	DatabaseNameId string
 }
 
 func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.DatabaseNameId = databaseNameId
-	f.FCMApplication = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_application",
-		"push_notification.fcm_application",
-		"push_notification.fcm_application", "nameid", "id", "uid", "data")
-	f.FCMUserToken = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_user_token",
-		"push_notification.fcm_user_token",
-		"push_notification.fcm_user_token", "id", "id", "uid", "data")
-	f.FCMMessage = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_message",
-		"push_notification.fcm_message",
-		"push_notification.v_fcm_message", "id", "id", "uid", "data")
-	f.FCMTopicMessage = table.Manager.NewTable(f.DatabaseNameId, "push_notification.fcm_topic_message",
-		"push_notification.fcm_topic_message",
-		"push_notification.fcm_topic_message", "id", "id", "uid", "data")
+	f.Database = database3.Manager3.GetOrCreate(databaseNameId)
+	// NewDXTable3Simple(databaseNameId, tableName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId)
+	f.FCMApplication = table3.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_application",
+		"push_notification.fcm_application", "id", "uid", "nameid")
+	f.FCMUserToken = table3.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_user_token",
+		"push_notification.fcm_user_token", "id", "uid", "")
+	f.FCMMessage = table3.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_message",
+		"push_notification.v_fcm_message", "id", "uid", "")
+	f.FCMTopicMessage = table3.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_topic_message",
+		"push_notification.fcm_topic_message", "id", "uid", "")
 }
 
 func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -143,13 +142,15 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 }
 
 func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, deviceType string, userId int64, token string) (err error) {
-	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
-	var dtx *database.DXDatabaseTx
-	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
+	if err = f.Database.EnsureConnection(); err != nil {
+		return err
+	}
+
+	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
-	defer dtx.Finish(&aepr.Log, err)
+	defer dtx.Rollback()
 
 	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
 	if err != nil {
@@ -157,10 +158,10 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	}
 	fcmApplicationId := fcmApplication["id"].(int64)
 
-	_, existingUserTokens, err := f.FCMUserToken.TxSelect(dtx, utils.JSON{
+	_, existingUserTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
 		"fcm_token":          token,
-	}, nil, nil)
+	}, nil, nil, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -178,27 +179,32 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	}
 
 	var userTokenId int64
-	_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, utils.JSON{
+	_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
 		"user_id":            userId,
 		"fcm_token":          token,
 		"device_type":        deviceType,
-	}, nil)
+	}, nil, nil, nil)
 	if err != nil {
 		return err
 	}
 	if userToken == nil {
-		userTokenId, err = f.FCMUserToken.TxInsert(dtx, utils.JSON{
+		_, returningValues, err := f.FCMUserToken.TxInsert(dtx, utils.JSON{
 			"fcm_application_id": fcmApplicationId,
 			"user_id":            userId,
 			"fcm_token":          token,
 			"device_type":        deviceType,
-		})
+		}, []string{"id"})
 		if err != nil {
 			return err
 		}
+		userTokenId = returningValues["id"].(int64)
 	} else {
 		userTokenId = userToken["id"].(int64)
+	}
+
+	if err = dtx.Commit(); err != nil {
+		return err
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
@@ -209,13 +215,15 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 }
 
 func (f *FirebaseCloudMessaging) SendTopic(l *log.DXLog, applicationNameId string, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
-	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
-	var dtx *database.DXDatabaseTx
-	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
+	if err = f.Database.EnsureConnection(); err != nil {
+		return err
+	}
+
+	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
-	defer dtx.Finish(l, err)
+	defer dtx.Rollback()
 
 	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
 	if err != nil {
@@ -228,7 +236,7 @@ func (f *FirebaseCloudMessaging) SendTopic(l *log.DXLog, applicationNameId strin
 		return err
 	}
 
-	fcmTopicMessageId, err := f.FCMTopicMessage.TxInsert(dtx, utils.JSON{
+	fcmTopicMessageId, err := f.FCMTopicMessage.TxInsertReturningId(dtx, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
 		"status":             StatusPending,
 		"topic":              topic,
@@ -246,17 +254,20 @@ func (f *FirebaseCloudMessaging) SendTopic(l *log.DXLog, applicationNameId strin
 			return err
 		}
 	}
-	return nil
+
+	return dtx.Commit()
 }
 
 func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId string, userId int64, token string, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
-	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
-	var dtx *database.DXDatabaseTx
-	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
+	if err = f.Database.EnsureConnection(); err != nil {
+		return err
+	}
+
+	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
-	defer dtx.Finish(l, err)
+	defer dtx.Rollback()
 
 	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
 	if err != nil {
@@ -264,11 +275,11 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 	}
 	fcmApplicationId := fcmApplication["id"].(int64)
 
-	_, userToken, err := f.FCMUserToken.TxShouldSelectOne(dtx, utils.JSON{
+	_, userToken, err := f.FCMUserToken.TxShouldSelectOne(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
 		"user_id":            userId,
 		"fcm_token":          token,
-	}, nil)
+	}, nil, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -278,7 +289,7 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 	if err != nil {
 		return err
 	}
-	fcmMessageId, err := f.FCMMessage.TxInsert(dtx, utils.JSON{
+	fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
 		"fcm_user_token_id": userTokenId,
 		"status":            StatusPending,
 		"title":             msgTitle,
@@ -295,17 +306,20 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 			return err
 		}
 	}
-	return nil
+
+	return dtx.Commit()
 }
 
 func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId string, userId int64, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
-	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
-	var dtx *database.DXDatabaseTx
-	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
+	if err = f.Database.EnsureConnection(); err != nil {
+		return err
+	}
+
+	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
-	defer dtx.Finish(l, err)
+	defer dtx.Rollback()
 
 	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
 	if err != nil {
@@ -314,10 +328,10 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 
 	fcmApplicationId := fcmApplication["id"].(int64)
 
-	_, userTokens, err := f.FCMUserToken.TxSelect(dtx, utils.JSON{
+	_, userTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
 		"user_id":            userId,
-	}, nil, nil)
+	}, nil, nil, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -329,7 +343,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 
 	var fcmMessageIds []int64
 	for _, userToken := range userTokens {
-		fcmMessageId, err := f.FCMMessage.Insert(l, utils.JSON{
+		fcmMessageId, err := f.FCMMessage.InsertReturningId(l, utils.JSON{
 			"fcm_user_token_id": userToken["id"],
 			"status":            StatusPending,
 			"title":             msgTitle,
@@ -349,7 +363,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 		}
 	}
 
-	return nil
+	return dtx.Commit()
 }
 
 func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -401,13 +415,15 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 }
 
 func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId int64, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
-	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
-	var dtx *database.DXDatabaseTx
-	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
+	if err = f.Database.EnsureConnection(); err != nil {
+		return err
+	}
+
+	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
-	defer dtx.Finish(l, err)
+	defer dtx.Rollback()
 
 	_, fcmApplications, err := f.FCMApplication.SelectAll(l)
 	if err != nil {
@@ -424,17 +440,17 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 		fcmApplicationId := fcmApplication["id"].(int64)
 		fcmApplicationNameId := fcmApplication["nameid"].(string)
 
-		_, userTokens, err := f.FCMUserToken.TxSelect(dtx, utils.JSON{
+		_, userTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
 			"fcm_application_id": fcmApplicationId,
 			"user_id":            userId,
-		}, nil, nil)
+		}, nil, nil, nil, nil)
 		if err != nil {
 			return err
 		}
 
 		var fcmMessageIds []int64
 		for _, userToken := range userTokens {
-			fcmMessageId, err := f.FCMMessage.TxInsert(dtx, utils.JSON{
+			fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
 				"fcm_user_token_id": userToken["id"],
 				"status":            StatusPending,
 				"title":             msgTitle,
@@ -455,16 +471,18 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 		}
 	}
 
-	return nil
+	return dtx.Commit()
 }
 func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
-	dbTaskDispatcher := database.Manager.Databases[f.DatabaseNameId]
-	var dtx *database.DXDatabaseTx
-	dtx, err = dbTaskDispatcher.TransactionBegin(sql.LevelReadCommitted)
+	if err = f.Database.EnsureConnection(); err != nil {
+		return err
+	}
+
+	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
-	defer dtx.Finish(l, err)
+	defer dtx.Rollback()
 
 	_, fcmApplications, err := f.FCMApplication.SelectAll(l)
 	if err != nil {
@@ -481,7 +499,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic str
 		fcmApplicationId := fcmApplication["id"].(int64)
 		fcmApplicationNameId := fcmApplication["nameid"].(string)
 
-		fcmTopicMessageId, err := f.FCMTopicMessage.TxInsert(dtx, utils.JSON{
+		fcmTopicMessageId, err := f.FCMTopicMessage.TxInsertReturningId(dtx, utils.JSON{
 			"fcm_application_id": fcmApplicationId,
 			"status":             StatusPending,
 			"topic":              topic,
@@ -502,7 +520,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic str
 
 	}
 
-	return nil
+	return dtx.Commit()
 }
 
 func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON utils.JSON, err error) {
@@ -610,7 +628,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 		"fcm_application_id": applicationId,
 		"c1":                 db.SQLExpression{Expression: fmt.Sprintf("((status = '%s') OR (status = '%s'))", StatusPending, StatusFailed)},
 		"c2":                 db.SQLExpression{Expression: "((next_retry_time <= NOW()) or (next_retry_time IS NULL))"},
-	}, nil, nil, 100)
+	}, nil, nil, 100, nil)
 	if err != nil {
 		return errors.Errorf("failed to fetch messages: %v", err)
 	}
@@ -695,7 +713,7 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 		"fcm_application_id": applicationId,
 		"c1":                 db.SQLExpression{Expression: fmt.Sprintf("((status = '%s') OR (status = '%s'))", StatusPending, StatusFailed)},
 		"c2":                 db.SQLExpression{Expression: "((next_retry_time <= NOW()) or (next_retry_time IS NULL))"},
-	}, nil, nil, 100)
+	}, nil, nil, 100, nil)
 	if err != nil {
 		return errors.Errorf("failed to fetch messages: %v", err)
 	}
@@ -913,7 +931,7 @@ func (f *FirebaseCloudMessaging) updateMessageStatus(messageId int64, status str
 		p["retry_count"] = retryCount
 		p["next_retry_time"] = nextRetryTime
 	}
-	_, err = f.FCMMessage.Update(p, utils.JSON{
+	_, err = f.FCMMessage.UpdateSimple(p, utils.JSON{
 		"id": messageId,
 	})
 	return err
@@ -928,7 +946,7 @@ func (f *FirebaseCloudMessaging) updateTopicMessageStatus(messageId int64, statu
 		p["retry_count"] = retryCount
 		p["next_retry_time"] = nextRetryTime
 	}
-	_, err = f.FCMTopicMessage.Update(p, utils.JSON{
+	_, err = f.FCMTopicMessage.UpdateSimple(p, utils.JSON{
 		"id": messageId,
 	})
 	return err

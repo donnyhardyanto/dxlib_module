@@ -2,13 +2,13 @@ package user_management
 
 import (
 	"fmt"
-	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/database"
-	"github.com/donnyhardyanto/dxlib/database/protected/db"
-	"github.com/donnyhardyanto/dxlib/database/protected/export"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/database2/db"
+	"github.com/donnyhardyanto/dxlib/database2/export"
 )
 
 func (um *DxmUserManagement) PrivilegeList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -75,7 +75,11 @@ func (um *DxmUserManagement) PrivilegeListDownload(aepr *api.DXAPIEndPointReques
 			filterWhere = fmt.Sprintf("(%s) and ", filterWhere)
 		}
 
-		switch t.Database.DatabaseType.String() {
+		if err := t.Database.EnsureConnection(); err != nil {
+			return err
+		}
+
+		switch t.Database.Database.DatabaseType.String() {
 		case "sqlserver":
 			filterWhere = filterWhere + "(is_deleted=0)"
 		case "postgres":
@@ -85,19 +89,11 @@ func (um *DxmUserManagement) PrivilegeListDownload(aepr *api.DXAPIEndPointReques
 		}
 	}
 
-	if t.Database == nil {
-		t.Database = database.Manager.Databases[t.DatabaseNameId]
+	if err := t.Database.EnsureConnection(); err != nil {
+		return err
 	}
 
-	if !t.Database.Connected {
-		err := t.Database.Connect()
-		if err != nil {
-			aepr.Log.Errorf(err, "error At reconnect db At table %s list (%s) ", t.NameId, err.Error())
-			return err
-		}
-	}
-
-	rowsInfo, list, err := db.NamedQueryList(t.Database.Connection, t.FieldTypeMapping, "*", t.ListViewNameId,
+	rowsInfo, list, err := db.NamedQueryList(t.Database.Database.Connection, t.FieldTypeMapping, "*", t.ListViewNameId,
 		filterWhere, "", filterOrderBy, filterKeyValues)
 
 	if err != nil {
@@ -118,7 +114,7 @@ func (um *DxmUserManagement) PrivilegeListDownload(aepr *api.DXAPIEndPointReques
 	}
 
 	// Set response headers
-	filename := fmt.Sprintf("export_%s_%s.%s", t.NameId, time.Now().Format("20060102_150405"), format)
+	filename := fmt.Sprintf("export_%s_%s.%s", t.ListViewNameId, time.Now().Format("20060102_150405"), format)
 
 	responseWriter := *aepr.GetResponseWriter()
 	responseWriter.Header().Set("Content-Type", contentType)
