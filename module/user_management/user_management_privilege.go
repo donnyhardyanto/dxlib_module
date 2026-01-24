@@ -79,7 +79,7 @@ func (um *DxmUserManagement) PrivilegeListDownload(aepr *api.DXAPIEndPointReques
 			return err
 		}
 
-		switch t.Database.Database.DatabaseType.String() {
+		switch t.Database.DatabaseType.String() {
 		case "sqlserver":
 			filterWhere = filterWhere + "(is_deleted=0)"
 		case "postgres":
@@ -93,7 +93,7 @@ func (um *DxmUserManagement) PrivilegeListDownload(aepr *api.DXAPIEndPointReques
 		return err
 	}
 
-	rowsInfo, list, err := db.NamedQueryList(t.Database.Database.Connection, t.FieldTypeMapping, "*", t.ListViewNameId,
+	rowsInfo, list, err := db.NamedQueryList(t.Database.Connection, t.FieldTypeMapping, "*", t.ListViewNameId,
 		filterWhere, "", filterOrderBy, filterKeyValues)
 
 	if err != nil {

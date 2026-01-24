@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/database3"
+	"github.com/donnyhardyanto/dxlib/database2"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/redis"
@@ -46,11 +46,11 @@ type DxmUserManagement struct {
 	RolePrivilege                        *table3.DXTable3
 	UserRoleMembership                   *table3.DXTable3
 	MenuItem                             *table3.DXTable3
-	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, user utils.JSON, userPassword string) (err error)
-	OnUserResetPassword                  func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, user utils.JSON, userPassword string) (err error)
-	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, userRoleMembership utils.JSON, organizationId int64) (err error)
-	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, userRoleMembership utils.JSON) (err error)
-	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *database3.DXDatabaseTx3, userRoleMembership utils.JSON) (err error)
+	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *database2.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
+	OnUserResetPassword                  func(aepr *api.DXAPIEndPointRequest, dtx *database2.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
+	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *database2.DXDatabaseTx, userRoleMembership utils.JSON, organizationId int64) (err error)
+	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *database2.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
+	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *database2.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
 }
 
 func (um *DxmUserManagement) Init(databaseNameId string) {
@@ -104,7 +104,7 @@ func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, us
 		return err
 	}
 	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(l, userId, msgTitle, msgBody, attachedData,
-		func(dtx *database3.DXDatabaseTx3, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
+		func(dtx *database2.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
 			_, _, err2 = um.UserMessage.TxInsert(dtx, utils.JSON{
 				"user_message_channel_type_id": base.UserMessageChannelTypeIdFCM,
 				"user_message_category_id":     userMessageCategoryId,

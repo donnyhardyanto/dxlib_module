@@ -339,7 +339,7 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 			return err
 		}
 
-		switch t.Database.Database.DatabaseType.String() {
+		switch t.Database.DatabaseType.String() {
 		case "sqlserver":
 			filterWhere = filterWhere + "(is_deleted=0)"
 		case "postgres":
@@ -561,7 +561,7 @@ func (um *DxmUserManagement) OrganizationDelete(aepr *api.DXAPIEndPointRequest) 
 			filterWhere = fmt.Sprintf("(%s) and ", filterWhere)
 		}
 
-		switch t.Database.DatabaseType.String() {
+		switch t.DatabaseType.String() {
 		case "sqlserver":
 			filterWhere = filterWhere + "(is_deleted=0)"
 		case "postgres":

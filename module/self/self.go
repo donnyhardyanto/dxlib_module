@@ -16,7 +16,7 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/configuration"
-	"github.com/donnyhardyanto/dxlib/database3"
+	"github.com/donnyhardyanto/dxlib/database2"
 	"github.com/donnyhardyanto/dxlib/endpoint_rate_limiter"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/redis"
@@ -1711,7 +1711,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	userId := aepr.LocalData["user_id"].(int64)
 	var verificationResult bool
 
-	err = user_management.ModuleUserManagement.User.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database3.DXDatabaseTx3) (err error) {
+	err = user_management.ModuleUserManagement.User.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database2.DXDatabaseTx) (err error) {
 
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			"id": userId,
@@ -1772,7 +1772,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 	userId := aepr.LocalData["user_id"].(int64)
 	var verificationResult bool
 
-	err = user_management.ModuleUserManagement.User.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database3.DXDatabaseTx3) (err error) {
+	err = user_management.ModuleUserManagement.User.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database2.DXDatabaseTx) (err error) {
 
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			"id": userId,

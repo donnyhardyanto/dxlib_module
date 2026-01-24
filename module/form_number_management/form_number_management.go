@@ -54,7 +54,7 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 		return "", errors.Errorf("failed to ensure database connection: %+v", err)
 	}
 
-	switch fnm.FormNumberCounter.Database.Database.DatabaseType {
+	switch fnm.FormNumberCounter.Database.DatabaseType {
 	case base.DXDatabaseTypePostgreSQL:
 		query = fnm.getPostgreSQLQuery()
 		args = []interface{}{nameid, year, month}
@@ -71,10 +71,10 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 		query = fnm.getMariaDBQuery()
 		args = []interface{}{nameid, year, month, year, month} // 5 parameters: INSERT (3) + UPDATE (2)
 	default:
-		return "", errors.Errorf("unsupported database type: %s", fnm.FormNumberCounter.Database.Database.DatabaseType)
+		return "", errors.Errorf("unsupported database type: %s", fnm.FormNumberCounter.Database.DatabaseType)
 	}
 
-	_, r, err := db.RawQueryRows(fnm.FormNumberCounter.Database.Database.Connection, nil, query, args)
+	_, r, err := db.RawQueryRows(fnm.FormNumberCounter.Database.Connection, nil, query, args)
 	if err != nil {
 		return "", errors.Errorf("failed to generate form number: %+v", err)
 	}

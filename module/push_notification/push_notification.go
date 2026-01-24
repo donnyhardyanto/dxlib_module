@@ -18,7 +18,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/database2/db"
-	"github.com/donnyhardyanto/dxlib/database3"
+	"github.com/donnyhardyanto/dxlib/database2"
 	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/messaging/fcm"
@@ -66,8 +66,8 @@ type DxmPushNotification struct {
 	Whatapp WhatappMessaging
 }
 
-type FCMMessageFunc func(dtx *database3.DXDatabaseTx3, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
-type FCMTopicMessageFunc func(dtx *database3.DXDatabaseTx3, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
+type FCMMessageFunc func(dtx *database2.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
+type FCMTopicMessageFunc func(dtx *database2.DXDatabaseTx, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
 
 type FirebaseCloudMessaging struct {
 	FCMApplication  *table3.DXTable3
@@ -75,7 +75,7 @@ type FirebaseCloudMessaging struct {
 	FCMMessage      *table3.DXTable3
 	FCMTopicMessage *table3.DXTable3
 	DatabaseNameId  string
-	Database        *database3.DXDatabase3
+	Database        *database2.DXDatabase
 }
 
 type EmailMessaging struct {
@@ -95,7 +95,7 @@ type WhatappMessaging struct {
 
 func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.DatabaseNameId = databaseNameId
-	f.Database = database3.Manager3.GetOrCreate(databaseNameId)
+	f.Database = database2.Manager.GetOrCreate(databaseNameId)
 	// NewDXTable3Simple(databaseNameId, tableName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId)
 	f.FCMApplication = table3.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_application",
 		"push_notification.fcm_application", "id", "uid", "nameid")
