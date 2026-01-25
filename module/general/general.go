@@ -12,20 +12,20 @@ import (
 
 type DxmGeneral struct {
 	dxlibModule.DXModule
-	Property            *table.DXPropertyTable3
-	Announcement        *table.DXTable3
+	Property            *table.DXPropertyTable
+	Announcement        *table.DXTable
 	AnnouncementPicture *lib.ImageObjectStorage
-	Template            *table.DXTable3
+	Template            *table.DXTable
 }
 
 func (g *DxmGeneral) Init(databaseNameId string) {
 	g.DatabaseNameId = databaseNameId
 	g.Property = table.NewDXPropertyTable3Simple(databaseNameId, "general.property",
-		"general.property", "id", "uid", "nameid")
+		"general.property", "general.property", "id", "uid", "nameid", "data")
 	g.Announcement = table.NewDXTable3Simple(databaseNameId, "general.announcement",
-		"general.announcement", "id", "uid", "uid")
+		"general.announcement", "general.announcement", "id", "uid", "uid", "data")
 	g.Template = table.NewDXTable3Simple(g.DatabaseNameId,
-		"general.template", "general.template", "id", "uid", "nameid")
+		"general.template", "general.template", "general.template", "id", "uid", "nameid", "data")
 }
 
 func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.JSON, templateTitle string, templateContentType string, templateBody string, err error) {

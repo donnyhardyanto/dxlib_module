@@ -8,13 +8,13 @@ import (
 
 type DxmWebapp struct {
 	dxlibModule.DXModule
-	App  *table.DXTable3
-	Page *table.DXTable3
+	App  *table.DXTable
+	Page *table.DXTable
 }
 
 func (w *DxmWebapp) Init(databaseNameId string) {
-	w.App = table.NewDXTable3Simple(databaseNameId, "webapp.app", "webapp.app", "id", "uid", "nameid")
-	w.Page = table.NewDXTable3Simple(databaseNameId, "webapp.page", "webapp.page", "id", "uid", "nameid")
+	w.App = table.NewDXTable3Simple(databaseNameId, "webapp.app", "webapp.app", "webapp.app", "id", "uid", "nameid", "data")
+	w.Page = table.NewDXTable3Simple(databaseNameId, "webapp.page", "webapp.page", "webapp.page", "id", "uid", "nameid", "data")
 }
 
 func (w *DxmWebapp) AppList(aepr *api.DXAPIEndPointRequest) (err error) {

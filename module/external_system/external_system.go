@@ -12,14 +12,14 @@ type DxmExternalSystemLoginFunc func(aNameId string, key string, secret string, 
 type DxmExternalSystemAuthenticateFunc func(aNameId string, session string, ttl int) (err error)
 
 type DxmExternalSystem struct {
-	ExternalSystem *table.DXTable3
+	ExternalSystem *table.DXTable
 	OnLogin        DxmExternalSystemLoginFunc
 	OnAuthenticate DxmExternalSystemAuthenticateFunc
 }
 
 func (w *DxmExternalSystem) Init(databaseNameId string) {
 	w.ExternalSystem = table.NewDXTable3Simple(databaseNameId, "configuration.external_system",
-		"configuration.external_system", "id", "uid", "nameid")
+		"configuration.external_system", "configuration.external_system", "id", "uid", "nameid", "data")
 }
 func (w *DxmExternalSystem) ExternalSystemList(aepr *api.DXAPIEndPointRequest) (err error) {
 	return w.ExternalSystem.RequestPagingList(aepr)

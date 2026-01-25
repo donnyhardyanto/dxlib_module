@@ -15,7 +15,7 @@ import (
 type DxmFormNumberManagement struct {
 	dxlibModule.DXModule
 
-	FormNumberCounter *table.DXRawTable3
+	FormNumberCounter *table.DXRawTable
 }
 
 func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
@@ -23,7 +23,8 @@ func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 	fnm.FormNumberCounter = table.NewDXRawTable3Simple(fnm.DatabaseNameId,
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
-		"id", "uid", "nameid")
+		"form_number_management.form_number_counters",
+		"id", "uid", "nameid", "data")
 }
 
 // Generate creates a new form number with automatic monthly reset

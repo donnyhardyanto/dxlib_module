@@ -12,19 +12,19 @@ import (
 
 type DxmAudit struct {
 	dxlibModule.DXModule
-	/*	EventLog        *table.DXTable3
+	/*	EventLog        *table.DXTable
 	 */
-	UserActivityLog *table.DXRawTable3
-	ErrorLog        *table.DXRawTable3
+	UserActivityLog *table.DXRawTable
+	ErrorLog        *table.DXRawTable
 }
 
 func (al *DxmAudit) Init(databaseNameId string) {
 	al.UserActivityLog = table.NewDXRawTable3Simple(databaseNameId, "audit_log.user_activity_log",
-		"audit_log.user_activity_log", "id", "uid", "id")
+		"audit_log.user_activity_log", "audit_log.user_activity_log", "id", "uid", "id", "data")
 	al.UserActivityLog.FieldMaxLengths = map[string]int{"error_message": 16000}
 
 	al.ErrorLog = table.NewDXRawTable3Simple(databaseNameId, "audit_log.error_log",
-		"audit_log.error_log", "id", "uid", "id")
+		"audit_log.error_log", "audit_log.error_log", "id", "uid", "id", "data")
 	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }
 
@@ -43,6 +43,11 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 		st = text
 	}
 	logLevelAsString := log.DXLogLevelAsString[logLevel]
+
+	// Temporarily disable OnError to prevent infinite recursion when logging insert errors
+	originalOnError := log.OnError
+	log.OnError = nil
+
 	_, err = ModuleAuditLog.ErrorLog.InsertReturningId(&log.Log, utils.JSON{
 		"at":        time.Now(),
 		"prefix":    app.App.NameId + " " + app.App.Version,
@@ -51,8 +56,13 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 		"message":   st,
 		"stack":     stack,
 	})
+
+	// Restore OnError
+	log.OnError = originalOnError
+
 	if err != nil {
-		return nil
+		log.Log.Errorf(err, "AUDIT_LOG_INSERT_ERROR_LOG_FAILED: failed to insert error log to database")
+		return err
 	}
 	return nil
 }
