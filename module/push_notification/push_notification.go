@@ -17,12 +17,12 @@ import (
 	"firebase.google.com/go/v4/messaging"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/app"
-	"github.com/donnyhardyanto/dxlib/database2/db"
 	"github.com/donnyhardyanto/dxlib/database2"
+	"github.com/donnyhardyanto/dxlib/database2/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/messaging/fcm"
-	"github.com/donnyhardyanto/dxlib/table3"
+	"github.com/donnyhardyanto/dxlib/table2"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
@@ -70,26 +70,26 @@ type FCMMessageFunc func(dtx *database2.DXDatabaseTx, l *log.DXLog, fcmMessageId
 type FCMTopicMessageFunc func(dtx *database2.DXDatabaseTx, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
 
 type FirebaseCloudMessaging struct {
-	FCMApplication  *table3.DXTable3
-	FCMUserToken    *table3.DXTable3
-	FCMMessage      *table3.DXTable3
-	FCMTopicMessage *table3.DXTable3
+	FCMApplication  *table2.DXTable3
+	FCMUserToken    *table2.DXTable3
+	FCMMessage      *table2.DXTable3
+	FCMTopicMessage *table2.DXTable3
 	DatabaseNameId  string
 	Database        *database2.DXDatabase
 }
 
 type EmailMessaging struct {
-	EMailMessage   *table3.DXTable3
+	EMailMessage   *table2.DXTable3
 	DatabaseNameId string
 }
 
 type SMSMessaging struct {
-	SMSMessage     *table3.DXTable3
+	SMSMessage     *table2.DXTable3
 	DatabaseNameId string
 }
 
 type WhatappMessaging struct {
-	WAMessage      *table3.DXTable3
+	WAMessage      *table2.DXTable3
 	DatabaseNameId string
 }
 
@@ -97,13 +97,13 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.DatabaseNameId = databaseNameId
 	f.Database = database2.Manager.GetOrCreate(databaseNameId)
 	// NewDXTable3Simple(databaseNameId, tableName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId)
-	f.FCMApplication = table3.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_application",
+	f.FCMApplication = table2.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_application",
 		"push_notification.fcm_application", "id", "uid", "nameid")
-	f.FCMUserToken = table3.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_user_token",
+	f.FCMUserToken = table2.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_user_token",
 		"push_notification.fcm_user_token", "id", "uid", "")
-	f.FCMMessage = table3.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_message",
+	f.FCMMessage = table2.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_message",
 		"push_notification.v_fcm_message", "id", "uid", "")
-	f.FCMTopicMessage = table3.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_topic_message",
+	f.FCMTopicMessage = table2.NewDXTable3Simple(f.DatabaseNameId, "push_notification.fcm_topic_message",
 		"push_notification.fcm_topic_message", "id", "uid", "")
 }
 

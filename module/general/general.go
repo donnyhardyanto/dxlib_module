@@ -5,26 +5,26 @@ import (
 	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
-	"github.com/donnyhardyanto/dxlib/table3"
+	"github.com/donnyhardyanto/dxlib/table2"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib_module/lib"
 )
 
 type DxmGeneral struct {
 	dxlibModule.DXModule
-	Property            *table3.DXPropertyTable3
-	Announcement        *table3.DXTable3
+	Property            *table2.DXPropertyTable3
+	Announcement        *table2.DXTable3
 	AnnouncementPicture *lib.ImageObjectStorage
-	Template            *table3.DXTable3
+	Template            *table2.DXTable3
 }
 
 func (g *DxmGeneral) Init(databaseNameId string) {
 	g.DatabaseNameId = databaseNameId
-	g.Property = table3.NewDXPropertyTable3Simple(databaseNameId, "general.property",
+	g.Property = table2.NewDXPropertyTable3Simple(databaseNameId, "general.property",
 		"general.property", "id", "uid", "nameid")
-	g.Announcement = table3.NewDXTable3Simple(databaseNameId, "general.announcement",
+	g.Announcement = table2.NewDXTable3Simple(databaseNameId, "general.announcement",
 		"general.announcement", "id", "uid", "uid")
-	g.Template = table3.NewDXTable3Simple(g.DatabaseNameId,
+	g.Template = table2.NewDXTable3Simple(g.DatabaseNameId,
 		"general.template", "general.template", "id", "uid", "nameid")
 }
 
