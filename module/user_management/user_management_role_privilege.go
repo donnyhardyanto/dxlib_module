@@ -61,7 +61,7 @@ func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database2.DXDatabase
 }
 
 func (um *DxmUserManagement) RolePrivilegeSxMustInsert(log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
-	err := um.RolePrivilege.Database.Tx(log, sql.LevelReadCommitted, func(dtx *database2.DXDatabaseTx) (err2 error) {
+	err := database2.Manager.GetOrCreate(um.DatabaseNameId).Tx(log, sql.LevelReadCommitted, func(dtx *database2.DXDatabaseTx) (err2 error) {
 		_, privilege, err2 := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
 		if err2 != nil {
 			return err2
@@ -130,14 +130,15 @@ func (um *DxmUserManagement) RolePrivilegeWgMustInsert(wg *sync.WaitGroup, log *
 func (um *DxmUserManagement) RolePrivilegeSWgMustInsert(wg *sync.WaitGroup, log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
 	wg.Add(1)
 	alog := log
+	db := database2.Manager.GetOrCreate(um.DatabaseNameId)
 
 	go func(aroleId int64, aprivilegeNameId string) {
 		var err error
 
-		um.RolePrivilege.Database.ConcurrencySemaphore <- struct{}{}
+		db.ConcurrencySemaphore <- struct{}{}
 		defer func() {
 			// Release semaphore
-			<-um.RolePrivilege.Database.ConcurrencySemaphore
+			<-db.ConcurrencySemaphore
 			wg.Done()
 			if err != nil {
 				alog.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.RolePrivilege.RolePrivilegeSxMustInsert", err)

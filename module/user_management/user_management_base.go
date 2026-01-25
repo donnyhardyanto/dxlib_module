@@ -62,6 +62,7 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 		"user_management.user_password", "id", "uid", "")
 	um.Role = table2.NewDXTable3Simple(databaseNameId, "user_management.role",
 		"user_management.role", "id", "uid", "nameid")
+	um.Role.FieldNameForRowUtag = "utag"
 	um.Role.FieldTypeMapping = map[string]string{
 		"organization_types": "array-string",
 	}

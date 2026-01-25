@@ -11,7 +11,7 @@ import (
 )
 
 func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlibLog.DXLog) (err error) {
-	err = um.User.Database.Tx(l, sql.LevelReadCommitted, func(tx *database2.DXDatabaseTx) (err error) {
+	err = database2.Manager.GetOrCreate(um.DatabaseNameId).Tx(l, sql.LevelReadCommitted, func(tx *database2.DXDatabaseTx) (err error) {
 
 		_, userSuperAdmin, err := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"loginid": "superadmin",
