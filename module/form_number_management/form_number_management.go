@@ -6,21 +6,21 @@ import (
 	"time"
 
 	"github.com/donnyhardyanto/dxlib/base"
-	"github.com/donnyhardyanto/dxlib/database2/db"
+	"github.com/donnyhardyanto/dxlib/database/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
-	"github.com/donnyhardyanto/dxlib/table2"
+	"github.com/donnyhardyanto/dxlib/table"
 )
 
 type DxmFormNumberManagement struct {
 	dxlibModule.DXModule
 
-	FormNumberCounter *table2.DXRawTable3
+	FormNumberCounter *table.DXRawTable3
 }
 
 func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 	fnm.DatabaseNameId = databaseNameId
-	fnm.FormNumberCounter = table2.NewDXRawTable3Simple(fnm.DatabaseNameId,
+	fnm.FormNumberCounter = table.NewDXRawTable3Simple(fnm.DatabaseNameId,
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
 		"id", "uid", "nameid")
