@@ -6,24 +6,24 @@ import (
 	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
-	"github.com/donnyhardyanto/dxlib/table2"
+	"github.com/donnyhardyanto/dxlib/table"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
 type DxmAudit struct {
 	dxlibModule.DXModule
-	/*	EventLog        *table2.DXTable3
+	/*	EventLog        *table.DXTable3
 	 */
-	UserActivityLog *table2.DXRawTable3
-	ErrorLog        *table2.DXRawTable3
+	UserActivityLog *table.DXRawTable3
+	ErrorLog        *table.DXRawTable3
 }
 
 func (al *DxmAudit) Init(databaseNameId string) {
-	al.UserActivityLog = table2.NewDXRawTable3Simple(databaseNameId, "audit_log.user_activity_log",
+	al.UserActivityLog = table.NewDXRawTable3Simple(databaseNameId, "audit_log.user_activity_log",
 		"audit_log.user_activity_log", "id", "uid", "id")
 	al.UserActivityLog.FieldMaxLengths = map[string]int{"error_message": 16000}
 
-	al.ErrorLog = table2.NewDXRawTable3Simple(databaseNameId, "audit_log.error_log",
+	al.ErrorLog = table.NewDXRawTable3Simple(databaseNameId, "audit_log.error_log",
 		"audit_log.error_log", "id", "uid", "id")
 	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }

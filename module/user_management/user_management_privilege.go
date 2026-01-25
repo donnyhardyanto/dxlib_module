@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/database2/db"
-	"github.com/donnyhardyanto/dxlib/database2/export"
+	"github.com/donnyhardyanto/dxlib/database/db"
+	"github.com/donnyhardyanto/dxlib/database/export"
 )
 
 func (um *DxmUserManagement) PrivilegeList(aepr *api.DXAPIEndPointRequest) (err error) {

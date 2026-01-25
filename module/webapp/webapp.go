@@ -3,18 +3,18 @@ package webapp
 import (
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
-	"github.com/donnyhardyanto/dxlib/table2"
+	"github.com/donnyhardyanto/dxlib/table"
 )
 
 type DxmWebapp struct {
 	dxlibModule.DXModule
-	App  *table2.DXTable3
-	Page *table2.DXTable3
+	App  *table.DXTable3
+	Page *table.DXTable3
 }
 
 func (w *DxmWebapp) Init(databaseNameId string) {
-	w.App = table2.NewDXTable3Simple(databaseNameId, "webapp.app", "webapp.app", "id", "uid", "nameid")
-	w.Page = table2.NewDXTable3Simple(databaseNameId, "webapp.page", "webapp.page", "id", "uid", "nameid")
+	w.App = table.NewDXTable3Simple(databaseNameId, "webapp.app", "webapp.app", "id", "uid", "nameid")
+	w.Page = table.NewDXTable3Simple(databaseNameId, "webapp.page", "webapp.page", "id", "uid", "nameid")
 }
 
 func (w *DxmWebapp) AppList(aepr *api.DXAPIEndPointRequest) (err error) {
