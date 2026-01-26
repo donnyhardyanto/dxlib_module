@@ -528,7 +528,7 @@ func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON 
 	fcmApplicationServiceAccountSource := fcmApplication["service_account_source"].(string)
 	serviceAccountData, err := utils.GetJSONFromKV(fcmApplication, "service_account_data")
 	if err != nil {
-		return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
+		return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%+v", fcmApplicationId, err)
 	}
 
 	switch fcmApplicationServiceAccountSource {
@@ -537,15 +537,15 @@ func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON 
 	case FcmServiceAccountSourceFile:
 		serviceAccountFilename, err := utils.GetStringFromKV(serviceAccountData, "filename")
 		if err != nil {
-			return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
+			return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%+v", fcmApplicationId, err)
 
 		}
 		dataAsBytes, err := os.ReadFile(serviceAccountFilename)
 		if err != nil {
-			return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
+			return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%+v", fcmApplicationId, err)
 		}
 		if err := json.Unmarshal(dataAsBytes, &dataAsJSON); err != nil {
-			return nil, errors.Wrapf(err, "ERROR_PARSING_SERVICE_ACCOUNT_JSON:%d:%v", fcmApplicationId, err)
+			return nil, errors.Wrapf(err, "ERROR_PARSING_SERVICE_ACCOUNT_JSON:%d:%+v", fcmApplicationId, err)
 		}
 	case FcmServiceAccountSourceEnv:
 		envVarName, err := utils.GetStringFromKV(serviceAccountData, "env_var_name")
@@ -589,7 +589,7 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 		fcmApplicationId := fcmApplication["id"].(int64)
 		dataAsJSON, err := GetFCMApplicationServiceAccountData(fcmApplication)
 		if err != nil {
-			log.Log.Errorf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%v", fcmApplicationId, err)
+			log.Log.Errorf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%+v", fcmApplicationId, err)
 			continue
 		}
 		_, err = fcm.Manager.StoreApplication(context.Background(), fcmApplicationId, dataAsJSON)
