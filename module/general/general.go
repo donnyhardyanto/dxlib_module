@@ -20,12 +20,12 @@ type DxmGeneral struct {
 
 func (g *DxmGeneral) Init(databaseNameId string) {
 	g.DatabaseNameId = databaseNameId
-	g.Property = table.NewDXPropertyTable3Simple(databaseNameId, "general.property",
-		"general.property", "general.property", "id", "uid", "nameid", "data")
-	g.Announcement = table.NewDXTable3Simple(databaseNameId, "general.announcement",
-		"general.announcement", "general.announcement", "id", "uid", "uid", "data")
-	g.Template = table.NewDXTable3Simple(g.DatabaseNameId,
-		"general.template", "general.template", "general.template", "id", "uid", "nameid", "data")
+	g.Property = table.NewDXPropertyTableSimple(databaseNameId, "general.property",
+		"general.property", "general.property", "id", "uid", "nameid", "data", nil)
+	g.Announcement = table.NewDXTableSimple(databaseNameId, "general.announcement",
+		"general.announcement", "general.announcement", "id", "uid", "uid", "data", nil)
+	g.Template = table.NewDXTableSimple(g.DatabaseNameId,
+		"general.template", "general.template", "general.template", "id", "uid", "nameid", "data", nil)
 }
 
 func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.JSON, templateTitle string, templateContentType string, templateBody string, err error) {

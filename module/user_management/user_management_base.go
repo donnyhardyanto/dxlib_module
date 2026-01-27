@@ -55,38 +55,38 @@ type DxmUserManagement struct {
 
 func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.DatabaseNameId = databaseNameId
-	// NewDXTable3Simple(databaseNameId, tableName, resultObjectName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId, responseEnvelopeObjectName)
-	um.User = table.NewDXTable3Simple(databaseNameId, "user_management.user",
-		"user_management.user", "user_management.v_user", "id", "uid", "loginid", "data")
-	um.UserPassword = table.NewDXTable3Simple(databaseNameId, "user_management.user_password",
-		"user_management.user_password", "user_management.user_password", "id", "uid", "", "data")
-	um.Role = table.NewDXTable3Simple(databaseNameId, "user_management.role",
-		"user_management.role", "user_management.role", "id", "uid", "nameid", "data")
+	// NewDXTableSimple(databaseNameId, tableName, resultObjectName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId, responseEnvelopeObjectName)
+	um.User = table.NewDXTableSimple(databaseNameId, "user_management.user",
+		"user_management.user", "user_management.v_user", "id", "uid", "loginid", "data", nil)
+	um.UserPassword = table.NewDXTableSimple(databaseNameId, "user_management.user_password",
+		"user_management.user_password", "user_management.user_password", "id", "uid", "", "data", nil)
+	um.Role = table.NewDXTableSimple(databaseNameId, "user_management.role",
+		"user_management.role", "user_management.role", "id", "uid", "nameid", "data", nil)
 	um.Role.FieldNameForRowUtag = "utag"
 	um.Role.FieldTypeMapping = map[string]string{
 		"organization_types": "array-string",
 	}
-	um.Organization = table.NewDXTable3Simple(databaseNameId, "user_management.organization",
-		"user_management.organization", "user_management.organization", "id", "uid", "code", "data")
+	um.Organization = table.NewDXTableSimple(databaseNameId, "user_management.organization",
+		"user_management.organization", "user_management.organization", "id", "uid", "code", "data", nil)
 	um.Organization.FieldNameForRowUtag = "utag"
-	um.OrganizationRoles = table.NewDXTable3Simple(databaseNameId, "user_management.organization_role",
-		"user_management.organization_role", "user_management.v_organization_role", "id", "uid", "", "data")
-	um.UserOrganizationMembership = table.NewDXTable3Simple(databaseNameId, "user_management.user_organization_membership",
-		"user_management.user_organization_membership", "user_management.v_user_organization_membership", "id", "uid", "", "data")
-	um.Privilege = table.NewDXTable3Simple(databaseNameId, "user_management.privilege",
-		"user_management.privilege", "user_management.v_privilege", "id", "uid", "nameid", "data")
-	um.RolePrivilege = table.NewDXTable3Simple(databaseNameId, "user_management.role_privilege",
-		"user_management.role_privilege", "user_management.v_role_privilege", "id", "uid", "", "data")
-	um.UserRoleMembership = table.NewDXTable3Simple(databaseNameId, "user_management.user_role_membership",
-		"user_management.user_role_membership", "user_management.v_user_role_membership", "id", "uid", "", "data")
-	um.MenuItem = table.NewDXTable3Simple(databaseNameId, "user_management.menu_item",
-		"user_management.menu_item", "user_management.v_menu_item", "id", "uid", "composite_nameid", "data")
-	um.UserMessageChannnelType = table.NewDXRawTable3Simple(databaseNameId, "user_management.user_message_channel_type",
-		"user_management.user_message_channel_type", "user_management.user_message_channel_type", "id", "uid", "nameid", "data")
-	um.UserMessageCategory = table.NewDXRawTable3Simple(databaseNameId, "user_management.user_message_category",
-		"user_management.user_message_category", "user_management.user_message_category", "id", "uid", "nameid", "data")
-	um.UserMessage = table.NewDXTable3Simple(databaseNameId, "user_management.user_message",
-		"user_management.user_message", "user_management.v_user_message", "id", "uid", "", "data")
+	um.OrganizationRoles = table.NewDXTableSimple(databaseNameId, "user_management.organization_role",
+		"user_management.organization_role", "user_management.v_organization_role", "id", "uid", "", "data", nil)
+	um.UserOrganizationMembership = table.NewDXTableSimple(databaseNameId, "user_management.user_organization_membership",
+		"user_management.user_organization_membership", "user_management.v_user_organization_membership", "id", "uid", "", "data", nil)
+	um.Privilege = table.NewDXTableSimple(databaseNameId, "user_management.privilege",
+		"user_management.privilege", "user_management.v_privilege", "id", "uid", "nameid", "data", nil)
+	um.RolePrivilege = table.NewDXTableSimple(databaseNameId, "user_management.role_privilege",
+		"user_management.role_privilege", "user_management.v_role_privilege", "id", "uid", "", "data", nil)
+	um.UserRoleMembership = table.NewDXTableSimple(databaseNameId, "user_management.user_role_membership",
+		"user_management.user_role_membership", "user_management.v_user_role_membership", "id", "uid", "", "data", nil)
+	um.MenuItem = table.NewDXTableSimple(databaseNameId, "user_management.menu_item",
+		"user_management.menu_item", "user_management.v_menu_item", "id", "uid", "composite_nameid", "data", nil)
+	um.UserMessageChannnelType = table.NewDXRawTableSimple(databaseNameId, "user_management.user_message_channel_type",
+		"user_management.user_message_channel_type", "user_management.user_message_channel_type", "id", "uid", "nameid", "data", nil)
+	um.UserMessageCategory = table.NewDXRawTableSimple(databaseNameId, "user_management.user_message_category",
+		"user_management.user_message_category", "user_management.user_message_category", "id", "uid", "nameid", "data", nil)
+	um.UserMessage = table.NewDXTableSimple(databaseNameId, "user_management.user_message",
+		"user_management.user_message", "user_management.v_user_message", "id", "uid", "", "data", nil)
 }
 
 func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {

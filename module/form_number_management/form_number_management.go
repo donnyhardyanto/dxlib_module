@@ -20,11 +20,11 @@ type DxmFormNumberManagement struct {
 
 func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 	fnm.DatabaseNameId = databaseNameId
-	fnm.FormNumberCounter = table.NewDXRawTable3Simple(fnm.DatabaseNameId,
+	fnm.FormNumberCounter = table.NewDXRawTableSimple(fnm.DatabaseNameId,
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
-		"id", "uid", "nameid", "data")
+		"id", "uid", "nameid", "data", nil)
 }
 
 // Generate creates a new form number with automatic monthly reset
