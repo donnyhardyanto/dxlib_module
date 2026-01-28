@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/donnyhardyanto/dxlib/tables"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
@@ -12,13 +12,13 @@ type DxmExternalSystemLoginFunc func(aNameId string, key string, secret string, 
 type DxmExternalSystemAuthenticateFunc func(aNameId string, session string, ttl int) (err error)
 
 type DxmExternalSystem struct {
-	ExternalSystem *table.DXTable
+	ExternalSystem *tables.DXTable
 	OnLogin        DxmExternalSystemLoginFunc
 	OnAuthenticate DxmExternalSystemAuthenticateFunc
 }
 
 func (w *DxmExternalSystem) Init(databaseNameId string) {
-	w.ExternalSystem = table.NewDXTableSimple(databaseNameId, "configuration.external_system",
+	w.ExternalSystem = tables.NewDXTableSimple(databaseNameId, "configuration.external_system",
 		"configuration.external_system", "configuration.external_system", "id", "uid", "nameid", "data", nil)
 }
 func (w *DxmExternalSystem) ExternalSystemList(aepr *api.DXAPIEndPointRequest) (err error) {

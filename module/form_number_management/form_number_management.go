@@ -9,18 +9,18 @@ import (
 	"github.com/donnyhardyanto/dxlib/database/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
-	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/donnyhardyanto/dxlib/tables"
 )
 
 type DxmFormNumberManagement struct {
 	dxlibModule.DXModule
 
-	FormNumberCounter *table.DXRawTable
+	FormNumberCounter *tables.DXRawTable
 }
 
 func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 	fnm.DatabaseNameId = databaseNameId
-	fnm.FormNumberCounter = table.NewDXRawTableSimple(fnm.DatabaseNameId,
+	fnm.FormNumberCounter = tables.NewDXRawTableSimple(fnm.DatabaseNameId,
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
