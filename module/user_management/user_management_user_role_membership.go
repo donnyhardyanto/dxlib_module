@@ -27,7 +27,7 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 		return err
 	}
 
-	_, _, err = um.OrganizationRoles.ShouldSelectOne(&aepr.Log, utils.JSON{
+	_, _, err = um.OrganizationRoles.ShouldSelectOne(&aepr.Log, nil, utils.JSON{
 		"organization_id": organizationId,
 		"role_id":         roleId,
 	}, nil, nil)

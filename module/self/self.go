@@ -1970,7 +1970,7 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest)
 	if err != nil {
 		return err
 	}
-	_, _, err = user_management.ModuleUserManagement.UserMessage.ShouldSelectOne(&aepr.Log, utils.JSON{
+	_, _, err = user_management.ModuleUserManagement.UserMessage.ShouldSelectOne(&aepr.Log, nil, utils.JSON{
 		"id":      userMessageId,
 		"user_id": userId,
 	}, nil, nil)
