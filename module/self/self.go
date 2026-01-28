@@ -14,6 +14,9 @@ import (
 	"time"
 	"unicode"
 
+	"log/slog"
+	"os"
+
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/configuration"
 	"github.com/donnyhardyanto/dxlib/database"
@@ -22,8 +25,6 @@ import (
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
-	"log/slog"
-	"os"
 
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
@@ -984,11 +985,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	captchaText := string(lvPayloadCaptchaText.Value)
 
 	if captchaId != storedCaptchaId {
-		_ = aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 	if captchaText != storedCaptchaText {
-		_ = aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 
@@ -1200,11 +1201,11 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 	storedCaptchaText := preKeyData["captcha_text"].(string)
 
 	if captchaId != storedCaptchaId {
-		_ = aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 	if captchaText != storedCaptchaText {
-		_ = aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 
@@ -1500,7 +1501,7 @@ func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffec
 	// The system now in maintenance mode
 	_, ok = userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 	if !ok {
-		_ = aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
 		// If the user has no PrivilegeNameIdSetMaintenance then false
 		return nil
 	}
@@ -1525,11 +1526,13 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 
 	sessionObject, err := SessionKeyToSessionObject(aepr, sessionKey)
 	if err != nil {
-		return aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		return nil
 	}
 
 	if sessionObject == nil {
-		return aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		return nil
 	}
 
 	userEffectivePrivilegeIds := sessionObject["user_effective_privilege_ids"].(map[string]any)
