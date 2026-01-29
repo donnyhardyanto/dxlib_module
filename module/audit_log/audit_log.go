@@ -20,11 +20,11 @@ type DxmAudit struct {
 
 func (al *DxmAudit) Init(databaseNameId string) {
 	al.UserActivityLog = tables.NewDXRawTableSimple(databaseNameId, "audit_log.user_activity_log",
-		"audit_log.user_activity_log", "audit_log.user_activity_log", "id", "uid", "id", "data", nil, nil)
+		"audit_log.user_activity_log", "audit_log.user_activity_log", "id", "uid", "id", "data", nil, nil, nil)
 	al.UserActivityLog.FieldMaxLengths = map[string]int{"error_message": 16000}
 
 	al.ErrorLog = tables.NewDXRawTableSimple(databaseNameId, "audit_log.error_log",
-		"audit_log.error_log", "audit_log.error_log", "id", "uid", "id", "data", nil, nil)
+		"audit_log.error_log", "audit_log.error_log", "id", "uid", "id", "data", nil, nil, nil)
 	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }
 
@@ -61,7 +61,7 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 	log.OnError = originalOnError
 
 	if err != nil {
-		log.Log.Errorf(err, "AUDIT_LOG_INSERT_ERROR_LOG_FAILED: failed to insert error log to database")
+		log.Log.Errorf(err, "AUDIT_LOG_INSERT_ERROR_LOG_FAILED: failed to insert error log to databases")
 		return err
 	}
 	return nil

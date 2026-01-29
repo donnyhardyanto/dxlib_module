@@ -1,4 +1,4 @@
-// Package form_number_management provides cross-database form number generation with automatic monthly reset
+// Package form_number_management provides cross-databases form number generation with automatic monthly reset
 package form_number_management
 
 import (
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/donnyhardyanto/dxlib/base"
-	"github.com/donnyhardyanto/dxlib/database/db"
+	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/tables"
@@ -24,7 +24,7 @@ func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
-		"id", "uid", "nameid", "data", nil, [][]string{{"nameid"}})
+		"id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, nil)
 }
 
 // Generate creates a new form number with automatic monthly reset
@@ -52,7 +52,7 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 
 	err = fnm.FormNumberCounter.EnsureDatabase()
 	if err != nil {
-		return "", errors.Errorf("failed to ensure database connection: %+v", err)
+		return "", errors.Errorf("failed to ensure databases connection: %+v", err)
 	}
 
 	switch fnm.FormNumberCounter.Database.DatabaseType {
@@ -72,7 +72,7 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 		query = fnm.getMariaDBQuery()
 		args = []interface{}{nameid, year, month, year, month} // 5 parameters: INSERT (3) + UPDATE (2)
 	default:
-		return "", errors.Errorf("unsupported database type: %s", fnm.FormNumberCounter.Database.DatabaseType)
+		return "", errors.Errorf("unsupported databases type: %s", fnm.FormNumberCounter.Database.DatabaseType)
 	}
 
 	_, r, err := db.RawQueryRows(fnm.FormNumberCounter.Database.Connection, nil, query, args)

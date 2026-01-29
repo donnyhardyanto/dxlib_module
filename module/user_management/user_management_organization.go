@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/tealeg/xlsx"
 )
 
@@ -572,7 +572,7 @@ func (um *DxmUserManagement) OrganizationDelete(aepr *api.DXAPIEndPointRequest) 
 	}
 
 	if t.Database == nil {
-		t.Database = database.Manager.Databases[t.DatabaseNameId]
+		t.Database = databases.Manager.Databases[t.DatabaseNameId]
 	}
 
 	if !t.Database.Connected {

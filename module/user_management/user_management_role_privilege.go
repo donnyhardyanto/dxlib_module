@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/databases"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
@@ -26,7 +26,7 @@ func (um *DxmUserManagement) RolePrivilegeDelete(aepr *api.DXAPIEndPointRequest)
 	return um.RolePrivilege.RequestHardDelete(aepr)
 }
 
-func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64, err error) {
+func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *databases.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64, err error) {
 	_, privilege, err := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
 	if err != nil {
 		return 0, err
@@ -42,7 +42,7 @@ func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *database.DXDatabaseTx, r
 	return id, nil
 }
 
-func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64) {
+func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *databases.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64) {
 	_, privilege, err := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
 	if err != nil {
 		dtx.Log.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.Privilege.TxShouldGetByNameId", err)
@@ -61,7 +61,7 @@ func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *database.DXDatabaseT
 }
 
 func (um *DxmUserManagement) RolePrivilegeSxMustInsert(log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
-	err := database.Manager.GetOrCreate(um.DatabaseNameId).Tx(log, sql.LevelReadCommitted, func(dtx *database.DXDatabaseTx) (err2 error) {
+	err := databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) (err2 error) {
 		_, privilege, err2 := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
 		if err2 != nil {
 			return err2
@@ -130,7 +130,7 @@ func (um *DxmUserManagement) RolePrivilegeWgMustInsert(wg *sync.WaitGroup, log *
 func (um *DxmUserManagement) RolePrivilegeSWgMustInsert(wg *sync.WaitGroup, log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
 	wg.Add(1)
 	alog := log
-	db := database.Manager.GetOrCreate(um.DatabaseNameId)
+	db := databases.Manager.GetOrCreate(um.DatabaseNameId)
 
 	go func(aroleId int64, aprivilegeNameId string) {
 		var err error

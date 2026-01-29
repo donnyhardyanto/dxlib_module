@@ -23,9 +23,9 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 	g.Property = tables.NewDXPropertyTableSimple(databaseNameId, "general.property",
 		"general.property", "general.property", "id", "uid", "nameid", "data", nil)
 	g.Announcement = tables.NewDXTableSimple(databaseNameId, "general.announcement",
-		"general.announcement", "general.announcement", "id", "uid", "uid", "data", nil, nil)
+		"general.announcement", "general.announcement", "id", "uid", "uid", "data", nil, nil, nil)
 	g.Template = tables.NewDXTableSimple(g.DatabaseNameId,
-		"general.template", "general.template", "general.template", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}})
+		"general.template", "general.template", "general.template", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, nil)
 }
 
 func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.JSON, templateTitle string, templateContentType string, templateBody string, err error) {

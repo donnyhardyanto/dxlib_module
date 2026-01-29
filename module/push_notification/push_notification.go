@@ -17,8 +17,8 @@ import (
 	"firebase.google.com/go/v4/messaging"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/app"
-	"github.com/donnyhardyanto/dxlib/database"
-	"github.com/donnyhardyanto/dxlib/database/db"
+	"github.com/donnyhardyanto/dxlib/databases"
+	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/messaging/fcm"
@@ -66,8 +66,8 @@ type DxmPushNotification struct {
 	Whatapp WhatappMessaging
 }
 
-type FCMMessageFunc func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
-type FCMTopicMessageFunc func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
+type FCMMessageFunc func(dtx *databases.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
+type FCMTopicMessageFunc func(dtx *databases.DXDatabaseTx, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
 
 type FirebaseCloudMessaging struct {
 	FCMApplication  *tables.DXTable
@@ -75,7 +75,7 @@ type FirebaseCloudMessaging struct {
 	FCMMessage      *tables.DXTable
 	FCMTopicMessage *tables.DXTable
 	DatabaseNameId  string
-	Database        *database.DXDatabase
+	Database        *databases.DXDatabase
 }
 
 type EmailMessaging struct {
@@ -95,16 +95,16 @@ type WhatappMessaging struct {
 
 func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.DatabaseNameId = databaseNameId
-	f.Database = database.Manager.GetOrCreate(databaseNameId)
+	f.Database = databases.Manager.GetOrCreate(databaseNameId)
 	// NewDXTableSimple(databaseNameId, tableName, resultObjectName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId, responseEnvelopeObjectName)
 	f.FCMApplication = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_application",
-		"push_notification.fcm_application", "push_notification.fcm_application", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}})
+		"push_notification.fcm_application", "push_notification.fcm_application", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, nil)
 	f.FCMUserToken = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_user_token",
-		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "id", "uid", "", "data", nil, nil)
+		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "id", "uid", "", "data", nil, nil, nil)
 	f.FCMMessage = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_message",
-		"push_notification.fcm_message", "push_notification.v_fcm_message", "id", "uid", "", "data", nil, nil)
+		"push_notification.fcm_message", "push_notification.v_fcm_message", "id", "uid", "", "data", nil, nil, nil)
 	f.FCMTopicMessage = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_topic_message",
-		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "id", "uid", "", "data", nil, nil)
+		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "id", "uid", "", "data", nil, nil, nil)
 }
 
 func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointRequest) (err error) {

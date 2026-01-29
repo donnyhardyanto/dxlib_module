@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/databases"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/redis"
@@ -46,47 +46,47 @@ type DxmUserManagement struct {
 	RolePrivilege                        *tables.DXTable
 	UserRoleMembership                   *tables.DXTable
 	MenuItem                             *tables.DXTable
-	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
-	OnUserResetPassword                  func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
-	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON, organizationId int64) (err error)
-	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
-	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *database.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
+	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
+	OnUserResetPassword                  func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
+	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userRoleMembership utils.JSON, organizationId int64) (err error)
+	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
+	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
 }
 
 func (um *DxmUserManagement) Init(databaseNameId string) {
 	um.DatabaseNameId = databaseNameId
 	// NewDXTableSimple(databaseNameId, tableName, resultObjectName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId, responseEnvelopeObjectName)
 	um.User = tables.NewDXTableSimple(databaseNameId, "user_management.user",
-		"user_management.user", "user_management.v_user", "id", "uid", "loginid", "data", nil, [][]string{{"loginid"}, {"identity_number"}})
+		"user_management.user", "user_management.v_user", "id", "uid", "loginid", "data", nil, [][]string{{"loginid"}, {"identity_number"}}, nil)
 	um.UserPassword = tables.NewDXTableSimple(databaseNameId, "user_management.user_password",
-		"user_management.user_password", "user_management.user_password", "id", "uid", "", "data", nil, nil)
+		"user_management.user_password", "user_management.user_password", "id", "uid", "", "data", nil, nil, nil)
 	um.Role = tables.NewDXTableSimple(databaseNameId, "user_management.role",
-		"user_management.role", "user_management.role", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}, {"name"}})
+		"user_management.role", "user_management.role", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}, {"name"}}, nil)
 	um.Role.FieldNameForRowUtag = "utag"
 	um.Role.FieldTypeMapping = map[string]string{
 		"organization_types": "array-string",
 	}
 	um.Organization = tables.NewDXTableSimple(databaseNameId, "user_management.organization",
-		"user_management.organization", "user_management.organization", "id", "uid", "code", "data", nil, [][]string{{"code"}, {"name"}})
+		"user_management.organization", "user_management.organization", "id", "uid", "code", "data", nil, [][]string{{"code"}, {"name"}}, nil)
 	um.Organization.FieldNameForRowUtag = "utag"
 	um.OrganizationRoles = tables.NewDXTableSimple(databaseNameId, "user_management.organization_role",
-		"user_management.organization_role", "user_management.v_organization_role", "id", "uid", "", "data", nil, [][]string{{"organization_id", "role_id"}})
+		"user_management.organization_role", "user_management.v_organization_role", "id", "uid", "", "data", nil, [][]string{{"organization_id", "role_id"}}, nil)
 	um.UserOrganizationMembership = tables.NewDXTableSimple(databaseNameId, "user_management.user_organization_membership",
-		"user_management.user_organization_membership", "user_management.v_user_organization_membership", "id", "uid", "", "data", nil, [][]string{{"user_id"}})
+		"user_management.user_organization_membership", "user_management.v_user_organization_membership", "id", "uid", "", "data", nil, [][]string{{"user_id"}}, nil)
 	um.Privilege = tables.NewDXTableSimple(databaseNameId, "user_management.privilege",
-		"user_management.privilege", "user_management.v_privilege", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}})
+		"user_management.privilege", "user_management.v_privilege", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, nil)
 	um.RolePrivilege = tables.NewDXTableSimple(databaseNameId, "user_management.role_privilege",
-		"user_management.role_privilege", "user_management.v_role_privilege", "id", "uid", "", "data", nil, [][]string{{"role_id", "privilege_id"}})
+		"user_management.role_privilege", "user_management.v_role_privilege", "id", "uid", "", "data", nil, [][]string{{"role_id", "privilege_id"}}, nil)
 	um.UserRoleMembership = tables.NewDXTableSimple(databaseNameId, "user_management.user_role_membership",
-		"user_management.user_role_membership", "user_management.v_user_role_membership", "id", "uid", "", "data", nil, [][]string{{"user_id", "role_id"}})
+		"user_management.user_role_membership", "user_management.v_user_role_membership", "id", "uid", "", "data", nil, [][]string{{"user_id", "role_id"}}, nil)
 	um.MenuItem = tables.NewDXTableSimple(databaseNameId, "user_management.menu_item",
-		"user_management.menu_item", "user_management.v_menu_item", "id", "uid", "composite_nameid", "data", nil, nil)
+		"user_management.menu_item", "user_management.v_menu_item", "id", "uid", "composite_nameid", "data", nil, nil, nil)
 	um.UserMessageChannnelType = tables.NewDXRawTableSimple(databaseNameId, "user_management.user_message_channel_type",
-		"user_management.user_message_channel_type", "user_management.user_message_channel_type", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}, {"name"}})
+		"user_management.user_message_channel_type", "user_management.user_message_channel_type", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}, {"name"}}, nil)
 	um.UserMessageCategory = tables.NewDXRawTableSimple(databaseNameId, "user_management.user_message_category",
-		"user_management.user_message_category", "user_management.user_message_category", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}, {"name"}})
+		"user_management.user_message_category", "user_management.user_message_category", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}, {"name"}}, nil)
 	um.UserMessage = tables.NewDXTableSimple(databaseNameId, "user_management.user_message",
-		"user_management.user_message", "user_management.v_user_message", "id", "uid", "", "data", nil, nil)
+		"user_management.user_message", "user_management.v_user_message", "id", "uid", "", "data", nil, nil, nil)
 }
 
 func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
@@ -106,7 +106,7 @@ func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, us
 		return err
 	}
 	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(l, userId, msgTitle, msgBody, attachedData,
-		func(dtx *database.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
+		func(dtx *databases.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
 			_, _, err2 = um.UserMessage.TxInsert(dtx, utils.JSON{
 				"user_message_channel_type_id": base.UserMessageChannelTypeIdFCM,
 				"user_message_category_id":     userMessageCategoryId,

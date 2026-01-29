@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/databases"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
@@ -36,7 +36,7 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 	}
 
 	var userRoleMembershipId int64
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *database.DXDatabaseTx) error {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var err2 error
 		userRoleMembershipId, err2 = um.UserRoleMembership.TxInsertReturningId(dtx, map[string]any{
 			"user_id":         userId,
@@ -77,7 +77,7 @@ func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPoin
 		return err
 	}
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *database.DXDatabaseTx) error {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var userRoleMembership utils.JSON
 		_, userRoleMembership, err2 := um.UserRoleMembership.TxShouldGetById(dtx, userRoleMembershipId)
 		if err2 != nil {
@@ -112,7 +112,7 @@ func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPoin
 		return err
 	}
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *database.DXDatabaseTx) error {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var userRoleMembership utils.JSON
 		_, userRoleMembership, err2 := um.UserRoleMembership.TxShouldGetById(dtx, userRoleMembershipId)
 		if err2 != nil {

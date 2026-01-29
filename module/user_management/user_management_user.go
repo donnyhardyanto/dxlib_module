@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/database"
-	"github.com/donnyhardyanto/dxlib/database/db"
+	"github.com/donnyhardyanto/dxlib/databases"
+	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
@@ -313,7 +313,7 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 	var userOrganizationMembershipId int64
 	var userRoleMembershipId int64
 
-	err := database.Manager.GetOrCreate(um.DatabaseNameId).Tx(log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) error {
+	err := databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) error {
 		// Check if user already exists
 		_, existingUser, err := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"loginid": loginid,
@@ -572,7 +572,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	var userOrganizationMembershipId int64
 	var userRoleMembershipId int64
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"loginid": loginId,
 		}, nil, nil, nil)
@@ -721,7 +721,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	var userOrganizationMembershipId int64
 	var userRoleMembershipId int64
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"loginid": loginId,
 		}, nil, nil, nil)
@@ -835,7 +835,7 @@ func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error
 		}
 	}
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *database.DXDatabaseTx) (err2 error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) (err2 error) {
 		if len(newKeyValues) > 0 {
 			_, err2 = um.User.TxUpdateSimple(dtx, newKeyValues, utils.JSON{
 				t.FieldNameForRowId: id,
@@ -869,7 +869,117 @@ func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error
 func (um *DxmUserManagement) UserDelete(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("id")
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
+		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
+			"id": userId,
+		}, nil, nil, nil)
+		if err2 != nil {
+			return err2
+		}
+		if user == nil {
+			return errors.New("USER_NOT_FOUND")
+		}
+		userIsDeleted, ok := user["is_deleted"].(bool)
+		if !ok {
+			return errors.New("USER_IS_DELETED_NOT_FOUND")
+		}
+		if userIsDeleted {
+			return errors.New("USER_IS_DELETED")
+		}
+
+		_, err = um.User.TxUpdateSimple(tx, utils.JSON{
+			"is_deleted": true,
+			"status":     UserStatusDeleted,
+		}, utils.JSON{
+			"id":         userId,
+			"is_deleted": false,
+		})
+
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
+	return nil
+}
+
+func (um *DxmUserManagement) UserEditByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	t := um.User
+	_, uid, err := aepr.GetParameterValueAsString("uid")
+	if err != nil {
+		return err
+	}
+	_, row, err := t.ShouldGetByUid(&aepr.Log, uid)
+	if err != nil {
+		return err
+	}
+	id := row[t.FieldNameForRowId].(int64)
+
+	_, newKeyValues, err := aepr.GetParameterValueAsJSON("new")
+	if err != nil {
+		return err
+	}
+
+	p1 := utils.JSON{}
+	membershipNumber, ok := newKeyValues["membership_number"].(string)
+	if ok {
+		p1["membership_number"] = membershipNumber
+		delete(newKeyValues, "membership_number")
+	}
+
+	for k, v := range newKeyValues {
+		if v == nil {
+			delete(newKeyValues, k)
+		}
+	}
+
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) (err2 error) {
+		if len(newKeyValues) > 0 {
+			_, err2 = um.User.TxUpdateSimple(dtx, newKeyValues, utils.JSON{
+				t.FieldNameForRowId: id,
+			})
+			if err2 != nil {
+				return err2
+			}
+		}
+		if len(p1) > 0 {
+			_, err2 = um.UserOrganizationMembership.TxUpdateSimple(dtx, p1, utils.JSON{
+				"user_id": id,
+			})
+			if err2 != nil {
+				return err2
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
+		t.FieldNameForRowId: id,
+	}})
+
+	return nil
+}
+
+func (um *DxmUserManagement) UserDeleteByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, uid, err := aepr.GetParameterValueAsString("uid")
+	if err != nil {
+		return err
+	}
+	_, row, err := um.User.ShouldGetByUid(&aepr.Log, uid)
+	if err != nil {
+		return err
+	}
+	userId := row[um.User.FieldNameForRowId].(int64)
+
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"id": userId,
 		}, nil, nil, nil)
@@ -911,7 +1021,7 @@ func (um *DxmUserManagement) UserDelete(aepr *api.DXAPIEndPointRequest) (err err
 func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("id")
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"id": userId,
 		}, nil, nil, nil)
@@ -951,7 +1061,7 @@ func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err er
 func (um *DxmUserManagement) UserActivate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("id")
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"id": userId,
 		}, nil, nil, nil)
@@ -991,7 +1101,7 @@ func (um *DxmUserManagement) UserActivate(aepr *api.DXAPIEndPointRequest) (err e
 func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("id")
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err2 error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"id": userId,
 		}, nil, nil, nil)
@@ -1030,7 +1140,7 @@ func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err e
 	return nil
 }
 
-func (um *DxmUserManagement) TxUserPasswordCreate(tx *database.DXDatabaseTx, userId int64, password string) (err error) {
+func (um *DxmUserManagement) TxUserPasswordCreate(tx *databases.DXDatabaseTx, userId int64, password string) (err error) {
 	hashedPasswordAsHexString, err := um.passwordHashCreate(password)
 	if err != nil {
 		return err
@@ -1275,7 +1385,7 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 
 	userPasswordNew := generateRandomString(10)
 
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
 		err = um.TxUserPasswordCreate(tx, userId, userPasswordNew)
 		if err != nil {
@@ -1354,7 +1464,7 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 	}
 
 	if t.Database == nil {
-		t.Database = database.Manager.Databases[t.DatabaseNameId]
+		t.Database = databases.Manager.Databases[t.DatabaseNameId]
 	}
 
 	if !t.Database.Connected {

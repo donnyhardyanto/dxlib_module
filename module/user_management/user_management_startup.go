@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"github.com/donnyhardyanto/dxlib/app"
-	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/databases"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
 func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlibLog.DXLog) (err error) {
-	err = database.Manager.GetOrCreate(um.DatabaseNameId).Tx(l, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(l, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
 		_, userSuperAdmin, err := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"loginid": "superadmin",
