@@ -98,13 +98,13 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.Database = database.Manager.GetOrCreate(databaseNameId)
 	// NewDXTableSimple(databaseNameId, tableName, resultObjectName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId, responseEnvelopeObjectName)
 	f.FCMApplication = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_application",
-		"push_notification.fcm_application", "push_notification.fcm_application", "id", "uid", "nameid", "data", nil)
+		"push_notification.fcm_application", "push_notification.fcm_application", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}})
 	f.FCMUserToken = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_user_token",
-		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "id", "uid", "", "data", nil)
+		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "id", "uid", "", "data", nil, nil)
 	f.FCMMessage = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_message",
-		"push_notification.fcm_message", "push_notification.v_fcm_message", "id", "uid", "", "data", nil)
+		"push_notification.fcm_message", "push_notification.v_fcm_message", "id", "uid", "", "data", nil, nil)
 	f.FCMTopicMessage = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_topic_message",
-		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "id", "uid", "", "data", nil)
+		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "id", "uid", "", "data", nil, nil)
 }
 
 func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointRequest) (err error) {

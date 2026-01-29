@@ -19,7 +19,7 @@ type DxmExternalSystem struct {
 
 func (w *DxmExternalSystem) Init(databaseNameId string) {
 	w.ExternalSystem = tables.NewDXTableSimple(databaseNameId, "configuration.external_system",
-		"configuration.external_system", "configuration.external_system", "id", "uid", "nameid", "data", nil)
+		"configuration.external_system", "configuration.external_system", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}})
 }
 func (w *DxmExternalSystem) ExternalSystemList(aepr *api.DXAPIEndPointRequest) (err error) {
 	return w.ExternalSystem.RequestPagingList(aepr)

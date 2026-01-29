@@ -20,11 +20,11 @@ type DxmAudit struct {
 
 func (al *DxmAudit) Init(databaseNameId string) {
 	al.UserActivityLog = tables.NewDXRawTableSimple(databaseNameId, "audit_log.user_activity_log",
-		"audit_log.user_activity_log", "audit_log.user_activity_log", "id", "uid", "id", "data", nil)
+		"audit_log.user_activity_log", "audit_log.user_activity_log", "id", "uid", "id", "data", nil, nil)
 	al.UserActivityLog.FieldMaxLengths = map[string]int{"error_message": 16000}
 
 	al.ErrorLog = tables.NewDXRawTableSimple(databaseNameId, "audit_log.error_log",
-		"audit_log.error_log", "audit_log.error_log", "id", "uid", "id", "data", nil)
+		"audit_log.error_log", "audit_log.error_log", "id", "uid", "id", "data", nil, nil)
 	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }
 
