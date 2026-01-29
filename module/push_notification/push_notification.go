@@ -98,13 +98,13 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.Database = databases.Manager.GetOrCreate(databaseNameId)
 	// NewDXTableSimple(databaseNameId, tableName, resultObjectName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId, responseEnvelopeObjectName)
 	f.FCMApplication = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_application",
-		"push_notification.fcm_application", "push_notification.fcm_application", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, nil)
+		"push_notification.fcm_application", "push_notification.fcm_application", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, []string{"nameid", "service_account_source"}, []string{"id", "nameid", "created_at"})
 	f.FCMUserToken = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_user_token",
-		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "id", "uid", "", "data", nil, nil, nil)
+		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "id", "uid", "", "data", nil, nil, []string{"fcm_token", "device_type"}, []string{"id", "user_id", "fcm_application_id", "device_type", "created_at"})
 	f.FCMMessage = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_message",
-		"push_notification.fcm_message", "push_notification.v_fcm_message", "id", "uid", "", "data", nil, nil, nil)
+		"push_notification.fcm_message", "push_notification.v_fcm_message", "id", "uid", "", "data", nil, nil, []string{"status", "title", "body", "device_type"}, []string{"id", "fcm_user_token_id", "status", "is_read", "retry_count", "created_at"})
 	f.FCMTopicMessage = tables.NewDXTableSimple(f.DatabaseNameId, "push_notification.fcm_topic_message",
-		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "id", "uid", "", "data", nil, nil, nil)
+		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "id", "uid", "", "data", nil, nil, []string{"topic", "status", "title", "body"}, []string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at"})
 }
 
 func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointRequest) (err error) {

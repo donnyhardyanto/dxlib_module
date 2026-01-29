@@ -24,7 +24,7 @@ func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
 		"form_number_management.form_number_counters",
-		"id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, nil)
+		"id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, []string{"nameid", "type", "prefix"}, []string{"id", "nameid", "type", "last_year", "last_month", "last_sequence"})
 }
 
 // Generate creates a new form number with automatic monthly reset
