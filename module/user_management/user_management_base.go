@@ -70,7 +70,7 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 		"user_management.organization", "user_management.organization", "id", "uid", "code", "data", nil, [][]string{{"code"}, {"name"}}, []string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status"}, []string{"id", "code", "name", "type", "status", "created_at", "last_modified_at"})
 	um.Organization.FieldNameForRowUtag = "utag"
 	um.OrganizationRoles = tables.NewDXTableSimple(databaseNameId, "user_management.organization_role",
-		"user_management.organization_role", "user_management.v_organization_role", "id", "uid", "", "data", nil, [][]string{{"organization_id", "role_id"}}, []string{"role_nameid", "role_name", "organization_name", "organization_code"}, []string{"id", "organization_id", "role_id", "created_at", "last_modified_at"})
+		"user_management.organization_role", "user_management.v_organization_role", "id", "uid", "", "data", nil, [][]string{{"organization_id", "role_id"}}, []string{"role_nameid", "role_name", "role_description", "organization_name", "organization_type", "organization_address"}, []string{"id", "organization_id", "role_id", "created_at", "last_modified_at"})
 	um.UserOrganizationMembership = tables.NewDXTableSimple(databaseNameId, "user_management.user_organization_membership",
 		"user_management.user_organization_membership", "user_management.v_user_organization_membership", "id", "uid", "", "data", nil, [][]string{{"user_id"}}, []string{"membership_number", "organization_name", "organization_type"}, []string{"id", "user_id", "organization_id", "order_index", "created_at", "last_modified_at"})
 	um.Privilege = tables.NewDXTableSimple(databaseNameId, "user_management.privilege",
