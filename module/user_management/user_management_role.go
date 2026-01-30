@@ -39,7 +39,6 @@ func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err err
 		return err
 	}
 
-	var newId int64
 	var newUid string
 
 	txErr := t.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
@@ -47,11 +46,10 @@ func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err err
 		if err != nil {
 			return err
 		}
-		_, returningValues, err := t.DXRawTable.TxInsert(dtx, p, []string{t.FieldNameForRowId, t.FieldNameForRowUid})
+		_, returningValues, err := t.DXRawTable.TxInsert(dtx, p, []string{t.FieldNameForRowUid})
 		if err != nil {
 			return err
 		}
-		newId, _ = utilsJson.GetInt64(returningValues, t.FieldNameForRowId)
 		if uid, ok := returningValues[t.FieldNameForRowUid].(string); ok {
 			newUid = uid
 		}
@@ -62,7 +60,6 @@ func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err err
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utilsJson.Encapsulate(t.ResponseEnvelopeObjectName, utils.JSON{
-		t.FieldNameForRowId:  newId,
 		t.FieldNameForRowUid: newUid,
 	}))
 	return nil

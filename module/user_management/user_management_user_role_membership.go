@@ -36,6 +36,7 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 	}
 
 	var userRoleMembershipId int64
+	var userRoleMembershipUid string
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var err2 error
 		userRoleMembershipId, err2 = um.UserRoleMembership.TxInsertReturningId(dtx, map[string]any{
@@ -52,6 +53,9 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 		if err2 != nil {
 			return err2
 		}
+		if uid, ok := userRoleMembership["uid"].(string); ok {
+			userRoleMembershipUid = uid
+		}
 
 		if um.OnUserRoleMembershipAfterCreate != nil {
 			err2 = um.OnUserRoleMembershipAfterCreate(aepr, dtx, userRoleMembership, 0)
@@ -66,7 +70,7 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
-		um.UserRoleMembership.FieldNameForRowId: userRoleMembershipId,
+		"uid": userRoleMembershipUid,
 	}})
 	return nil
 }
@@ -77,11 +81,15 @@ func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPoin
 		return err
 	}
 
+	var userRoleMembershipUid string
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var userRoleMembership utils.JSON
 		_, userRoleMembership, err2 := um.UserRoleMembership.TxShouldGetById(dtx, userRoleMembershipId)
 		if err2 != nil {
 			return err2
+		}
+		if uid, ok := userRoleMembership["uid"].(string); ok {
+			userRoleMembershipUid = uid
 		}
 
 		if um.OnUserRoleMembershipBeforeSoftDelete != nil {
@@ -101,7 +109,7 @@ func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPoin
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
-		um.UserRoleMembership.FieldNameForRowId: userRoleMembershipId,
+		"uid": userRoleMembershipUid,
 	}})
 	return nil
 }
@@ -112,11 +120,15 @@ func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPoin
 		return err
 	}
 
+	var userRoleMembershipUid string
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var userRoleMembership utils.JSON
 		_, userRoleMembership, err2 := um.UserRoleMembership.TxShouldGetById(dtx, userRoleMembershipId)
 		if err2 != nil {
 			return err2
+		}
+		if uid, ok := userRoleMembership["uid"].(string); ok {
+			userRoleMembershipUid = uid
 		}
 
 		if um.OnUserRoleMembershipBeforeHardDelete != nil {
@@ -136,7 +148,7 @@ func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPoin
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
-		um.UserRoleMembership.FieldNameForRowId: userRoleMembershipId,
+		"uid": userRoleMembershipUid,
 	}})
 	return nil
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
+	utilsJson "github.com/donnyhardyanto/dxlib/utils/json"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/datablock"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/rand"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
@@ -36,7 +37,7 @@ func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, bs)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "FAILED_TO_READ_REQUEST_BODY:%s=%v", "UserCreateBulk", err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "FAILED_TO_READ_REQUEST_BODY", "UserCreateBulk:%+v", err.Error())
 	}
 
 	// Determine the file type and parse accordingly
@@ -58,13 +59,13 @@ func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err
 }
 
 func (um *DxmUserManagement) parseAndCreateUsersFromCSV(buf *bytes.Buffer, aepr *api.DXAPIEndPointRequest) error {
-	// Create a new reader with comma as delimiter
+	// Create a new reader with comma as a delimiter
 	reader := csv.NewReader(buf)
-	reader.Comma = ';'          // Set comma as delimiter
+	reader.Comma = ';'          // Set comma as a delimiter
 	reader.LazyQuotes = true    // Handle quotes more flexibly
 	reader.FieldsPerRecord = -1 // Allow variable number of fields
 
-	// Read header row
+	// Read the header row
 	headers, err := reader.Read()
 	if err != nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
@@ -308,7 +309,7 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 		membershipNumber = ""
 	}
 
-	// Create user in a transaction
+	// Create a user in a transaction
 	var userId int64
 	var userOrganizationMembershipId int64
 	var userRoleMembershipId int64
@@ -569,8 +570,10 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	}
 
 	var userId int64
-	var userOrganizationMembershipId int64
+	var userUid string
+	var userOrganizationMembershipUid string
 	var userRoleMembershipId int64
+	var userRoleMembershipUid string
 
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
@@ -582,27 +585,38 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		if user != nil {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
 		}
-		userId, err2 = um.User.TxInsertReturningId(tx, p)
+		_, userReturning, err2 := um.User.TxInsert(tx, p, []string{"id", "uid"})
 		if err2 != nil {
 			return err2
 		}
+		userId, _ = utilsJson.GetInt64(userReturning, "id")
+		if uid, ok := userReturning["uid"].(string); ok {
+			userUid = uid
+		}
 
-		userOrganizationMembershipId, err2 = um.UserOrganizationMembership.TxInsertReturningId(tx, map[string]any{
+		_, orgMemberReturning, err2 := um.UserOrganizationMembership.TxInsert(tx, map[string]any{
 			"user_id":           userId,
 			"organization_id":   organizationId,
 			"membership_number": membershipNumber,
-		})
+		}, []string{"uid"})
 		if err2 != nil {
 			return err2
 		}
+		if uid, ok := orgMemberReturning["uid"].(string); ok {
+			userOrganizationMembershipUid = uid
+		}
 
-		userRoleMembershipId, err2 = um.UserRoleMembership.TxInsertReturningId(tx, map[string]any{
+		_, roleMemberReturning, err2 := um.UserRoleMembership.TxInsert(tx, map[string]any{
 			"user_id":         userId,
 			"organization_id": organizationId,
 			"role_id":         roleId,
-		})
+		}, []string{"id", "uid"})
 		if err2 != nil {
 			return err2
+		}
+		userRoleMembershipId, _ = utilsJson.GetInt64(roleMemberReturning, "id")
+		if uid, ok := roleMemberReturning["uid"].(string); ok {
+			userRoleMembershipUid = uid
 		}
 
 		err2 = um.TxUserPasswordCreate(tx, userId, userPassword)
@@ -638,9 +652,9 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		"data": utils.JSON{
-			"id":                              userId,
-			"user_organization_membership_id": userOrganizationMembershipId,
-			"user_role_membership_id":         userRoleMembershipId,
+			"uid":                              userUid,
+			"user_organization_membership_uid": userOrganizationMembershipUid,
+			"user_role_membership_uid":         userRoleMembershipUid,
 		}})
 
 	return nil
@@ -718,8 +732,10 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	}
 
 	var userId int64
-	var userOrganizationMembershipId int64
+	var userUid string
+	var userOrganizationMembershipUid string
 	var userRoleMembershipId int64
+	var userRoleMembershipUid string
 
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err2 error) {
 		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
@@ -731,27 +747,38 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		if user != nil {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
 		}
-		userId, err2 = um.User.TxInsertReturningId(tx, p)
+		_, userReturning, err2 := um.User.TxInsert(tx, p, []string{"id", "uid"})
 		if err2 != nil {
 			return err2
 		}
+		userId, _ = utilsJson.GetInt64(userReturning, "id")
+		if uid, ok := userReturning["uid"].(string); ok {
+			userUid = uid
+		}
 
-		userOrganizationMembershipId, err2 = um.UserOrganizationMembership.TxInsertReturningId(tx, map[string]any{
+		_, orgMemberReturning, err2 := um.UserOrganizationMembership.TxInsert(tx, map[string]any{
 			"user_id":           userId,
 			"organization_id":   organizationId,
 			"membership_number": membershipNumber,
-		})
+		}, []string{"uid"})
 		if err2 != nil {
 			return err2
 		}
+		if uid, ok := orgMemberReturning["uid"].(string); ok {
+			userOrganizationMembershipUid = uid
+		}
 
-		userRoleMembershipId, err2 = um.UserRoleMembership.TxInsertReturningId(tx, map[string]any{
+		_, roleMemberReturning, err2 := um.UserRoleMembership.TxInsert(tx, map[string]any{
 			"user_id":         userId,
 			"organization_id": organizationId,
 			"role_id":         roleId,
-		})
+		}, []string{"id", "uid"})
 		if err2 != nil {
 			return err2
+		}
+		userRoleMembershipId, _ = utilsJson.GetInt64(roleMemberReturning, "id")
+		if uid, ok := roleMemberReturning["uid"].(string); ok {
+			userRoleMembershipUid = uid
 		}
 
 		err2 = um.TxUserPasswordCreate(tx, userId, userPassword)
@@ -794,9 +821,9 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		"data": utils.JSON{
-			"id":                              userId,
-			"user_organization_membership_id": userOrganizationMembershipId,
-			"user_role_membership_id":         userRoleMembershipId,
+			"uid":                              userUid,
+			"user_organization_membership_uid": userOrganizationMembershipUid,
+			"user_role_membership_uid":         userRoleMembershipUid,
 		}})
 
 	return nil
@@ -858,8 +885,13 @@ func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error
 		return err
 	}
 
+	_, userRow, err := t.ShouldGetById(&aepr.Log, id)
+	if err != nil {
+		return err
+	}
+
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
-		t.FieldNameForRowId: id,
+		"uid": userRow["uid"],
 	}})
 
 	return nil
@@ -962,7 +994,7 @@ func (um *DxmUserManagement) UserEditByUid(aepr *api.DXAPIEndPointRequest) (err 
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
-		t.FieldNameForRowId: id,
+		"uid": uid,
 	}})
 
 	return nil
