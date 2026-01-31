@@ -757,7 +757,10 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userId := user["id"].(int64)
+		userId, err := utils.GetInt64FromKV(user, "id")
+		if err != nil {
+			return err
+		}
 
 		us := utils.JSON{
 			"user_id": userId,
@@ -777,8 +780,14 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userLoggedOrganizationId = userLoggedOrganization["id"].(int64)
-		userLoggedOrganizationUid = userLoggedOrganization["uid"].(string)
+		userLoggedOrganizationId, err = utils.GetInt64FromKV(userLoggedOrganization, "id")
+		if err != nil {
+			return err
+		}
+		userLoggedOrganizationUid, err = utils.GetStringFromKV(userLoggedOrganization, "uid")
+		if err != nil {
+			return err
+		}
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
@@ -790,7 +799,10 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userId := user["id"].(int64)
+		userId, err := utils.GetInt64FromKV(user, "id")
+		if err != nil {
+			return err
+		}
 
 		us := utils.JSON{
 			"user_id": userId,
@@ -810,8 +822,14 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
-		userLoggedOrganizationUid = userOrganizationMemberships[0]["organization_uid"].(string)
+		userLoggedOrganizationId, err = utils.GetInt64FromKV(userOrganizationMemberships[0], "organization_id")
+		if err != nil {
+			return err
+		}
+		userLoggedOrganizationUid, err = utils.GetStringFromKV(userOrganizationMemberships[0], "organization_uid")
+		if err != nil {
+			return err
+		}
 
 		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
 		if err != nil {
@@ -890,17 +908,29 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 			return nil, false, err
 		}
 		for _, v1 := range rolePrivileges {
-			privilegeNameId := v1["privilege_nameid"].(string)
+			privilegeNameId, err := utils.GetStringFromKV(v1, "privilege_nameid")
+			if err != nil {
+				return nil, false, err
+			}
 
-			privilegeId := v1["privilege_id"].(int64)
+			privilegeId, err := utils.GetInt64FromKV(v1, "privilege_id")
+			if err != nil {
+				return nil, false, err
+			}
 			if privilegeNameId == "EVERYTHING" {
 				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil, nil)
 				if err != nil {
 					return nil, false, err
 				}
 				for _, v2 := range rolePrivileges {
-					privilegeNameId := v2["nameid"].(string)
-					privilegeId := v2["id"].(int64)
+					privilegeNameId, err := utils.GetStringFromKV(v2, "nameid")
+					if err != nil {
+						return nil, false, err
+					}
+					privilegeId, err := utils.GetInt64FromKV(v2, "id")
+					if err != nil {
+						return nil, false, err
+					}
 					if privilegeNameId != "EVERYTHING" {
 						_, exists := userEffectivePrivilegeIds[privilegeNameId]
 						if !exists {
@@ -1009,8 +1039,14 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "REFRESH_CAPTCHA", "NOT_ERROR:UNPACK_ERROR:PREKEY_NOT_FOUND")
 	}
 
-	storedCaptchaId := preKeyData["captcha_id"].(string)
-	storedCaptchaText := preKeyData["captcha_text"].(string)
+	storedCaptchaId, err := utils.GetStringFromKV(preKeyData, "captcha_id")
+	if err != nil {
+		return err
+	}
+	storedCaptchaText, err := utils.GetStringFromKV(preKeyData, "captcha_text")
+	if err != nil {
+		return err
+	}
 
 	lvPayloadLoginId := lvPayloadElements[0]
 	lvPayloadPassword := lvPayloadElements[1]
@@ -1048,7 +1084,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+		_, user, err = user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -1058,7 +1094,10 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userId := user["id"].(int64)
+		userId, err := utils.GetInt64FromKV(user, "id")
+		if err != nil {
+			return err
+		}
 
 		us := utils.JSON{
 			"user_id": userId,
@@ -1078,8 +1117,14 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
-		userLoggedOrganizationUid = userOrganizationMemberships[0]["organization_uid"].(string)
+		userLoggedOrganizationId, err = utils.GetInt64FromKV(userOrganizationMemberships[0], "organization_id")
+		if err != nil {
+			return err
+		}
+		userLoggedOrganizationUid, err = utils.GetStringFromKV(userOrganizationMemberships[0], "organization_uid")
+		if err != nil {
+			return err
+		}
 
 		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
 		if err != nil {
@@ -1101,8 +1146,8 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	userId, ok := user["id"].(int64)
-	if !ok {
+	userId, err := utils.GetInt64FromKV(user, "id")
+	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(500, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
 	}
 	a := []any{userOrganizationMemberships}
@@ -1237,8 +1282,14 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:PREKEY_NOT_FOUND")
 	}
 
-	storedCaptchaId := preKeyData["captcha_id"].(string)
-	storedCaptchaText := preKeyData["captcha_text"].(string)
+	storedCaptchaId, err := utils.GetStringFromKV(preKeyData, "captcha_id")
+	if err != nil {
+		return err
+	}
+	storedCaptchaText, err := utils.GetStringFromKV(preKeyData, "captcha_text")
+	if err != nil {
+		return err
+	}
 
 	if captchaId != storedCaptchaId {
 		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
@@ -1274,7 +1325,10 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userId := user["id"].(int64)
+		userId, err := utils.GetInt64FromKV(user, "id")
+		if err != nil {
+			return err
+		}
 
 		us := utils.JSON{
 			"user_id": userId,
@@ -1294,8 +1348,14 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
-		userLoggedOrganizationUid = userOrganizationMemberships[0]["organization_uid"].(string)
+		userLoggedOrganizationId, err = utils.GetInt64FromKV(userOrganizationMemberships[0], "organization_id")
+		if err != nil {
+			return err
+		}
+		userLoggedOrganizationUid, err = utils.GetStringFromKV(userOrganizationMemberships[0], "organization_uid")
+		if err != nil {
+			return err
+		}
 
 		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
 		if err != nil {
@@ -1381,12 +1441,30 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	if !ok {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:NO_SESSION_OBJECT")
 	}
-	userId := aepr.LocalData["user_id"].(int64)
-	sessionKey := sessionObject["session_key"].(string)
-	userLoggedOrganizationId := aepr.LocalData["organization_id"].(int64)
-	userLoggedOrganizationUid := aepr.LocalData["organization_uid"].(string)
-	userLoggedOrganization := aepr.LocalData["organization"].(utils.JSON)
-	userOrganizationMemberships := aepr.LocalData["user_organization_memberships"].([]interface{})
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
+	sessionKey, err := utils.GetStringFromKV(sessionObject, "session_key")
+	if err != nil {
+		return err
+	}
+	userLoggedOrganizationId, err := utils.GetInt64FromKV(aepr.LocalData, "organization_id")
+	if err != nil {
+		return err
+	}
+	userLoggedOrganizationUid, err := utils.GetStringFromKV(aepr.LocalData, "organization_uid")
+	if err != nil {
+		return err
+	}
+	userLoggedOrganization, err := utils.GetVFromKV[utils.JSON](aepr.LocalData, "organization")
+	if err != nil {
+		return err
+	}
+	userOrganizationMemberships, err := utils.GetVFromKV[[]interface{}](aepr.LocalData, "user_organization_memberships")
+	if err != nil {
+		return err
+	}
 
 	_, user, err := user_management.ModuleUserManagement.User.GetById(&aepr.Log, userId)
 	if err != nil {
@@ -1444,8 +1522,14 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	if sessionObject == nil {
 		return nil, aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_NOT_FOUND", "NOT_ERROR:SESSION_NOT_FOUND")
 	}
-	userId := utilsJSON.MustGetInt64(sessionObject, "user_id")
-	user := sessionObject["user"].(utils.JSON)
+	userId, err := utilsJSON.GetInt64(sessionObject, "user_id")
+	if err != nil {
+		return nil, err
+	}
+	user, err := utils.GetVFromKV[utils.JSON](sessionObject, "user")
+	if err != nil {
+		return nil, err
+	}
 	userUid, err := utilsJSON.GetString(user, "uid")
 	if err != nil {
 		return nil, err
@@ -1458,7 +1542,10 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	if err != nil {
 		return nil, err
 	}
-	organization := sessionObject["organization"].(utils.JSON)
+	organization, err := utils.GetVFromKV[utils.JSON](sessionObject, "organization")
+	if err != nil {
+		return nil, err
+	}
 	organizationId, err := utilsJSON.GetInt64(organization, "id")
 	if err != nil {
 		return nil, err
@@ -1575,7 +1662,18 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 		return nil
 	}
 
-	userEffectivePrivilegeIds := sessionObject["user_effective_privilege_ids"].(map[string]any)
+	userEffectivePrivilegeIds, err := utils.GetVFromKV[utils.JSON](sessionObject, "user_effective_privilege_ids")
+	if err != nil {
+		// fallback to map[string]int64 if it was stored that way (e.g. before serialized to JSON)
+		userEffectivePrivilegeIdsMap, ok := sessionObject["user_effective_privilege_ids"].(map[string]int64)
+		if !ok {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:USER_EFFECTIVE_PRIVILEGE_IDS_NOT_FOUND")
+		}
+		userEffectivePrivilegeIds = make(utils.JSON)
+		for k, v := range userEffectivePrivilegeIdsMap {
+			userEffectivePrivilegeIds[k] = v
+		}
+	}
 
 	err = s.CheckMaintenanceMode(aepr, userEffectivePrivilegeIds)
 	if err != nil {
@@ -1751,7 +1849,10 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
 	}
 
-	userId := aepr.LocalData["user_id"].(int64)
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
 	var verificationResult bool
 
 	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
@@ -1812,7 +1913,10 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
 	}
 
-	userId := aepr.LocalData["user_id"].(int64)
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
 	var verificationResult bool
 
 	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
@@ -1859,9 +1963,18 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 }
 
 func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData["user"].(utils.JSON)
-	userId := aepr.LocalData["user_id"].(int64)
-	userUid := user["uid"].(string)
+	user, err := utils.GetVFromKV[utils.JSON](aepr.LocalData, "user")
+	if err != nil {
+		return err
+	}
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
+	userUid, err := utils.GetStringFromKV(user, "uid")
+	if err != nil {
+		return err
+	}
 	filename := userUid + ".webp"
 
 	err = s.Avatar.Update(aepr, filename, "")
@@ -1876,9 +1989,18 @@ func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfAvatarUpdateFileContentBase64(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData["user"].(utils.JSON)
-	userId := aepr.LocalData["user_id"].(int64)
-	userUid := user["uid"].(string)
+	user, err := utils.GetVFromKV[utils.JSON](aepr.LocalData, "user")
+	if err != nil {
+		return err
+	}
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
+	userUid, err := utils.GetStringFromKV(user, "uid")
+	if err != nil {
+		return err
+	}
 	filename := userUid + ".webp"
 
 	_, fileContentBase64, err := aepr.GetParameterValueAsString("content_base64")
@@ -1898,8 +2020,14 @@ func (s *DxmSelf) SelfAvatarUpdateFileContentBase64(aepr *api.DXAPIEndPointReque
 }
 
 func (s *DxmSelf) SelfAvatarDownloadSource(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData["user"].(utils.JSON)
-	userUid := user["uid"].(string)
+	user, err := utils.GetVFromKV[utils.JSON](aepr.LocalData, "user")
+	if err != nil {
+		return err
+	}
+	userUid, err := utils.GetStringFromKV(user, "uid")
+	if err != nil {
+		return err
+	}
 	filename := userUid + ".webp"
 	err = s.Avatar.DownloadSource(aepr, filename)
 	if err != nil {
@@ -1910,8 +2038,14 @@ func (s *DxmSelf) SelfAvatarDownloadSource(aepr *api.DXAPIEndPointRequest) (err 
 }
 
 func (s *DxmSelf) SelfAvatarDownloadSmall(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData["user"].(utils.JSON)
-	userUid := user["uid"].(string)
+	user, err := utils.GetVFromKV[utils.JSON](aepr.LocalData, "user")
+	if err != nil {
+		return err
+	}
+	userUid, err := utils.GetStringFromKV(user, "uid")
+	if err != nil {
+		return err
+	}
 	filename := userUid + ".webp"
 	err = s.Avatar.DownloadProcessedImage(aepr, "small", filename)
 	if err != nil {
@@ -1922,8 +2056,14 @@ func (s *DxmSelf) SelfAvatarDownloadSmall(aepr *api.DXAPIEndPointRequest) (err e
 }
 
 func (s *DxmSelf) SelfAvatarDownloadMedium(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData["user"].(utils.JSON)
-	userUid := user["uid"].(string)
+	user, err := utils.GetVFromKV[utils.JSON](aepr.LocalData, "user")
+	if err != nil {
+		return err
+	}
+	userUid, err := utils.GetStringFromKV(user, "uid")
+	if err != nil {
+		return err
+	}
 	filename := userUid + ".webp"
 	err = s.Avatar.DownloadProcessedImage(aepr, "medium", filename)
 	if err != nil {
@@ -1934,19 +2074,28 @@ func (s *DxmSelf) SelfAvatarDownloadMedium(aepr *api.DXAPIEndPointRequest) (err 
 }
 
 func (s *DxmSelf) SelfAvatarDownloadBig(aepr *api.DXAPIEndPointRequest) (err error) {
-	user := aepr.LocalData["user"].(utils.JSON)
-	userUid := user["uid"].(string)
+	user, err := utils.GetVFromKV[utils.JSON](aepr.LocalData, "user")
+	if err != nil {
+		return err
+	}
+	userUid, err := utils.GetStringFromKV(user, "uid")
+	if err != nil {
+		return err
+	}
 	filename := userUid + ".webp"
 	err = s.Avatar.DownloadProcessedImage(aepr, "big", filename)
 	if err != nil {
 		aepr.SuppressLogDump = true
-		return err
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "", "SELF_AVATAR_NOT_FOUND")
 	}
 	return nil
 }
 
 func (s *DxmSelf) SelfProfile(aepr *api.DXAPIEndPointRequest) (err error) {
-	userId := aepr.LocalData["user_id"].(int64)
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
 	_, user, err := user_management.ModuleUserManagement.User.ShouldGetById(&aepr.Log, userId)
 	if err != nil {
 		return err
@@ -1958,7 +2107,10 @@ func (s *DxmSelf) SelfProfile(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfProfileEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	userId := aepr.LocalData["user_id"].(int64)
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
 	_, newValues, err := aepr.GetParameterValueAsJSON("new")
 	if err != nil {
 		return err
@@ -1985,7 +2137,10 @@ func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
-	userId := aepr.LocalData["user_id"].(int64)
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
 	err = push_notification.ModulePushNotification.FCM.RegisterUserToken(aepr, applicationNameId, deviceType, userId, fcmToken)
 	if err != nil {
 		return err
@@ -1995,7 +2150,10 @@ func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (s *DxmSelf) SelfUserMessagePagingListAll(aepr *api.DXAPIEndPointRequest) (err error) {
-	userId := aepr.LocalData["user_id"].(int64)
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
 	err = user_management.ModuleUserManagement.UserMessage.DoRequestPagingList(aepr,
 		"user_id=:user_id", "id desc", utils.JSON{
 			"user_id":    userId,
@@ -2008,7 +2166,10 @@ func (s *DxmSelf) SelfUserMessagePagingListAll(aepr *api.DXAPIEndPointRequest) (
 }
 
 func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest) (err error) {
-	userId := aepr.LocalData["user_id"].(int64)
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
 	_, userMessageId, err := aepr.GetParameterValueAsInt64("user_message_id")
 	if err != nil {
 		return err
@@ -2033,7 +2194,10 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest)
 }
 
 func (s *DxmSelf) SelfUserMessageAllIsReadSetToTrue(aepr *api.DXAPIEndPointRequest) (err error) {
-	userId := aepr.LocalData["user_id"].(int64)
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
 	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(utils.JSON{
 		"is_read": true,
 	}, utils.JSON{

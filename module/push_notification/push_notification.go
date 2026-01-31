@@ -189,7 +189,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	}
 
 	var userTokenId int64
-	var ok bool
+	
 	_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
 		"user_id":            userId,
