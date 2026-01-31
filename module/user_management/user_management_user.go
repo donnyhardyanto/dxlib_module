@@ -279,7 +279,7 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 		"fullname":             fullname,
 		"phonenumber":          phonenumber,
 		"status":               UserStatusActive,
-		"must_change_password": true, // Force password change on first k6-test
+		"must_change_password": true, // Force password change on first login
 		"is_avatar_exist":      false,
 	}
 
