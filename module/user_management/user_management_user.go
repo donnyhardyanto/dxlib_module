@@ -16,9 +16,9 @@ import (
 	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
-	utilsJson "github.com/donnyhardyanto/dxlib/utils/json"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/datablock"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/rand"
+	utilsJson "github.com/donnyhardyanto/dxlib/utils/json"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
 	security "github.com/donnyhardyanto/dxlib/utils/security"
 	"github.com/tealeg/xlsx"
@@ -279,7 +279,7 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 		"fullname":             fullname,
 		"phonenumber":          phonenumber,
 		"status":               UserStatusActive,
-		"must_change_password": true, // Force password change on first login
+		"must_change_password": true, // Force password change on first k6-test
 		"is_avatar_exist":      false,
 	}
 
