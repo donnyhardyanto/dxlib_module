@@ -590,11 +590,13 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 		dataAsJSON, err := GetFCMApplicationServiceAccountData(fcmApplication)
 		if err != nil {
 			log.Log.Errorf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%+v", fcmApplicationId, err)
+			wg.Done()
 			continue
 		}
 		_, err = fcm.Manager.StoreApplication(context.Background(), fcmApplicationId, dataAsJSON)
 		if err != nil {
 			log.Log.Warnf("ERROR_GET_FIREBASE_APP:%d:%v", fcmApplicationId, err)
+			wg.Done()
 			continue
 		}
 		go func() {
