@@ -258,7 +258,10 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 		if org == nil {
 			return errors.Errorf("organization '%s' not found", orgName)
 		}
-		organizationId = org["id"].(int64)
+		organizationId, err = utils.GetInt64FromKV(org, "id")
+		if err != nil {
+			return err
+		}
 	} else {
 		return errors.Errorf("organization_id or organization_name is required")
 	}
@@ -454,7 +457,10 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 	}
 
 	for i, row := range list {
-		userId := row["id"].(int64)
+		userId, err := utils.GetInt64FromKV(row, "id")
+		if err != nil {
+			return err
+		}
 		_, userOrganizationMemberships, err := um.UserOrganizationMembership.Select(&aepr.Log, nil, utils.JSON{
 			"user_id": userId,
 		}, nil, nil, nil, nil)
@@ -950,7 +956,10 @@ func (um *DxmUserManagement) UserEditByUid(aepr *api.DXAPIEndPointRequest) (err 
 	if err != nil {
 		return err
 	}
-	id := row[t.FieldNameForRowId].(int64)
+	id, err := utils.GetInt64FromKV(row, t.FieldNameForRowId)
+	if err != nil {
+		return err
+	}
 
 	_, newKeyValues, err := aepr.GetParameterValueAsJSON("new")
 	if err != nil {
@@ -1009,7 +1018,10 @@ func (um *DxmUserManagement) UserDeleteByUid(aepr *api.DXAPIEndPointRequest) (er
 	if err != nil {
 		return err
 	}
-	userId := row[um.User.FieldNameForRowId].(int64)
+	userId, err := utils.GetInt64FromKV(row, um.User.FieldNameForRowId)
+	if err != nil {
+		return err
+	}
 
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 		_, user, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
@@ -1296,7 +1308,11 @@ func (um *DxmUserManagement) UserPasswordVerify(l *dxlibLog.DXLog, userId int64,
 	if userPasswordRow == nil {
 		return false, errors.New("userPasswordVerify:USER_PASSWORD_NOT_FOUND")
 	}
-	verificationResult, err = um.passwordHashVerify(tryPassword, userPasswordRow["value"].(string))
+	userPasswordValue, err := utils.GetStringFromKV(userPasswordRow, "value")
+	if err != nil {
+		return false, err
+	}
+	verificationResult, err = um.passwordHashVerify(tryPassword, userPasswordValue)
 	if err != nil {
 		return false, err
 	}
@@ -1316,10 +1332,22 @@ func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString 
 		return nil, nil, nil, errors.New("PREKEY_NOT_FOUND")
 	}
 
-	sharedKey1AsHexString := preKeyData["shared_key_1"].(string)
-	sharedKey2AsHexString := preKeyData["shared_key_2"].(string)
-	edA0PublicKeyAsHexString := preKeyData["a0_public_key"].(string)
-	edB0PrivateKeyAsHexString := preKeyData["b0_private_key"].(string)
+	sharedKey1AsHexString, err := utils.GetStringFromKV(preKeyData, "shared_key_1")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	sharedKey2AsHexString, err := utils.GetStringFromKV(preKeyData, "shared_key_2")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	edA0PublicKeyAsHexString, err := utils.GetStringFromKV(preKeyData, "a0_public_key")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	edB0PrivateKeyAsHexString, err := utils.GetStringFromKV(preKeyData, "b0_private_key")
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	sharedKey1AsBytes, err := hex.DecodeString(sharedKey1AsHexString)
 	if err != nil {
@@ -1362,12 +1390,30 @@ func (um *DxmUserManagement) PreKeyUnpackCaptcha(preKeyIndex string, datablockAs
 		return nil, nil, nil, "", "", errors.New("PREKEY_NOT_FOUND")
 	}
 
-	sharedKey1AsHexString := preKeyData["shared_key_1"].(string)
-	sharedKey2AsHexString := preKeyData["shared_key_2"].(string)
-	edA0PublicKeyAsHexString := preKeyData["a0_public_key"].(string)
-	edB0PrivateKeyAsHexString := preKeyData["b0_private_key"].(string)
-	captchaId = preKeyData["captcha_id"].(string)
-	captchaText = preKeyData["captcha_text"].(string)
+	sharedKey1AsHexString, err := utils.GetStringFromKV(preKeyData, "shared_key_1")
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+	sharedKey2AsHexString, err := utils.GetStringFromKV(preKeyData, "shared_key_2")
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+	edA0PublicKeyAsHexString, err := utils.GetStringFromKV(preKeyData, "a0_public_key")
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+	edB0PrivateKeyAsHexString, err := utils.GetStringFromKV(preKeyData, "b0_private_key")
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+	captchaId, err = utils.GetStringFromKV(preKeyData, "captcha_id")
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
+	captchaText, err = utils.GetStringFromKV(preKeyData, "captcha_text")
+	if err != nil {
+		return nil, nil, nil, "", "", err
+	}
 
 	sharedKey1AsBytes, err := hex.DecodeString(sharedKey1AsHexString)
 	if err != nil {

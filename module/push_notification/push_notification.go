@@ -189,7 +189,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	}
 
 	var userTokenId int64
-	
+
 	_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
 		"user_id":            userId,
@@ -809,21 +809,49 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 	}
 
 	for _, fcmTopicMessage := range fcmTopicMessages {
-		fcmMessageId := fcmTopicMessage["id"].(int64)
+		fcmMessageId, err := utils.GetInt64FromKV(fcmTopicMessage, "id")
+		if err != nil {
+			log.Log.Warnf("FCM_TOPIC_MESSAGE_ID_TYPE_ASSERTION_FAILED")
+			continue
+		}
 		log.Log.Debugf("Processing topic message %d", fcmMessageId)
 
-		retryCount := fcmTopicMessage["retry_count"].(int64)
-		fcmTopicMessageId := fcmTopicMessage["id"].(int64)
-		msgTopic := fcmTopicMessage["topic"].(string)
-		msgTitle := fcmTopicMessage["title"].(string)
-		msgBody := fcmTopicMessage["body"].(string)
+		retryCount, err := utils.GetInt64FromKV(fcmTopicMessage, "retry_count")
+		if err != nil {
+			log.Log.Warnf("FCM_TOPIC_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
+		fcmTopicMessageId, err := utils.GetInt64FromKV(fcmTopicMessage, "id")
+		if err != nil {
+			log.Log.Warnf("FCM_TOPIC_MESSAGE_ID_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
+		msgTopic, err := utils.GetStringFromKV(fcmTopicMessage, "topic")
+		if err != nil {
+			log.Log.Warnf("FCM_TOPIC_MESSAGE_TOPIC_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
+		msgTitle, err := utils.GetStringFromKV(fcmTopicMessage, "title")
+		if err != nil {
+			log.Log.Warnf("FCM_TOPIC_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
+		msgBody, err := utils.GetStringFromKV(fcmTopicMessage, "body")
+		if err != nil {
+			log.Log.Warnf("FCM_TOPIC_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
 		msgData := map[string]string{"retry_count": fmt.Sprintf("%d", retryCount)}
-		if msgDataTemp, ok := fcmTopicMessage["data"].(map[string]string); ok {
+		if msgDataTemp, err := utils.GetVFromKV[map[string]string](fcmTopicMessage, "data"); err == nil {
 			msgData = msgDataTemp
 		}
 
 		if fcmTopicMessage["next_retry_time"] != nil {
-			MsgNextRetryTime := fcmTopicMessage["next_retry_time"].(time.Time)
+			MsgNextRetryTime, err := utils.GetVFromKV[time.Time](fcmTopicMessage, "next_retry_time")
+			if err != nil {
+				log.Log.Warnf("FCM_TOPIC_MESSAGE_NEXT_RETRY_TIME_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+				continue
+			}
 			if MsgNextRetryTime.After(time.Now()) {
 				continue // Skip messages that are not ready for retry
 			}
