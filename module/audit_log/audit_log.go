@@ -28,7 +28,7 @@ func (al *DxmAudit) Init(databaseNameId string) {
 	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }
 
-func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location string, text string, stack string) (err error) {
+func (al *DxmAudit) DoError(callerLog *log.DXLog, errPrev error, logLevel log.DXLogLevel, location string, text string, stack string) (err error) {
 	if errPrev != nil {
 		text = errPrev.Error() + "\n" + text
 	}
@@ -48,18 +48,28 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 	originalOnError := log.OnError
 	log.OnError = nil
 
-	_, err = ModuleAuditLog.ErrorLog.InsertReturningId(&log.Log, utils.JSON{
+	_, returningValues, err := ModuleAuditLog.ErrorLog.Insert(&log.Log, utils.JSON{
 		"at":        time.Now(),
 		"prefix":    app.App.NameId + " " + app.App.Version,
 		"log_level": logLevelAsString,
 		"location":  location,
 		"message":   st,
 		"stack":     stack,
-	})
+	}, []string{"id", "uid"})
 
 	if err != nil {
 		// OnError is still nil here, so Errorf won't trigger recursive DoError
 		log.Log.Errorf(err, "AUDIT_LOG_INSERT_ERROR_LOG_FAILED: failed to insert error log to databases")
+	}
+
+	// Store error_log id and uid on the caller's DXLog for API response correlation
+	if err == nil && callerLog != nil && returningValues != nil {
+		if id, ok := returningValues["id"].(int64); ok {
+			callerLog.LastErrorLogId = id
+		}
+		if uid, ok := returningValues["uid"].(string); ok {
+			callerLog.LastErrorLogUid = uid
+		}
 	}
 
 	// Restore OnError only after all error handling is complete
