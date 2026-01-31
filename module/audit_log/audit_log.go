@@ -57,11 +57,15 @@ func (al *DxmAudit) DoError(errPrev error, logLevel log.DXLogLevel, location str
 		"stack":     stack,
 	})
 
-	// Restore OnError
+	if err != nil {
+		// OnError is still nil here, so Errorf won't trigger recursive DoError
+		log.Log.Errorf(err, "AUDIT_LOG_INSERT_ERROR_LOG_FAILED: failed to insert error log to databases")
+	}
+
+	// Restore OnError only after all error handling is complete
 	log.OnError = originalOnError
 
 	if err != nil {
-		log.Log.Errorf(err, "AUDIT_LOG_INSERT_ERROR_LOG_FAILED: failed to insert error log to databases")
 		return err
 	}
 	return nil
