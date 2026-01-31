@@ -86,12 +86,30 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 	}
 	rr := r[0]
 
-	formNumberType := rr["type"].(string)
-	formNumberTemplate := rr["template"].(string)
-	formNumberPrefix := rr["prefix"].(string)
-	formNumberLastYear := rr["last_year"].(int64)
-	formNumberLastMonth := rr["last_month"].(int64)
-	formNumberLastSequence := rr["last_sequence"].(int64)
+	formNumberType, ok := rr["type"].(string)
+	if !ok {
+		return "", errors.Errorf("form number record 'type' is missing or not a string")
+	}
+	formNumberTemplate, ok := rr["template"].(string)
+	if !ok {
+		return "", errors.Errorf("form number record 'template' is missing or not a string")
+	}
+	formNumberPrefix, ok := rr["prefix"].(string)
+	if !ok {
+		return "", errors.Errorf("form number record 'prefix' is missing or not a string")
+	}
+	formNumberLastYear, ok := rr["last_year"].(int64)
+	if !ok {
+		return "", errors.Errorf("form number record 'last_year' is missing or not an int64")
+	}
+	formNumberLastMonth, ok := rr["last_month"].(int64)
+	if !ok {
+		return "", errors.Errorf("form number record 'last_month' is missing or not an int64")
+	}
+	formNumberLastSequence, ok := rr["last_sequence"].(int64)
+	if !ok {
+		return "", errors.Errorf("form number record 'last_sequence' is missing or not an int64")
+	}
 
 	// Format form number
 	formNumber := ""

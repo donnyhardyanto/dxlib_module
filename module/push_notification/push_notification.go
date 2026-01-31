@@ -156,7 +156,10 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	if err != nil {
 		return err
 	}
-	fcmApplicationId := fcmApplication["id"].(int64)
+	fcmApplicationId, ok := fcmApplication["id"].(int64)
+	if !ok {
+		return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+	}
 
 	_, existingUserTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
@@ -167,10 +170,17 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	}
 
 	for _, existingUserToken := range existingUserTokens {
-		existingUserId := existingUserToken["user_id"].(int64)
+		existingUserId, ok := existingUserToken["user_id"].(int64)
+		if !ok {
+			continue
+		}
 		if existingUserId != userId {
+			existingUserTokenId, ok := existingUserToken["id"].(int64)
+			if !ok {
+				continue
+			}
 			_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{
-				"id": existingUserToken["id"].(int64),
+				"id": existingUserTokenId,
 			})
 			if err != nil {
 				return err
@@ -179,6 +189,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	}
 
 	var userTokenId int64
+	var ok bool
 	_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
 		"user_id":            userId,
@@ -198,9 +209,15 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 		if err != nil {
 			return err
 		}
-		userTokenId = returningValues["id"].(int64)
+		userTokenId, ok = returningValues["id"].(int64)
+		if !ok {
+			return errors.New("RETURNING_USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
+		}
 	} else {
-		userTokenId = userToken["id"].(int64)
+		userTokenId, ok = userToken["id"].(int64)
+		if !ok {
+			return errors.New("USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
+		}
 	}
 
 	if err = dtx.Commit(); err != nil {
@@ -229,7 +246,10 @@ func (f *FirebaseCloudMessaging) SendTopic(l *log.DXLog, applicationNameId strin
 	if err != nil {
 		return err
 	}
-	fcmApplicationId := fcmApplication["id"].(int64)
+	fcmApplicationId, ok := fcmApplication["id"].(int64)
+	if !ok {
+		return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+	}
 
 	msgDataAsString, err := json.Marshal(msgData)
 	if err != nil {
@@ -273,7 +293,10 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 	if err != nil {
 		return err
 	}
-	fcmApplicationId := fcmApplication["id"].(int64)
+	fcmApplicationId, ok := fcmApplication["id"].(int64)
+	if !ok {
+		return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+	}
 
 	_, userToken, err := f.FCMUserToken.TxShouldSelectOne(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
@@ -283,7 +306,10 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 	if err != nil {
 		return err
 	}
-	userTokenId := userToken["id"].(int64)
+	userTokenId, ok := userToken["id"].(int64)
+	if !ok {
+		return errors.New("USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
+	}
 
 	msgDataAsString, err := json.Marshal(msgData)
 	if err != nil {
@@ -326,7 +352,10 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 		return err
 	}
 
-	fcmApplicationId := fcmApplication["id"].(int64)
+	fcmApplicationId, ok := fcmApplication["id"].(int64)
+	if !ok {
+		return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+	}
 
 	_, userTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
 		"fcm_application_id": fcmApplicationId,
@@ -437,8 +466,14 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 
 	for _, fcmApplication := range fcmApplications {
 
-		fcmApplicationId := fcmApplication["id"].(int64)
-		fcmApplicationNameId := fcmApplication["nameid"].(string)
+		fcmApplicationId, ok := fcmApplication["id"].(int64)
+		if !ok {
+			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+		}
+		fcmApplicationNameId, ok := fcmApplication["nameid"].(string)
+		if !ok {
+			return errors.New("FCM_APPLICATION_NAMEID_TYPE_ASSERTION_FAILED")
+		}
 
 		_, userTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
 			"fcm_application_id": fcmApplicationId,
@@ -496,8 +531,14 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic str
 
 	for _, fcmApplication := range fcmApplications {
 
-		fcmApplicationId := fcmApplication["id"].(int64)
-		fcmApplicationNameId := fcmApplication["nameid"].(string)
+		fcmApplicationId, ok := fcmApplication["id"].(int64)
+		if !ok {
+			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+		}
+		fcmApplicationNameId, ok := fcmApplication["nameid"].(string)
+		if !ok {
+			return errors.New("FCM_APPLICATION_NAMEID_TYPE_ASSERTION_FAILED")
+		}
 
 		fcmTopicMessageId, err := f.FCMTopicMessage.TxInsertReturningId(dtx, utils.JSON{
 			"fcm_application_id": fcmApplicationId,
@@ -524,8 +565,14 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic str
 }
 
 func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON utils.JSON, err error) {
-	fcmApplicationId := fcmApplication["id"].(int64)
-	fcmApplicationServiceAccountSource := fcmApplication["service_account_source"].(string)
+	fcmApplicationId, ok := fcmApplication["id"].(int64)
+	if !ok {
+		return nil, errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+	}
+	fcmApplicationServiceAccountSource, ok := fcmApplication["service_account_source"].(string)
+	if !ok {
+		return nil, errors.Errorf("FCM_APPLICATION_SERVICE_ACCOUNT_SOURCE_TYPE_ASSERTION_FAILED:%d", fcmApplicationId)
+	}
 	serviceAccountData, err := utils.GetJSONFromKV(fcmApplication, "service_account_data")
 	if err != nil {
 		return nil, errors.Wrapf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%+v", fcmApplicationId, err)
@@ -586,7 +633,12 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 	var wg sync.WaitGroup
 	for _, fcmApplication := range fcmApplications {
 		wg.Add(1)
-		fcmApplicationId := fcmApplication["id"].(int64)
+		fcmApplicationId, ok := fcmApplication["id"].(int64)
+		if !ok {
+			log.Log.Warnf("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+			wg.Done()
+			continue
+		}
 		dataAsJSON, err := GetFCMApplicationServiceAccountData(fcmApplication)
 		if err != nil {
 			log.Log.Errorf(err, "ERROR_GET_SERVICE_ACCOUNT_DATA:%d:%+v", fcmApplicationId, err)
@@ -601,8 +653,16 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 		}
 		go func() {
 			defer wg.Done()
-			fcmApplicationId := fcmApplication["id"].(int64)
-			fcmApplicationNameId := fcmApplication["nameid"].(string)
+			fcmApplicationId, ok := fcmApplication["id"].(int64)
+			if !ok {
+				log.Log.Warnf("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED_IN_GOROUTINE")
+				return
+			}
+			fcmApplicationNameId, ok := fcmApplication["nameid"].(string)
+			if !ok {
+				log.Log.Warnf("FCM_APPLICATION_NAMEID_TYPE_ASSERTION_FAILED_IN_GOROUTINE:%d", fcmApplicationId)
+				return
+			}
 			err := f.processSendTopic(fcmApplicationId)
 			if err != nil {
 				log.Log.Warnf("ERROR_PROCESSING_TOPIC_MESSAGES_FOR_SENDING_FROM_FCM_APPLICATION:%s:%v", fcmApplicationNameId, err)
@@ -636,21 +696,49 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 	}
 
 	for _, fcmMessage := range fcmMessages {
-		fcmMessageId := fcmMessage["id"].(int64)
+		fcmMessageId, ok := fcmMessage["id"].(int64)
+		if !ok {
+			log.Log.Warnf("FCM_MESSAGE_ID_TYPE_ASSERTION_FAILED")
+			continue
+		}
 		log.Log.Debugf("Processing message %d", fcmMessageId)
 
-		retryCount := fcmMessage["retry_count"].(int64)
-		fcmToken := fcmMessage["fcm_token"].(string)
-		deviceType := fcmMessage["device_type"].(string)
-		msgTitle := fcmMessage["title"].(string)
-		msgBody := fcmMessage["body"].(string)
+		retryCount, ok := fcmMessage["retry_count"].(int64)
+		if !ok {
+			log.Log.Warnf("FCM_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
+		fcmToken, ok := fcmMessage["fcm_token"].(string)
+		if !ok {
+			log.Log.Warnf("FCM_MESSAGE_FCM_TOKEN_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
+		deviceType, ok := fcmMessage["device_type"].(string)
+		if !ok {
+			log.Log.Warnf("FCM_MESSAGE_DEVICE_TYPE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
+		msgTitle, ok := fcmMessage["title"].(string)
+		if !ok {
+			log.Log.Warnf("FCM_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
+		msgBody, ok := fcmMessage["body"].(string)
+		if !ok {
+			log.Log.Warnf("FCM_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			continue
+		}
 		msgData := map[string]string{"retry_count": fmt.Sprintf("%d", retryCount)}
 		if msgDataTemp, ok := fcmMessage["data"].(map[string]string); ok {
 			msgData = msgDataTemp
 		}
 
 		if fcmMessage["next_retry_time"] != nil {
-			MsgNextRetryTime := fcmMessage["next_retry_time"].(time.Time)
+			MsgNextRetryTime, ok := fcmMessage["next_retry_time"].(time.Time)
+			if !ok {
+				log.Log.Warnf("FCM_MESSAGE_NEXT_RETRY_TIME_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+				continue
+			}
 			if MsgNextRetryTime.After(time.Now()) {
 				continue // Skip messages that are not ready for retry
 			}

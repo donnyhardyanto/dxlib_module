@@ -2,6 +2,7 @@ package user_management
 
 import (
 	"database/sql"
+	"fmt"
 	"sync"
 
 	"github.com/donnyhardyanto/dxlib/api"
@@ -31,7 +32,10 @@ func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *databases.DXDatabaseTx, 
 	if err != nil {
 		return 0, err
 	}
-	privilegeId := privilege["id"].(int64)
+	privilegeId, ok := privilege["id"].(int64)
+	if !ok {
+		return 0, fmt.Errorf("privilege 'id' is missing or not an int64 for privilege_name_id=%s", privilegeNameId)
+	}
 	id, err = um.RolePrivilege.TxInsertReturningId(dtx, utils.JSON{
 		"role_id":      roleId,
 		"privilege_id": privilegeId,
@@ -48,7 +52,11 @@ func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *databases.DXDatabase
 		dtx.Log.Panic("RolePrivilegeTxMustInsert | DxmUserManagement.Privilege.TxShouldGetByNameId", err)
 		return 0
 	}
-	privilegeId := privilege["id"].(int64)
+	privilegeId, ok := privilege["id"].(int64)
+	if !ok {
+		dtx.Log.Panic("RolePrivilegeTxMustInsert | privilege 'id' is missing or not an int64", fmt.Errorf("privilege_name_id=%s", privilegeNameId))
+		return 0
+	}
 	id, err = um.RolePrivilege.TxInsertReturningId(dtx, utils.JSON{
 		"role_id":      roleId,
 		"privilege_id": privilegeId,
@@ -66,7 +74,10 @@ func (um *DxmUserManagement) RolePrivilegeSxMustInsert(log *log.DXLog, roleId in
 		if err2 != nil {
 			return err2
 		}
-		privilegeId := privilege["id"].(int64)
+		privilegeId, ok := privilege["id"].(int64)
+		if !ok {
+			return fmt.Errorf("privilege 'id' is missing or not an int64 for privilege_name_id=%s", privilegeNameId)
+		}
 		id, err2 = um.RolePrivilege.TxInsertReturningId(dtx, utils.JSON{
 			"role_id":      roleId,
 			"privilege_id": privilegeId,
@@ -97,7 +108,11 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 		return 0
 	}
 
-	privilegeId := privilege["id"].(int64)
+	privilegeId, ok := privilege["id"].(int64)
+	if !ok {
+		err = fmt.Errorf("privilege 'id' is missing or not an int64 for privilege_name_id=%s", privilegeNameId)
+		return 0
+	}
 
 	id, err = um.RolePrivilege.InsertReturningId(log, utils.JSON{
 		"role_id":      roleId,

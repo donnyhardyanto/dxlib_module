@@ -376,10 +376,14 @@ func setParentMenuItemAllowed(allMenuItem *map[int64]utils.JSON, menuItem *utils
 
 // pruneMenuItems recursively prunes the menu items that are not allowed
 func pruneMenuItems(menuItem *utils.JSON) {
-	children := (*menuItem)["children"].(map[int64]*utils.JSON)
+	children, ok := (*menuItem)["children"].(map[int64]*utils.JSON)
+	if !ok {
+		return
+	}
 	for id, childMenuItemPtr := range children {
 		childMenuItem := *childMenuItemPtr
-		if !childMenuItem["allowed"].(bool) {
+		allowed, ok := childMenuItem["allowed"].(bool)
+		if !ok || !allowed {
 			delete(children, id)
 		} else {
 			pruneMenuItems(&childMenuItem)
@@ -395,25 +399,38 @@ func (s *DxmSelf) fetchMenuTree(l *log.DXLog, userEffectivePrivilegeIds map[stri
 		return nil, err
 	}
 	for _, menuItem := range menuItems {
-		allMenuItems[menuItem["id"].(int64)] = menuItem
+		menuItemId, ok := menuItem["id"].(int64)
+		if !ok {
+			continue
+		}
+		allMenuItems[menuItemId] = menuItem
 	}
 
 	// Build the complete menu tree
 	var roots []*utils.JSON
 	for _, menuItem := range allMenuItems {
-		menuItemIndex := menuItem["item_index"].(int64)
+		menuItemIndex, ok := menuItem["item_index"].(int64)
+		if !ok {
+			continue
+		}
 		if menuItem["children"] == nil {
 			menuItem["children"] = map[int64]*utils.JSON{}
 		}
 		if menuItem["parent_id"] != nil {
-			parentId := menuItem["parent_id"].(int64)
+			parentId, ok := menuItem["parent_id"].(int64)
+			if !ok {
+				continue
+			}
 			parentMenuItem := allMenuItems[parentId]
 			//			menuItem["parent_menu_item"] = &parentMenuItem
 			menuItem["allowed"] = false
 			if parentMenuItem["children"] == nil {
 				parentMenuItem["children"] = map[int64]*utils.JSON{}
 			}
-			parentMenuItem["children"].(map[int64]*utils.JSON)[menuItemIndex] = &menuItem
+			parentChildren, ok := parentMenuItem["children"].(map[int64]*utils.JSON)
+			if ok {
+				parentChildren[menuItemIndex] = &menuItem
+			}
 		} else {
 			roots = append(roots, &menuItem)
 		}
@@ -439,7 +456,10 @@ func (s *DxmSelf) fetchMenuTree(l *log.DXLog, userEffectivePrivilegeIds map[stri
 	// sort the children of each menu item by menuItem[item_index]
 	for _, menuItemPtr := range roots {
 		menuItem := *menuItemPtr
-		children := menuItem["children"].(map[int64]*utils.JSON)
+		children, ok := menuItem["children"].(map[int64]*utils.JSON)
+		if !ok {
+			continue
+		}
 		sortedChildren := make([]*utils.JSON, 0, len(children))
 		for _, childMenuItemPtr := range children {
 			childMenuItem := *childMenuItemPtr
@@ -448,7 +468,9 @@ func (s *DxmSelf) fetchMenuTree(l *log.DXLog, userEffectivePrivilegeIds map[stri
 		}
 		// Sort the slice based on item_index
 		sort.Slice(sortedChildren, func(i, j int) bool {
-			return (*sortedChildren[i])["item_index"].(int64) < (*sortedChildren[j])["item_index"].(int64)
+			iIdx, _ := (*sortedChildren[i])["item_index"].(int64)
+			jIdx, _ := (*sortedChildren[j])["item_index"].(int64)
+			return iIdx < jIdx
 		})
 		menuItem["children"] = sortedChildren
 	}
@@ -554,7 +576,10 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userId := user["id"].(int64)
+		userId, ok := user["id"].(int64)
+		if !ok {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:USER_ID_NOT_INT64")
+		}
 
 		us := utils.JSON{
 			"user_id": userId,
@@ -574,8 +599,14 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userLoggedOrganizationId = userLoggedOrganization["id"].(int64)
-		userLoggedOrganizationUid = userLoggedOrganization["uid"].(string)
+		userLoggedOrganizationId, ok = userLoggedOrganization["id"].(int64)
+		if !ok {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:ORGANIZATION_ID_NOT_INT64")
+		}
+		userLoggedOrganizationUid, ok = userLoggedOrganization["uid"].(string)
+		if !ok {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:ORGANIZATION_UID_NOT_STRING")
+		}
 	} else {
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
@@ -587,7 +618,10 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userId := user["id"].(int64)
+		userId, ok := user["id"].(int64)
+		if !ok {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:USER_ID_NOT_INT64")
+		}
 
 		us := utils.JSON{
 			"user_id": userId,
@@ -607,8 +641,14 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
-		userLoggedOrganizationId = userOrganizationMemberships[0]["organization_id"].(int64)
-		userLoggedOrganizationUid = userOrganizationMemberships[0]["organization_uid"].(string)
+		userLoggedOrganizationId, ok = userOrganizationMemberships[0]["organization_id"].(int64)
+		if !ok {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:ORGANIZATION_ID_NOT_INT64")
+		}
+		userLoggedOrganizationUid, ok = userOrganizationMemberships[0]["organization_uid"].(string)
+		if !ok {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:ORGANIZATION_UID_NOT_STRING")
+		}
 
 		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
 		if err != nil {
