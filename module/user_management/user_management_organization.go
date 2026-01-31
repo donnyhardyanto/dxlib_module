@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/pkg/errors"
 	"github.com/tealeg/xlsx"
 )
 
@@ -276,7 +276,8 @@ func (um *DxmUserManagement) doOrganizationCreate(log *dxlibLog.DXLog, organizat
 	}
 
 	// Create the organization using the existing method - create a dummy aepr for this
-	return um.Organization.Insert(log, o)
+	id, err := um.Organization.InsertReturningId(log, o)
+	return id, err
 }
 
 func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -334,6 +335,10 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 			filterWhere = fmt.Sprintf("(%s) and ", filterWhere)
 		}
 
+		if err := t.Database.EnsureConnection(); err != nil {
+			return err
+		}
+
 		switch t.Database.DatabaseType.String() {
 		case "sqlserver":
 			filterWhere = filterWhere + "(is_deleted=0)"
@@ -344,14 +349,16 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 		}
 	}
 
-	return t.DoRequestPagingList(aepr, filterWhere, filterOrderBy, filterKeyValues, func(listRow utils.JSON) (utils.JSON, error) {
-		organizationId := listRow["id"].(int64)
-		_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{"organization_id": organizationId}, nil, map[string]string{"id": "asc"}, nil)
-		if err != nil {
-			return listRow, err
+	return t.DoRequestPagingList(aepr, filterWhere, filterOrderBy, filterKeyValues, func(aepr *api.DXAPIEndPointRequest, list []utils.JSON) ([]utils.JSON, error) {
+		for i, listRow := range list {
+			organizationId := listRow["id"].(int64)
+			_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{"organization_id": organizationId}, nil, nil, nil, nil)
+			if err != nil {
+				return list, err
+			}
+			list[i]["organization_roles"] = organizationRoles
 		}
-		listRow["organization_roles"] = organizationRoles
-		return listRow, nil
+		return list, nil
 	})
 }
 
@@ -554,7 +561,7 @@ func (um *DxmUserManagement) OrganizationDelete(aepr *api.DXAPIEndPointRequest) 
 			filterWhere = fmt.Sprintf("(%s) and ", filterWhere)
 		}
 
-		switch t.Database.DatabaseType.String() {
+		switch t.DatabaseType.String() {
 		case "sqlserver":
 			filterWhere = filterWhere + "(is_deleted=0)"
 		case "postgres":
@@ -565,7 +572,7 @@ func (um *DxmUserManagement) OrganizationDelete(aepr *api.DXAPIEndPointRequest) 
 	}
 
 	if t.Database == nil {
-		t.Database = database.Manager.Databases[t.DatabaseNameId]
+		t.Database = databases.Manager.Databases[t.DatabaseNameId]
 	}
 
 	if !t.Database.Connected {

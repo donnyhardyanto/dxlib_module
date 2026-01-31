@@ -2,33 +2,30 @@ package general
 
 import (
 	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
-	"github.com/donnyhardyanto/dxlib/table"
+	"github.com/donnyhardyanto/dxlib/tables"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib_module/lib"
-	"github.com/pkg/errors"
 )
 
 type DxmGeneral struct {
 	dxlibModule.DXModule
-	Property            *table.DXPropertyTable
-	Announcement        *table.DXTable
+	Property            *tables.DXPropertyTable
+	Announcement        *tables.DXTable
 	AnnouncementPicture *lib.ImageObjectStorage
-	Template            *table.DXTable
+	Template            *tables.DXTable
 }
 
 func (g *DxmGeneral) Init(databaseNameId string) {
 	g.DatabaseNameId = databaseNameId
-	g.Property = table.Manager.NewPropertyTable(databaseNameId, "general.property",
-		"general.property",
-		"general.property", "nameid", "id", "uid", "data")
-	g.Announcement = table.Manager.NewTable(databaseNameId, "general.announcement",
-		"general.announcement",
-		"general.announcement", "uid", "id", "uid", "data")
-	g.Template = table.Manager.NewTable(g.DatabaseNameId,
-		"general.template", "general.template",
-		"general.template", "nameid", "id", "uid", "data")
+	g.Property = tables.NewDXPropertyTableSimple(databaseNameId, "general.property",
+		"general.property", "general.property", "id", "uid", "nameid", "data", nil)
+	g.Announcement = tables.NewDXTableSimple(databaseNameId, "general.announcement",
+		"general.announcement", "general.announcement", "id", "uid", "uid", "data", nil, nil, []string{"title", "content"}, []string{"id", "title", "timestamp", "created_at"})
+	g.Template = tables.NewDXTableSimple(g.DatabaseNameId,
+		"general.template", "general.template", "general.template", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, []string{"nameid", "type", "subject", "body"}, []string{"id", "nameid", "type", "subject", "created_at"})
 }
 
 func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.JSON, templateTitle string, templateContentType string, templateBody string, err error) {

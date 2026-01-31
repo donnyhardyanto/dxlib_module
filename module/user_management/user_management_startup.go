@@ -5,18 +5,17 @@ import (
 	"fmt"
 
 	"github.com/donnyhardyanto/dxlib/app"
-	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/databases"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
 func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlibLog.DXLog) (err error) {
-	d := database.Manager.Databases[um.DatabaseNameId]
-	err = d.Tx(l, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(l, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
-		_, userSuperAdmin, err := um.User.TxSelectOne(tx, utils.JSON{
+		_, userSuperAdmin, err := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"loginid": "superadmin",
-		}, nil)
+		}, nil, nil, nil)
 		if err != nil {
 			l.Errorf(err, "Failed to check superadmin user: %s", err.Error())
 			return err
@@ -25,9 +24,9 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 			err = l.ErrorAndCreateErrorf("Superadmin user not found")
 			return err
 		}
-		_, userPassword, err := um.UserPassword.TxSelectOne(tx, utils.JSON{
+		_, userPassword, err := um.UserPassword.TxSelectOne(tx, nil, utils.JSON{
 			"user_id": userSuperAdmin["id"],
-		}, nil)
+		}, nil, nil, nil)
 		if err != nil {
 			l.Errorf(err, "Failed to check superadmin user password: %s", err.Error())
 			return err

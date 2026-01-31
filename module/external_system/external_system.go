@@ -1,25 +1,25 @@
 package external_system
 
 import (
-	"github.com/donnyhardyanto/dxlib/api"
-	"github.com/donnyhardyanto/dxlib/table"
-	"github.com/donnyhardyanto/dxlib/utils"
 	"net/http"
+
+	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/tables"
+	"github.com/donnyhardyanto/dxlib/utils"
 )
 
 type DxmExternalSystemLoginFunc func(aNameId string, key string, secret string, ttl int) (isSuccess bool, session string, err error)
 type DxmExternalSystemAuthenticateFunc func(aNameId string, session string, ttl int) (err error)
 
 type DxmExternalSystem struct {
-	ExternalSystem *table.DXTable
+	ExternalSystem *tables.DXTable
 	OnLogin        DxmExternalSystemLoginFunc
 	OnAuthenticate DxmExternalSystemAuthenticateFunc
 }
 
 func (w *DxmExternalSystem) Init(databaseNameId string) {
-	w.ExternalSystem = table.Manager.NewTable(databaseNameId, "configuration.external_system",
-		"configuration.external_system",
-		"configuration.external_system", "nameid", "id", "uid", "data")
+	w.ExternalSystem = tables.NewDXTableSimple(databaseNameId, "configuration.external_system",
+		"configuration.external_system", "configuration.external_system", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, []string{"nameid", "type"}, []string{"id", "nameid", "type", "created_at", "last_modified_at"})
 }
 func (w *DxmExternalSystem) ExternalSystemList(aepr *api.DXAPIEndPointRequest) (err error) {
 	return w.ExternalSystem.RequestPagingList(aepr)

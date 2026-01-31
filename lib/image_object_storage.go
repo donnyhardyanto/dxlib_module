@@ -18,8 +18,8 @@ import (
 	"github.com/HugoSmits86/nativewebp"
 
 	"github.com/donnyhardyanto/dxlib/api"
+	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/object_storage"
-	"github.com/pkg/errors"
 	"golang.org/x/image/draw"
 )
 
@@ -206,7 +206,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		bodyLen = int64(len(decodedBytes))
 		aepr.Log.Infof("Base64 decoded content length: %d", bodyLen)
 
-		// Write decoded bytes to buffer
+		// Write decoded bytes to the buffer
 		buf.Write(decodedBytes)
 	}
 
@@ -245,7 +245,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 			return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "", "OBJECT_STORAGE_NAME_NOT_FOUND:%s", processedImage.ObjectStorageNameId)
 		}
 
-		// Set a maximum target height based on aspect ratio and configured width
+		// Set a maximum target height based on an aspect ratio and configured width
 		targetHeight := calculateAspectRatioHeight(originalWidth, originalHeight, processedImage.Width)
 
 		// Safeguard against extremely tall images

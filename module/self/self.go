@@ -14,15 +14,17 @@ import (
 	"time"
 	"unicode"
 
+	"log/slog"
+	"os"
+
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/configuration"
-	"github.com/donnyhardyanto/dxlib/database"
+	"github.com/donnyhardyanto/dxlib/databases"
 	"github.com/donnyhardyanto/dxlib/endpoint_rate_limiter"
+	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
@@ -60,7 +62,8 @@ func (s *DxmSelf) Init(databaseNameId string) {
 	if s.OnInitialize != nil {
 		err := s.OnInitialize(s)
 		if err != nil {
-			logrus.Panic(err)
+			slog.Error("initialization failed", slog.Any("error", err))
+			os.Exit(1)
 		}
 	}
 }
@@ -387,7 +390,7 @@ func pruneMenuItems(menuItem *utils.JSON) {
 func (s *DxmSelf) fetchMenuTree(l *log.DXLog, userEffectivePrivilegeIds map[string]int64) ([]*utils.JSON, error) {
 	// select all menu items available
 	allMenuItems := map[int64]utils.JSON{}
-	_, menuItems, err := user_management.ModuleUserManagement.MenuItem.Select(l, nil, nil, nil, map[string]string{"id": "ASC"}, nil)
+	_, menuItems, err := user_management.ModuleUserManagement.MenuItem.Select(l, nil, nil, nil, map[string]string{"id": "ASC"}, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -562,7 +565,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil)
+			map[string]string{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -595,7 +598,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil)
+			map[string]string{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -725,7 +728,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil)
+			map[string]string{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -758,7 +761,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil)
+			map[string]string{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -833,7 +836,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 
 	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
 		"user_id": userId,
-	}, nil, map[string]string{"id": "ASC"}, nil)
+	}, nil, map[string]string{"id": "ASC"}, nil, nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -842,7 +845,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 	for _, roleMembership := range userRoleMemberships {
 		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
 			"role_id": roleMembership["role_id"],
-		}, nil, nil, nil)
+		}, nil, nil, nil, nil)
 		if err != nil {
 			return nil, false, err
 		}
@@ -851,7 +854,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 
 			privilegeId := v1["privilege_id"].(int64)
 			if privilegeNameId == "EVERYTHING" {
-				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil)
+				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil, nil)
 				if err != nil {
 					return nil, false, err
 				}
@@ -982,11 +985,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	captchaText := string(lvPayloadCaptchaText.Value)
 
 	if captchaId != storedCaptchaId {
-		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 	if captchaText != storedCaptchaText {
-		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 
@@ -1026,7 +1029,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		}
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil)
+			map[string]string{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -1198,11 +1201,11 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 	storedCaptchaText := preKeyData["captcha_text"].(string)
 
 	if captchaId != storedCaptchaId {
-		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 	if captchaText != storedCaptchaText {
-		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
 		return
 	}
 
@@ -1242,7 +1245,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 
 		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil)
+			map[string]string{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -1498,7 +1501,7 @@ func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffec
 	// The system now in maintenance mode
 	_, ok = userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 	if !ok {
-		_ = aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
 		// If the user has no PrivilegeNameIdSetMaintenance then false
 		return nil
 	}
@@ -1523,11 +1526,13 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 
 	sessionObject, err := SessionKeyToSessionObject(aepr, sessionKey)
 	if err != nil {
-		return aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		return nil
 	}
 
 	if sessionObject == nil {
-		return aepr.WriteResponseAsErrorMessageNotLoggedAsError(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
+		return nil
 	}
 
 	userEffectivePrivilegeIds := sessionObject["user_effective_privilege_ids"].(map[string]any)
@@ -1709,8 +1714,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	userId := aepr.LocalData["user_id"].(int64)
 	var verificationResult bool
 
-	d := database.Manager.Databases[s.DatabaseNameId]
-	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			"id": userId,
@@ -1737,7 +1741,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 		aepr.Log.Infof("User password changed")
 
-		_, err = user_management.ModuleUserManagement.User.Update(utils.JSON{
+		_, err = user_management.ModuleUserManagement.User.UpdateSimple(utils.JSON{
 			"must_change_password": false,
 		}, utils.JSON{
 			"id": userId,
@@ -1771,8 +1775,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 	userId := aepr.LocalData["user_id"].(int64)
 	var verificationResult bool
 
-	d := database.Manager.Databases[s.DatabaseNameId]
-	err = d.Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *database.DXDatabaseTx) (err error) {
+	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
 			"id": userId,
@@ -1799,7 +1802,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 		}
 		aepr.Log.Infof("User password changed")
 
-		_, err = user_management.ModuleUserManagement.User.Update(utils.JSON{
+		_, err = user_management.ModuleUserManagement.User.UpdateSimple(utils.JSON{
 			"must_change_password": false,
 		}, utils.JSON{
 			"id": userId,
@@ -1826,7 +1829,7 @@ func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	_, err = user_management.ModuleUserManagement.User.UpdateOne(&aepr.Log, userId, utils.JSON{
+	_, err = user_management.ModuleUserManagement.User.UpdateById(&aepr.Log, userId, utils.JSON{
 		"is_avatar_exist": true,
 	})
 	return nil
@@ -1848,7 +1851,7 @@ func (s *DxmSelf) SelfAvatarUpdateFileContentBase64(aepr *api.DXAPIEndPointReque
 		return err
 	}
 
-	_, err = user_management.ModuleUserManagement.User.UpdateOne(&aepr.Log, userId, utils.JSON{
+	_, err = user_management.ModuleUserManagement.User.UpdateById(&aepr.Log, userId, utils.JSON{
 		"is_avatar_exist": true,
 	})
 	return nil
@@ -1970,14 +1973,14 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest)
 	if err != nil {
 		return err
 	}
-	_, _, err = user_management.ModuleUserManagement.UserMessage.ShouldSelectOne(&aepr.Log, utils.JSON{
+	_, _, err = user_management.ModuleUserManagement.UserMessage.ShouldSelectOne(&aepr.Log, nil, utils.JSON{
 		"id":      userMessageId,
 		"user_id": userId,
 	}, nil, nil)
 	if err != nil {
 		return err
 	}
-	_, err = user_management.ModuleUserManagement.UserMessage.Update(utils.JSON{
+	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(utils.JSON{
 		"is_read": true,
 	}, utils.JSON{
 		"id":      userMessageId,
@@ -1991,7 +1994,7 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest)
 
 func (s *DxmSelf) SelfUserMessageAllIsReadSetToTrue(aepr *api.DXAPIEndPointRequest) (err error) {
 	userId := aepr.LocalData["user_id"].(int64)
-	_, err = user_management.ModuleUserManagement.UserMessage.Update(utils.JSON{
+	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(utils.JSON{
 		"is_read": true,
 	}, utils.JSON{
 		"user_id": userId,

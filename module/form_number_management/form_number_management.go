@@ -1,27 +1,30 @@
-// Package form_number_management provides cross-database form number generation with automatic monthly reset
+// Package form_number_management provides cross-databases form number generation with automatic monthly reset
 package form_number_management
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/donnyhardyanto/dxlib/database/database_type"
-	"github.com/donnyhardyanto/dxlib/database/protected/db"
+	"github.com/donnyhardyanto/dxlib/base"
+	"github.com/donnyhardyanto/dxlib/databases/db"
+	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
-	"github.com/donnyhardyanto/dxlib/table"
-	"github.com/pkg/errors"
+	"github.com/donnyhardyanto/dxlib/tables"
 )
 
 type DxmFormNumberManagement struct {
 	dxlibModule.DXModule
 
-	FormNumberCounter *table.DXRawTable
+	FormNumberCounter *tables.DXRawTable
 }
 
 func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 	fnm.DatabaseNameId = databaseNameId
-	fnm.FormNumberCounter = table.Manager.NewRawTable(fnm.DatabaseNameId, "form_number_management.form_number_counters", "form_number_management.form_number_counters",
-		"form_number_management.form_number_counters", "nameid", "id", "uid", "data")
+	fnm.FormNumberCounter = tables.NewDXRawTableSimple(fnm.DatabaseNameId,
+		"form_number_management.form_number_counters",
+		"form_number_management.form_number_counters",
+		"form_number_management.form_number_counters",
+		"id", "uid", "nameid", "data", nil, [][]string{{"nameid"}}, []string{"nameid", "type", "prefix"}, []string{"id", "nameid", "type", "last_year", "last_month", "last_sequence"})
 }
 
 // Generate creates a new form number with automatic monthly reset
@@ -39,7 +42,7 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 		return "", errors.Errorf("invalid timezone '%s': %+v", timezone, err)
 	}
 
-	// Get current year and month separately in specified timezone
+	// Get the current year and month separately in ma specified timezone
 	now := time.Now().In(loc)
 	year := now.Year()
 	month := int(now.Month())
@@ -47,27 +50,32 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 	var query string
 	var args []interface{}
 
+	err = fnm.FormNumberCounter.EnsureDatabase()
+	if err != nil {
+		return "", errors.Errorf("failed to ensure databases connection: %+v", err)
+	}
+
 	switch fnm.FormNumberCounter.Database.DatabaseType {
-	case database_type.PostgreSQL:
+	case base.DXDatabaseTypePostgreSQL:
 		query = fnm.getPostgreSQLQuery()
 		args = []interface{}{nameid, year, month}
 
-	case database_type.Oracle:
+	case base.DXDatabaseTypeOracle:
 		query = fnm.getOracleQuery()
 		args = []interface{}{nameid, year, month} // 3 parameters instead of 6
 
-	case database_type.SQLServer:
+	case base.DXDatabaseTypeSQLServer:
 		query = fnm.getSQLServerQuery()
 		args = []interface{}{nameid, year, month}
 
-	case database_type.MariaDB:
+	case base.DXDatabaseTypeMariaDB:
 		query = fnm.getMariaDBQuery()
 		args = []interface{}{nameid, year, month, year, month} // 5 parameters: INSERT (3) + UPDATE (2)
 	default:
-		return "", errors.Errorf("unsupported database type: %s", fnm.FormNumberCounter.Database.DatabaseType)
+		return "", errors.Errorf("unsupported databases type: %s", fnm.FormNumberCounter.Database.DatabaseType)
 	}
 
-	_, r, err := db.QueryRows(fnm.FormNumberCounter.Database.Connection, nil, query, args)
+	_, r, err := db.RawQueryRows(fnm.FormNumberCounter.Database.Connection, nil, query, args)
 	if err != nil {
 		return "", errors.Errorf("failed to generate form number: %+v", err)
 	}
