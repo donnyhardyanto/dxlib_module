@@ -49,12 +49,32 @@ func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.
 }
 
 func (g *DxmGeneral) TemplateCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, nameid, err := aepr.GetParameterValueAsString("nameid")
+	if err != nil {
+		return err
+	}
+	_, templateType, err := aepr.GetParameterValueAsString("type")
+	if err != nil {
+		return err
+	}
+	_, contentType, err := aepr.GetParameterValueAsString("content_type")
+	if err != nil {
+		return err
+	}
+	_, subject, err := aepr.GetParameterValueAsString("subject")
+	if err != nil {
+		return err
+	}
+	_, body, err := aepr.GetParameterValueAsString("body")
+	if err != nil {
+		return err
+	}
 	_, err = g.Template.DoCreate(aepr, map[string]any{
-		"nameid":       aepr.ParameterValues["nameid"].Value.(string),
-		"type":         aepr.ParameterValues["type"].Value.(string),
-		"content_type": aepr.ParameterValues["content_type"].Value.(string),
-		"subject":      aepr.ParameterValues["subject"].Value.(string),
-		"body":         aepr.ParameterValues["body"].Value.(string),
+		"nameid":       nameid,
+		"type":         templateType,
+		"content_type": contentType,
+		"subject":      subject,
+		"body":         body,
 	})
 	return err
 }

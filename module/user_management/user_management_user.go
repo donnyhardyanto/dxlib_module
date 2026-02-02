@@ -533,10 +533,22 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		attribute = ""
 	}
 
-	loginId := aepr.ParameterValues["loginid"].Value.(string)
-	email := aepr.ParameterValues["email"].Value.(string)
-	fullname := aepr.ParameterValues["fullname"].Value.(string)
-	phonenumber := aepr.ParameterValues["phonenumber"].Value.(string)
+	_, loginId, err := aepr.GetParameterValueAsString("loginid")
+	if err != nil {
+		return err
+	}
+	_, email, err := aepr.GetParameterValueAsString("email")
+	if err != nil {
+		return err
+	}
+	_, fullname, err := aepr.GetParameterValueAsString("fullname")
+	if err != nil {
+		return err
+	}
+	_, phonenumber, err := aepr.GetParameterValueAsString("phonenumber")
+	if err != nil {
+		return err
+	}
 	status := UserStatusActive
 
 	p := utils.JSON{
@@ -565,7 +577,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		p["gender"] = gender
 	}
 
-	addressOnIdentityCard, ok := aepr.ParameterValues["gender"].Value.(string)
+	addressOnIdentityCard, ok := aepr.ParameterValues["address_on_identity_card"].Value.(string)
 	if ok {
 		p["address_on_identity_card"] = addressOnIdentityCard
 	}
@@ -695,10 +707,22 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		attribute = ""
 	}
 
-	loginId := aepr.ParameterValues["loginid"].Value.(string)
-	email := aepr.ParameterValues["email"].Value.(string)
-	fullname := aepr.ParameterValues["fullname"].Value.(string)
-	phonenumber := aepr.ParameterValues["phonenumber"].Value.(string)
+	_, loginId, err := aepr.GetParameterValueAsString("loginid")
+	if err != nil {
+		return err
+	}
+	_, email, err := aepr.GetParameterValueAsString("email")
+	if err != nil {
+		return err
+	}
+	_, fullname, err := aepr.GetParameterValueAsString("fullname")
+	if err != nil {
+		return err
+	}
+	_, phonenumber, err := aepr.GetParameterValueAsString("phonenumber")
+	if err != nil {
+		return err
+	}
 	status := UserStatusActive
 
 	p := utils.JSON{
@@ -727,7 +751,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		p["gender"] = gender
 	}
 
-	addressOnIdentityCard, ok := aepr.ParameterValues["gender"].Value.(string)
+	addressOnIdentityCard, ok := aepr.ParameterValues["address_on_identity_card"].Value.(string)
 	if ok {
 		p["address_on_identity_card"] = addressOnIdentityCard
 	}

@@ -21,10 +21,22 @@ func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err err
 		return err
 	}
 
+	_, nameid, err := aepr.GetParameterValueAsString("nameid")
+	if err != nil {
+		return err
+	}
+	_, name, err := aepr.GetParameterValueAsString("name")
+	if err != nil {
+		return err
+	}
+	_, description, err := aepr.GetParameterValueAsString("description")
+	if err != nil {
+		return err
+	}
 	p := utils.JSON{
-		"nameid":      aepr.ParameterValues["nameid"].Value.(string),
-		"name":        aepr.ParameterValues["name"].Value.(string),
-		"description": aepr.ParameterValues["description"].Value.(string),
+		"nameid":      nameid,
+		"name":        name,
+		"description": description,
 	}
 
 	if isOrganizationTypes {
@@ -132,7 +144,10 @@ func (um *DxmUserManagement) RoleEditByUid(aepr *api.DXAPIEndPointRequest) (err 
 	if err != nil {
 		return err
 	}
-	id := row[t.FieldNameForRowId].(int64)
+	id, err := utils.GetInt64FromKV(row, t.FieldNameForRowId)
+	if err != nil {
+		return err
+	}
 
 	_, newFieldValues, err := aepr.GetParameterValueAsJSON("new")
 	if err != nil {

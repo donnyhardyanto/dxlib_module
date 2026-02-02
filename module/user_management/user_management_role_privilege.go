@@ -16,9 +16,17 @@ func (um *DxmUserManagement) RolePrivilegeList(aepr *api.DXAPIEndPointRequest) (
 }
 
 func (um *DxmUserManagement) RolePrivilegeCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, roleId, err := aepr.GetParameterValueAsString("role_id")
+	if err != nil {
+		return err
+	}
+	_, privilegeId, err := aepr.GetParameterValueAsString("privilege_id")
+	if err != nil {
+		return err
+	}
 	_, err = um.RolePrivilege.DoCreate(aepr, map[string]any{
-		"role_id":      aepr.ParameterValues["role_id"].Value.(string),
-		"privilege_id": aepr.ParameterValues["privilege_id"].Value.(string),
+		"role_id":      roleId,
+		"privilege_id": privilegeId,
 	})
 	return err
 }

@@ -7,15 +7,26 @@ import (
 )
 
 func (g *DxmGeneral) AnnouncementCreate(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, title, err := aepr.GetParameterValueAsString("title")
+	if err != nil {
+		return err
+	}
+	_, content, err := aepr.GetParameterValueAsString("content")
+	if err != nil {
+		return err
+	}
 	_, err = g.Announcement.DoCreate(aepr, map[string]any{
-		"title":   aepr.ParameterValues["title"].Value.(string),
-		"content": aepr.ParameterValues["content"].Value.(string),
+		"title":   title,
+		"content": content,
 	})
 	return err
 }
 
 func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
-	id := aepr.ParameterValues["id"].Value.(int64)
+	_, id, err := aepr.GetParameterValueAsInt64("id")
+	if err != nil {
+		return err
+	}
 
 	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
 	if err != nil {
@@ -34,7 +45,10 @@ func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (
 }
 
 func (g *DxmGeneral) AnnouncementPictureUpdateFileContentBase64(aepr *api.DXAPIEndPointRequest) (err error) {
-	id := aepr.ParameterValues["id"].Value.(int64)
+	_, id, err := aepr.GetParameterValueAsInt64("id")
+	if err != nil {
+		return err
+	}
 
 	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
 	if err != nil {
@@ -58,7 +72,10 @@ func (g *DxmGeneral) AnnouncementPictureUpdateFileContentBase64(aepr *api.DXAPIE
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRequest) (err error) {
-	id := aepr.ParameterValues["id"].Value.(int64)
+	_, id, err := aepr.GetParameterValueAsInt64("id")
+	if err != nil {
+		return err
+	}
 
 	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
 	if err != nil {
@@ -144,7 +161,10 @@ func (g *DxmGeneral) AnnouncementPictureDownloadBigByUid(aepr *api.DXAPIEndPoint
 }
 
 func (g *DxmGeneral) AnnouncementPictureDownloadByProcessedNameId(aepr *api.DXAPIEndPointRequest, processedImageNameId string) (err error) {
-	id := aepr.ParameterValues["id"].Value.(int64)
+	_, id, err := aepr.GetParameterValueAsInt64("id")
+	if err != nil {
+		return err
+	}
 
 	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
 	if err != nil {

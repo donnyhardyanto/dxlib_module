@@ -351,7 +351,10 @@ func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (e
 
 	return t.DoRequestPagingList(aepr, filterWhere, filterOrderBy, filterKeyValues, func(aepr *api.DXAPIEndPointRequest, list []utils.JSON) ([]utils.JSON, error) {
 		for i, listRow := range list {
-			organizationId := listRow["id"].(int64)
+			organizationId, err := utils.GetInt64FromKV(listRow, "id")
+		if err != nil {
+			return list, err
+		}
 			_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{"organization_id": organizationId}, nil, nil, nil, nil)
 			if err != nil {
 				return list, err
@@ -445,13 +448,28 @@ func (um *DxmUserManagement) OrganizationCreateByUid(aepr *api.DXAPIEndPointRequ
 	if err != nil {
 		return err
 	}
-	parentOrganizationId := parentOrganization["id"].(int64)
+	parentOrganizationId, err := utils.GetInt64FromKV(parentOrganization, "id")
+	if err != nil {
+		return err
+	}
+	_, code, err := aepr.GetParameterValueAsString("code")
+	if err != nil {
+		return err
+	}
+	_, name, err := aepr.GetParameterValueAsString("name")
+	if err != nil {
+		return err
+	}
+	_, organizationType, err := aepr.GetParameterValueAsString("type")
+	if err != nil {
+		return err
+	}
 
 	o := utils.JSON{
 		"parent_id": parentOrganizationId,
-		"code":      aepr.ParameterValues["code"].Value.(string),
-		"name":      aepr.ParameterValues["name"].Value.(string),
-		"type":      aepr.ParameterValues["type"].Value.(string),
+		"code":      code,
+		"name":      name,
+		"type":      organizationType,
 	}
 
 	_, _, err = aepr.AssignParameterNullableString(&o, "address")
