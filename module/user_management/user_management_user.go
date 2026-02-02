@@ -1189,7 +1189,7 @@ func (um *DxmUserManagement) TxUserPasswordCreate(tx *databases.DXDatabaseTx, us
 	if err != nil {
 		return err
 	}
-	_, err = um.UserPassword.TxInsertReturningId(tx, utils.JSON{
+	_, err = um.UserPassword.TxInsertAutoReturningId(tx, utils.JSON{
 		"user_id": userId,
 		"value":   hashedPasswordAsHexString,
 	})
@@ -1299,7 +1299,7 @@ func (um *DxmUserManagement) passwordHashVerify(tryPassword string, hashedPasswo
 }
 
 func (um *DxmUserManagement) UserPasswordVerify(l *dxlibLog.DXLog, userId int64, tryPassword string) (verificationResult bool, err error) {
-	_, userPasswordRow, err := um.UserPassword.SelectOne(l, nil, utils.JSON{
+	_, userPasswordRow, err := um.UserPassword.SelectOneAuto(l, []string{"id", "user_id", "value"}, utils.JSON{
 		"user_id": userId,
 	}, nil, map[string]string{"id": "DESC"})
 	if err != nil {

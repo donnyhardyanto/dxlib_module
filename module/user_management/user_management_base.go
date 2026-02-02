@@ -60,7 +60,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 	um.User = tables.NewDXTableSimple(databaseNameId, "user_management.user",
 		"user_management.user", "user_management.v_user", "id", "uid", "loginid", "data", nil, [][]string{{"loginid"}, {"identity_number"}}, []string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type"}, []string{"id", "loginid", "fullname", "email", "phonenumber", "status", "identity_type", "created_at", "last_modified_at"})
 	um.UserPassword = tables.NewDXTableWithEncryption(databaseNameId, "user_management.user_password",
-		"user_management.user_password", "user_management.v_user_password", "id", "uid", "", "data", nil, []databases.EncryptionColumnDef{
+		"user_management.user_password", "user_management.v_user_password", "id", "uid", "", "data", nil,
+		[]databases.EncryptionColumnDef{
 			{FieldName: "value_encrypted", DataFieldName: "value", AliasName: "value", EncryptionKeyDef: um.UserPasswordEncryptionKeyDef, HashFieldName: "", ViewHasDecrypt: true},
 		}, nil, nil, []string{"id", "user_id", "created_at"})
 	um.Role = tables.NewDXTableSimple(databaseNameId, "user_management.role",
