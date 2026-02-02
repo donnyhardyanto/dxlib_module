@@ -30,12 +30,13 @@ const (
 
 type DxmUserManagement struct {
 	dxlibModule.DXModule
+	UserPasswordEncryptionKeyDef         *databases.EncryptionKeyDef
 	UserOrganizationMembershipType       UserOrganizationMembershipType
 	SessionRedis                         *redis.DXRedis
 	PreKeyRedis                          *redis.DXRedis
 	User                                 *tables.DXTable
 	UserPassword                         *tables.DXTable
-	UserMessageChannnelType              *tables.DXRawTable
+	UserMessageChannelType               *tables.DXRawTable
 	UserMessageCategory                  *tables.DXRawTable
 	UserMessage                          *tables.DXTable
 	Role                                 *tables.DXTable
@@ -53,13 +54,15 @@ type DxmUserManagement struct {
 	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
 }
 
-func (um *DxmUserManagement) Init(databaseNameId string) {
+func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionKeyDef *databases.EncryptionKeyDef) {
 	um.DatabaseNameId = databaseNameId
-	// NewDXTableSimple(databaseNameId, tableName, resultObjectName, listViewNameId, fieldNameForRowId, fieldNameForRowUid, fieldNameForRowNameId, responseEnvelopeObjectName)
+	um.UserPasswordEncryptionKeyDef = userPasswordEncryptionKeyDef
 	um.User = tables.NewDXTableSimple(databaseNameId, "user_management.user",
 		"user_management.user", "user_management.v_user", "id", "uid", "loginid", "data", nil, [][]string{{"loginid"}, {"identity_number"}}, []string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type"}, []string{"id", "loginid", "fullname", "email", "phonenumber", "status", "identity_type", "created_at", "last_modified_at"})
-	um.UserPassword = tables.NewDXTableSimple(databaseNameId, "user_management.user_password",
-		"user_management.user_password", "user_management.user_password", "id", "uid", "", "data", nil, nil, nil, []string{"id", "user_id", "created_at"})
+	um.UserPassword = tables.NewDXTableWithEncryption(databaseNameId, "user_management.user_password",
+		"user_management.user_password", "user_management.v_user_password", "id", "uid", "", "data", nil, []databases.EncryptionColumnDef{
+			{FieldName: "fullname_encrypted", DataFieldName: "fullname", AliasName: "fullname", EncryptionKeyDef: um.UserPasswordEncryptionKeyDef, HashFieldName: "fullname_hashed", ViewHasDecrypt: true},
+		}, nil, nil, []string{"id", "user_id", "created_at"})
 	um.Role = tables.NewDXTableSimple(databaseNameId, "user_management.role",
 		"user_management.role", "user_management.role", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}, {"name"}}, []string{"nameid", "name", "description"}, []string{"id", "nameid", "name", "created_at", "last_modified_at"})
 	um.Role.FieldNameForRowUtag = "utag"
@@ -81,7 +84,7 @@ func (um *DxmUserManagement) Init(databaseNameId string) {
 		"user_management.user_role_membership", "user_management.v_user_role_membership", "id", "uid", "", "data", nil, [][]string{{"user_id", "role_id"}}, []string{"role_nameid", "role_name"}, []string{"id", "user_id", "role_id", "organization_id", "created_at", "last_modified_at"})
 	um.MenuItem = tables.NewDXTableSimple(databaseNameId, "user_management.menu_item",
 		"user_management.menu_item", "user_management.v_menu_item", "id", "uid", "composite_nameid", "data", nil, nil, []string{"nameid", "name", "composite_nameid", "privilege_nameid"}, []string{"id", "parent_id", "nameid", "name", "level", "item_index", "created_at", "last_modified_at"})
-	um.UserMessageChannnelType = tables.NewDXRawTableSimple(databaseNameId, "user_management.user_message_channel_type",
+	um.UserMessageChannelType = tables.NewDXRawTableSimple(databaseNameId, "user_management.user_message_channel_type",
 		"user_management.user_message_channel_type", "user_management.user_message_channel_type", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}, {"name"}}, []string{"nameid", "name"}, []string{"id", "nameid", "name"})
 	um.UserMessageCategory = tables.NewDXRawTableSimple(databaseNameId, "user_management.user_message_category",
 		"user_management.user_message_category", "user_management.user_message_category", "id", "uid", "nameid", "data", nil, [][]string{{"nameid"}, {"name"}}, []string{"nameid", "name"}, []string{"id", "nameid", "name"})
