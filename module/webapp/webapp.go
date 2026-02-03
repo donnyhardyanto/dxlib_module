@@ -13,8 +13,22 @@ type DxmWebapp struct {
 }
 
 func (w *DxmWebapp) Init(databaseNameId string) {
-	w.App = tables.NewDXTableSimple(databaseNameId, "webapp.app", "webapp.app", "webapp.app", "id", "uid", "nameid", "data", nil, nil, nil, nil)
-	w.Page = tables.NewDXTableSimple(databaseNameId, "webapp.page", "webapp.page", "webapp.page", "id", "uid", "nameid", "data", nil, nil, nil, nil)
+	w.App = tables.NewDXTableSimple(databaseNameId,
+		"webapp.app", "webapp.app", "webapp.app",
+		"id", "uid", "nameid", "data",
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+	w.Page = tables.NewDXTableSimple(databaseNameId,
+		"webapp.page", "webapp.page", "webapp.page",
+		"id", "uid", "nameid", "data",
+		nil,
+		nil,
+		nil,
+		nil,
+	)
 }
 
 func (w *DxmWebapp) AppList(aepr *api.DXAPIEndPointRequest) (err error) {

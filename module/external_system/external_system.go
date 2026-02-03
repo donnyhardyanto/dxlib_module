@@ -18,8 +18,9 @@ type DxmExternalSystem struct {
 }
 
 func (w *DxmExternalSystem) Init(databaseNameId string) {
-	w.ExternalSystem = tables.NewDXTableSimple(databaseNameId, "configuration.external_system",
-		"configuration.external_system", "configuration.v_external_system", "id", "uid", "nameid", "data",
+	w.ExternalSystem = tables.NewDXTableSimple(databaseNameId,
+		"configuration.external_system", "configuration.external_system", "configuration.v_external_system",
+		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
 		[]string{"nameid", "type"},

@@ -21,9 +21,7 @@ type DxmFormNumberManagement struct {
 func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 	fnm.DatabaseNameId = databaseNameId
 	fnm.FormNumberCounter = tables.NewDXRawTableSimple(fnm.DatabaseNameId,
-		"form_number_management.form_number_counters",
-		"form_number_management.form_number_counters",
-		"form_number_management.form_number_counters",
+		"form_number_management.form_number_counters", "form_number_management.form_number_counters", "form_number_management.form_number_counters",
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
