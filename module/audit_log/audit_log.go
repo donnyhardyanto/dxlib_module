@@ -20,11 +20,20 @@ type DxmAudit struct {
 
 func (al *DxmAudit) Init(databaseNameId string) {
 	al.UserActivityLog = tables.NewDXRawTableSimple(databaseNameId, "audit_log.user_activity_log",
-		"audit_log.user_activity_log", "audit_log.v_user_activity_log", "id", "uid", "id", "data", nil, nil, []string{"api_title", "method", "api_url", "ip_address", "user_loginid", "user_fullname", "activity_name", "activity_result_status"}, []string{"id", "start_time", "end_time", "status_code", "user_id", "activity_name"})
+		"audit_log.user_activity_log", "audit_log.v_user_activity_log", "id", "uid", "id", "data",
+		nil,
+		nil,
+		[]string{"api_title", "method", "api_url", "ip_address", "user_loginid", "user_fullname", "activity_name", "activity_result_status"},
+		[]string{"start_time", "user_fullname", "ip_address", "api_title", "api_url", "method", "status_code", "end_time"},
+	)
 	al.UserActivityLog.FieldMaxLengths = map[string]int{"error_message": 16000}
 
 	al.ErrorLog = tables.NewDXRawTableSimple(databaseNameId, "audit_log.error_log",
-		"audit_log.error_log", "audit_log.v_error_log", "id", "uid", "id", "data", nil, nil, []string{"prefix", "log_level", "location", "message"}, []string{"id", "at", "log_level", "location"})
+		"audit_log.error_log", "audit_log.v_error_log", "id", "uid", "id", "data",
+		nil,
+		nil,
+		[]string{"prefix", "log_level", "location", "message"},
+		[]string{"at", "location", "message", "stack"})
 	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }
 
