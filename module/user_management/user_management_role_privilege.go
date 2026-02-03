@@ -155,7 +155,7 @@ func (um *DxmUserManagement) RolePrivilegeSWgMustInsert(wg *sync.WaitGroup, log 
 	alog := log
 	db := databases.Manager.GetOrCreate(um.DatabaseNameId)
 
-	go func(aroleId int64, aprivilegeNameId string) {
+	go func(aRoleId int64, aPrivilegeNameId string) {
 		var err error
 
 		db.ConcurrencySemaphore <- struct{}{}
@@ -168,7 +168,7 @@ func (um *DxmUserManagement) RolePrivilegeSWgMustInsert(wg *sync.WaitGroup, log 
 			}
 		}()
 
-		um.RolePrivilegeMustInsert(alog, roleId, privilegeNameId)
+		um.RolePrivilegeMustInsert(alog, aRoleId, aPrivilegeNameId)
 	}(roleId, privilegeNameId)
 	return 0
 }

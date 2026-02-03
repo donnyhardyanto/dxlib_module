@@ -1706,7 +1706,7 @@ func (s *DxmSelf) MiddlewareRequestRateLimitCheck(aepr *api.DXAPIEndPointRequest
 	w := *aepr.ResponseWriter
 	if !allowed {
 		// Get blocked status and remaining time if blocked
-		blocked, remaining, _ := limiter.GetBlockedStatus(aepr.Request.Context(), rateLimitGroupNameId, identifier)
+		blocked, remaining, _ := limiter.GetBlockedStatus(aepr.Request.Context(), rateLimitGroupNameId, identifier) // error discarded: IsAllowed above already succeeded on same backend, so this call is virtually guaranteed to succeed; worst case, Retry-After header is omitted and 429 is still returned
 		if blocked {
 			w.Header().Set("Retry-After", fmt.Sprintf("%d", int(remaining.Seconds())))
 		}
