@@ -63,7 +63,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"loginid"}, {"identity_number"}},
 		[]string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type"},
-		[]string{"id", "loginid", "fullname", "email", "phonenumber", "status", "identity_type", "created_at", "last_modified_at"},
+		[]string{"id", "fullname", "email", "membership_number", "organization_name", "status", "phonenumber", "loginid", "identity_type", "identity_number", "attribute", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
 	)
 	um.UserPassword = tables.NewDXTableWithEncryption(databaseNameId,
 		"user_management.user_password", "user_management.user_password", "user_management.v_user_password",
@@ -82,7 +82,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"nameid"}, {"name"}},
 		[]string{"nameid", "name", "description"},
-		[]string{"id", "nameid", "name", "created_at", "last_modified_at"},
+		[]string{"id", "name", "nameid", "sales_area_name", "description", "organization_name", "organization_types", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
 	)
 	um.Role.FieldNameForRowUtag = "utag"
 	um.Role.FieldTypeMapping = map[string]string{
@@ -94,7 +94,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"code"}, {"name"}},
 		[]string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status"},
-		[]string{"id", "code", "name", "type", "status", "created_at", "last_modified_at"},
+		[]string{"id", "code", "name", "tags", "status", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
 	)
 	um.Organization.FieldNameForRowUtag = "utag"
 	um.OrganizationRoles = tables.NewDXTableSimple(databaseNameId,
@@ -119,7 +119,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"nameid"}},
 		[]string{"nameid", "name", "description"},
-		[]string{"id", "nameid", "name", "created_at", "last_modified_at"},
+		[]string{"id", "name", "nameid", "description", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
 	)
 	um.RolePrivilege = tables.NewDXTableSimple(databaseNameId,
 		"user_management.role_privilege", "user_management.role_privilege", "user_management.v_role_privilege",
