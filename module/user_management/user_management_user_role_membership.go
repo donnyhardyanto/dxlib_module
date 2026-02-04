@@ -9,10 +9,6 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
-func (um *DxmUserManagement) UserRoleMembershipList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.UserRoleMembership.RequestPagingList(aepr)
-}
-
 func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, userId, err := aepr.GetParameterValueAsInt64("user_id")
 	if err != nil {

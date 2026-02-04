@@ -11,10 +11,6 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
-func (um *DxmUserManagement) RolePrivilegeList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.RolePrivilege.RequestPagingList(aepr)
-}
-
 func (um *DxmUserManagement) RolePrivilegeCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, roleId, err := aepr.GetParameterValueAsString("role_id")
 	if err != nil {
@@ -29,10 +25,6 @@ func (um *DxmUserManagement) RolePrivilegeCreate(aepr *api.DXAPIEndPointRequest)
 		"privilege_id": privilegeId,
 	})
 	return err
-}
-
-func (um *DxmUserManagement) RolePrivilegeDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.RolePrivilege.RequestHardDelete(aepr)
 }
 
 func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *databases.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64, err error) {

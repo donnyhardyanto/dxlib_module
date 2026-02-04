@@ -11,10 +11,6 @@ import (
 	utilsJson "github.com/donnyhardyanto/dxlib/utils/json"
 )
 
-func (um *DxmUserManagement) RoleList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.RequestPagingList(aepr)
-}
-
 func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	isOrganizationTypes, organizationTypes, err := aepr.GetParameterValueAsStrings("organization_types")
 	if err != nil {
