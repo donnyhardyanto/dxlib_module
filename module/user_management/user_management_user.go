@@ -12,9 +12,9 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/databases"
-	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
+	"github.com/donnyhardyanto/dxlib/tables"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/datablock"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/rand"
@@ -31,7 +31,9 @@ func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err
 	if bs == nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "FAILED_TO_GET_BODY_STREAM:%s", "UserCreateBulk")
 	}
-	defer bs.Close()
+	defer func() {
+		_ = bs.Close()
+	}()
 
 	// Read the entire request body into a buffer
 	var buf bytes.Buffer
@@ -220,7 +222,7 @@ func (um *DxmUserManagement) isNumericUserColumn(header string) bool {
 	return numericColumns[header]
 }
 
-// Helper function to create user with proper validation
+// Helper function to create a user with proper validation
 func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[string]interface{}) error {
 	// Validate required fields
 	loginid, ok := userData["loginid"].(string)
@@ -318,7 +320,7 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 	var userRoleMembershipId int64
 
 	err := databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) error {
-		// Check if user already exists
+		// Check if a user already exists
 		_, existingUser, err := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"loginid": loginid,
 		}, nil, nil, nil)
@@ -386,29 +388,24 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 	return nil
 }
 
-func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error) {
-	isExistFilterWhere, filterWhere, err := aepr.GetParameterValueAsString("filter_where")
+func (um *DxmUserManagement) UserSearchPaging(aepr *api.DXAPIEndPointRequest) (err error) {
+	t := um.User
+
+	_, searchText, err := aepr.GetParameterValueAsString("search_text")
 	if err != nil {
 		return err
-	}
-	if !isExistFilterWhere {
-		filterWhere = ""
-	}
-	isExistFilterOrderBy, filterOrderBy, err := aepr.GetParameterValueAsString("filter_order_by")
-	if err != nil {
-		return err
-	}
-	if !isExistFilterOrderBy {
-		filterOrderBy = ""
 	}
 
-	isExistFilterKeyValues, filterKeyValues, err := aepr.GetParameterValueAsJSON("filter_key_values")
+	_, filterKeyValues, err := aepr.GetParameterValueAsJSON("filter_key_values")
 	if err != nil {
 		return err
 	}
-	if !isExistFilterKeyValues {
-		filterKeyValues = nil
+
+	_, orderByArray, err := aepr.GetParameterValueAsArrayOfAny("order_by")
+	if err != nil {
+		return err
 	}
+	orderByStr := tables.BuildOrderByString(orderByArray)
 
 	_, rowPerPage, err := aepr.GetParameterValueAsInt64("row_per_page")
 	if err != nil {
@@ -420,43 +417,34 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 		return err
 	}
 
-	_, isDeletedIncluded, err := aepr.GetParameterValueAsBool("is_deleted", false)
+	_, isDeletedIncluded, err := aepr.GetParameterValueAsBool("is_include_deleted", false)
 	if err != nil {
 		return err
 	}
 
-	t := um.User
+	if err := t.EnsureDatabase(); err != nil {
+		return err
+	}
+
+	qb := tables.NewQueryBuilder(t.Database.DatabaseType, t)
 	if !isDeletedIncluded {
-		if filterWhere != "" {
-			filterWhere = fmt.Sprintf("(%s) and ", filterWhere)
-		}
-
-		if err := t.Database.EnsureConnection(); err != nil {
-			return err
-		}
-
-		switch t.Database.DatabaseType.String() {
-		case "sqlserver":
-			filterWhere = filterWhere + "(is_deleted=0)"
-		case "postgres":
-			filterWhere = filterWhere + "(is_deleted=false)"
-		default:
-			filterWhere = filterWhere + "(is_deleted=0)"
+		qb.NotDeleted()
+	}
+	if searchText != "" {
+		qb.SearchLike(searchText, t.SearchTextFieldNames...)
+	}
+	if filterKeyValues != nil {
+		for k, v := range filterKeyValues {
+			qb.EqOrIn(k, v)
 		}
 	}
 
-	if err := t.Database.EnsureConnection(); err != nil {
-		return err
-	}
-
-	rowsInfo, list, totalRows, totalPage, _, err := db.NamedQueryPaging(t.Database.Connection, t.FieldTypeMapping, "", rowPerPage, pageIndex, "*", t.ListViewNameId,
-		filterWhere, "", filterOrderBy, filterKeyValues)
+	result, err := t.PagingWithBuilder(&aepr.Log, rowPerPage, pageIndex, qb, orderByStr)
 	if err != nil {
-		aepr.Log.Errorf(err, "Error at paging table %s (%s) ", t.ListViewNameId, err.Error())
 		return err
 	}
 
-	for i, row := range list {
+	for i, row := range result.Rows {
 		userId, err := utils.GetInt64FromKV(row, "id")
 		if err != nil {
 			return err
@@ -467,27 +455,17 @@ func (um *DxmUserManagement) UserList(aepr *api.DXAPIEndPointRequest) (err error
 		if err != nil {
 			return err
 		}
-		list[i]["organizations"] = userOrganizationMemberships
+		result.Rows[i]["organizations"] = userOrganizationMemberships
 		_, userRoleMemberships, err := um.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
 			"user_id": userId,
 		}, nil, nil, nil, nil)
 		if err != nil {
 			return err
 		}
-		list[i]["roles"] = userRoleMemberships
+		result.Rows[i]["roles"] = userRoleMemberships
 	}
 
-	data := utils.JSON{
-		"data": utils.JSON{
-			"list": utils.JSON{
-				"rows":       list,
-				"total_rows": totalRows,
-				"total_page": totalPage,
-				"rows_info":  rowsInfo,
-			},
-		}}
-
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, data)
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, result.ToResponseJSON())
 	return nil
 }
 

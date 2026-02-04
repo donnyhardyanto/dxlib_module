@@ -10,6 +10,7 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/errors"
+	"github.com/donnyhardyanto/dxlib/tables"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/tealeg/xlsx"
@@ -280,89 +281,87 @@ func (um *DxmUserManagement) doOrganizationCreate(log *dxlibLog.DXLog, organizat
 	return id, err
 }
 
-func (um *DxmUserManagement) OrganizationList(aepr *api.DXAPIEndPointRequest) (err error) {
+func (um *DxmUserManagement) OrganizationSearchPaging(aepr *api.DXAPIEndPointRequest) (err error) {
+	t := um.Organization
+
 	userOrganizationId, ok := aepr.LocalData["organization_id"].(int64)
 	if !ok {
 		return errors.New("USER_HAS_NO_ORGANIZATION_ID_OR_NOT_INT64")
 	}
 
-	isExistFilterWhere, filterWhere, err := aepr.GetParameterValueAsString("filter_where")
-	if err != nil {
-		return err
-	}
-	if !isExistFilterWhere {
-		filterWhere = ""
-	}
-
-	if userOrganizationId != 1 {
-		orgCond := fmt.Sprintf(
-			"(id = %d OR parent_id = %d)",
-			userOrganizationId, userOrganizationId,
-		)
-
-		if strings.TrimSpace(filterWhere) == "" {
-			filterWhere = orgCond
-		} else {
-			filterWhere = fmt.Sprintf("(%s) AND %s", filterWhere, orgCond)
-		}
-	}
-
-	isExistFilterOrderBy, filterOrderBy, err := aepr.GetParameterValueAsString("filter_order_by")
-	if err != nil {
-		return err
-	}
-	if !isExistFilterOrderBy {
-		filterOrderBy = ""
-	}
-
-	isExistFilterKeyValues, filterKeyValues, err := aepr.GetParameterValueAsJSON("filter_key_values")
-	if err != nil {
-		return err
-	}
-	if !isExistFilterKeyValues {
-		filterKeyValues = nil
-	}
-
-	t := um.Organization
-
-	_, isDeletedIncluded, err := aepr.GetParameterValueAsBool("is_deleted", false)
+	_, searchText, err := aepr.GetParameterValueAsString("search_text")
 	if err != nil {
 		return err
 	}
 
+	_, filterKeyValues, err := aepr.GetParameterValueAsJSON("filter_key_values")
+	if err != nil {
+		return err
+	}
+
+	_, orderByArray, err := aepr.GetParameterValueAsArrayOfAny("order_by")
+	if err != nil {
+		return err
+	}
+	orderByStr := tables.BuildOrderByString(orderByArray)
+
+	_, rowPerPage, err := aepr.GetParameterValueAsInt64("row_per_page")
+	if err != nil {
+		return err
+	}
+
+	_, pageIndex, err := aepr.GetParameterValueAsInt64("page_index")
+	if err != nil {
+		return err
+	}
+
+	_, isDeletedIncluded, err := aepr.GetParameterValueAsBool("is_include_deleted", false)
+	if err != nil {
+		return err
+	}
+
+	if err := t.EnsureDatabase(); err != nil {
+		return err
+	}
+
+	qb := tables.NewQueryBuilder(t.Database.DatabaseType, t)
 	if !isDeletedIncluded {
-		if filterWhere != "" {
-			filterWhere = fmt.Sprintf("(%s) and ", filterWhere)
+		qb.NotDeleted()
+	}
+	if searchText != "" {
+		qb.SearchLike(searchText, t.SearchTextFieldNames...)
+	}
+	if filterKeyValues != nil {
+		for k, v := range filterKeyValues {
+			qb.EqOrIn(k, v)
 		}
+	}
+	// Organization scope: if not root org (id=1), only show own org and children
+	if userOrganizationId != 1 {
+		qb.And(fmt.Sprintf("(id = %d OR parent_id = %d)", userOrganizationId, userOrganizationId))
+	}
 
-		if err := t.Database.EnsureConnection(); err != nil {
+	result, err := t.PagingWithBuilder(&aepr.Log, rowPerPage, pageIndex, qb, orderByStr)
+	if err != nil {
+		return err
+	}
+
+	for i, row := range result.Rows {
+		organizationId, err := utils.GetInt64FromKV(row, "id")
+		if err != nil {
 			return err
 		}
-
-		switch t.Database.DatabaseType.String() {
-		case "sqlserver":
-			filterWhere = filterWhere + "(is_deleted=0)"
-		case "postgres":
-			filterWhere = filterWhere + "(is_deleted=false)"
-		default:
-			filterWhere = filterWhere + "(is_deleted=0)"
+		_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{
+			"organization_id": organizationId,
+		}, nil, nil, nil, nil)
+		if err != nil {
+			return err
 		}
+		result.Rows[i]["organization_roles"] = organizationRoles
 	}
 
-	return t.DoRequestPagingList(aepr, filterWhere, filterOrderBy, filterKeyValues, func(aepr *api.DXAPIEndPointRequest, list []utils.JSON) ([]utils.JSON, error) {
-		for i, listRow := range list {
-			organizationId, err := utils.GetInt64FromKV(listRow, "id")
-			if err != nil {
-				return list, err
-			}
-			_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{"organization_id": organizationId}, nil, nil, nil, nil)
-			if err != nil {
-				return list, err
-			}
-			list[i]["organization_roles"] = organizationRoles
-		}
-		return list, nil
-	})
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, result.ToResponseJSON())
+	return nil
 }
 
 func (um *DxmUserManagement) OrganizationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
