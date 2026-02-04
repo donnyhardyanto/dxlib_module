@@ -405,7 +405,6 @@ func (um *DxmUserManagement) UserSearchPaging(aepr *api.DXAPIEndPointRequest) (e
 	if err != nil {
 		return err
 	}
-	orderByStr := tables.BuildOrderByString(orderByArray)
 
 	_, rowPerPage, err := aepr.GetParameterValueAsInt64("row_per_page")
 	if err != nil {
@@ -437,6 +436,11 @@ func (um *DxmUserManagement) UserSearchPaging(aepr *api.DXAPIEndPointRequest) (e
 		for k, v := range filterKeyValues {
 			qb.EqOrIn(k, v)
 		}
+	}
+
+	orderByStr, err := qb.BuildOrderByString(orderByArray)
+	if err != nil {
+		return err
 	}
 
 	result, err := t.PagingWithBuilder(&aepr.Log, rowPerPage, pageIndex, qb, orderByStr)

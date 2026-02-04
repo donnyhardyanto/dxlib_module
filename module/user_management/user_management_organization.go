@@ -303,7 +303,6 @@ func (um *DxmUserManagement) OrganizationSearchPaging(aepr *api.DXAPIEndPointReq
 	if err != nil {
 		return err
 	}
-	orderByStr := tables.BuildOrderByString(orderByArray)
 
 	_, rowPerPage, err := aepr.GetParameterValueAsInt64("row_per_page")
 	if err != nil {
@@ -339,6 +338,11 @@ func (um *DxmUserManagement) OrganizationSearchPaging(aepr *api.DXAPIEndPointReq
 	// Organization scope: if not root org (id=1), only show own org and children
 	if userOrganizationId != 1 {
 		qb.And(fmt.Sprintf("(id = %d OR parent_id = %d)", userOrganizationId, userOrganizationId))
+	}
+
+	orderByStr, err := qb.BuildOrderByString(orderByArray)
+	if err != nil {
+		return err
 	}
 
 	result, err := t.PagingWithBuilder(&aepr.Log, rowPerPage, pageIndex, qb, orderByStr)
