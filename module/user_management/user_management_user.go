@@ -676,7 +676,6 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		"must_change_password": false,
 		"is_avatar_exist":      false,
 		"is_organic":           isOrganic,
-		"membership_number":    membershipNumber,
 	}
 
 	identityNumber, ok := aepr.ParameterValues["identity_number"].Value.(string)
