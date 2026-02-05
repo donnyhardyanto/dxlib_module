@@ -32,7 +32,7 @@ func (w *DxmWebapp) Init(databaseNameId string) {
 }
 
 func (w *DxmWebapp) AppList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.App.RequestPagingList(aepr)
+	return w.App.RequestSearchPagingList(aepr)
 }
 
 func (w *DxmWebapp) AppCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -55,7 +55,7 @@ func (w *DxmWebapp) AppDelete(aepr *api.DXAPIEndPointRequest) (err error) {
 }
 
 func (w *DxmWebapp) PageList(aepr *api.DXAPIEndPointRequest) (err error) {
-	return w.Page.RequestPagingList(aepr)
+	return w.Page.RequestSearchPagingList(aepr)
 }
 
 func (w *DxmWebapp) PageCreate(aepr *api.DXAPIEndPointRequest) (err error) {

@@ -2154,11 +2154,11 @@ func (s *DxmSelf) SelfUserMessagePagingListAll(aepr *api.DXAPIEndPointRequest) (
 	if err != nil {
 		return err
 	}
-	err = user_management.ModuleUserManagement.UserMessage.DoRequestPagingList(aepr,
-		"user_id=:user_id", "id desc", utils.JSON{
-			"user_id":    userId,
-			"is_deleted": false,
-		}, nil)
+	qb := user_management.ModuleUserManagement.UserMessage.NewTableSelectQueryBuilder()
+	qb.NotDeleted()
+	qb.Eq("user_id", userId)
+	qb.OrderByDesc("id")
+	err = user_management.ModuleUserManagement.UserMessage.DoRequestSearchPagingList(aepr, qb, nil)
 	if err != nil {
 		return err
 	}
