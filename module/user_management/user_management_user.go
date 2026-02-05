@@ -390,40 +390,7 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 func (um *DxmUserManagement) UserSearchPaging(aepr *api.DXAPIEndPointRequest) (err error) {
 	t := um.User
 
-	_, searchText, err := aepr.GetParameterValueAsString("search_text")
-	if err != nil {
-		return err
-	}
-
-	_, filterKeyValues, err := aepr.GetParameterValueAsJSON("filter_key_values")
-	if err != nil {
-		return err
-	}
-
-	_, orderByArray, err := aepr.GetParameterValueAsArrayOfAny("order_by")
-	if err != nil {
-		return err
-	}
-
-	_, isDeletedIncluded, err := aepr.GetParameterValueAsBool("is_include_deleted", false)
-	if err != nil {
-		return err
-	}
-
 	qb := t.NewTableSelectQueryBuilder()
-	if !isDeletedIncluded {
-		qb.NotDeleted()
-	}
-	if searchText != "" {
-		qb.SearchLike(searchText, t.SearchTextFieldNames...)
-	}
-	if filterKeyValues != nil {
-		for k, v := range filterKeyValues {
-			qb.EqOrIn(k, v)
-		}
-	}
-
-	qb.ParseOrderByFromArray(orderByArray)
 
 	return t.DoRequestSearchPagingList(aepr, qb, func(aepr *api.DXAPIEndPointRequest, list []utils.JSON) ([]utils.JSON, error) {
 		for i, row := range list {

@@ -287,44 +287,11 @@ func (um *DxmUserManagement) OrganizationSearchPaging(aepr *api.DXAPIEndPointReq
 		return errors.New("USER_HAS_NO_ORGANIZATION_ID_OR_NOT_INT64")
 	}
 
-	_, searchText, err := aepr.GetParameterValueAsString("search_text")
-	if err != nil {
-		return err
-	}
-
-	_, filterKeyValues, err := aepr.GetParameterValueAsJSON("filter_key_values")
-	if err != nil {
-		return err
-	}
-
-	_, orderByArray, err := aepr.GetParameterValueAsArrayOfAny("order_by")
-	if err != nil {
-		return err
-	}
-
-	_, isDeletedIncluded, err := aepr.GetParameterValueAsBool("is_include_deleted", false)
-	if err != nil {
-		return err
-	}
-
 	qb := t.NewTableSelectQueryBuilder()
-	if !isDeletedIncluded {
-		qb.NotDeleted()
-	}
-	if searchText != "" {
-		qb.SearchLike(searchText, t.SearchTextFieldNames...)
-	}
-	if filterKeyValues != nil {
-		for k, v := range filterKeyValues {
-			qb.EqOrIn(k, v)
-		}
-	}
 	// Organization scope: if not root org (id=1), only show own org and children
 	if userOrganizationId != 1 {
 		qb.OrEq("id", userOrganizationId, "parent_id", userOrganizationId)
 	}
-
-	qb.ParseOrderByFromArray(orderByArray)
 
 	return t.DoRequestSearchPagingList(aepr, qb, func(aepr *api.DXAPIEndPointRequest, list []utils.JSON) ([]utils.JSON, error) {
 		for i, row := range list {
