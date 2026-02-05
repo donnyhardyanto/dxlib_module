@@ -14,7 +14,6 @@ import (
 	"github.com/donnyhardyanto/dxlib/databases"
 	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
-	"github.com/donnyhardyanto/dxlib/tables"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/datablock"
 	"github.com/donnyhardyanto/dxlib/utils/crypto/rand"
@@ -406,26 +405,12 @@ func (um *DxmUserManagement) UserSearchPaging(aepr *api.DXAPIEndPointRequest) (e
 		return err
 	}
 
-	_, rowPerPage, err := aepr.GetParameterValueAsInt64("row_per_page")
-	if err != nil {
-		return err
-	}
-
-	_, pageIndex, err := aepr.GetParameterValueAsInt64("page_index")
-	if err != nil {
-		return err
-	}
-
 	_, isDeletedIncluded, err := aepr.GetParameterValueAsBool("is_include_deleted", false)
 	if err != nil {
 		return err
 	}
 
-	if err := t.EnsureDatabase(); err != nil {
-		return err
-	}
-
-	qb := tables.NewQueryBuilder(t.Database.DatabaseType, t)
+	qb := t.NewTableSelectQueryBuilder()
 	if !isDeletedIncluded {
 		qb.NotDeleted()
 	}
@@ -438,39 +423,31 @@ func (um *DxmUserManagement) UserSearchPaging(aepr *api.DXAPIEndPointRequest) (e
 		}
 	}
 
-	orderByStr, err := qb.BuildOrderByString(orderByArray)
-	if err != nil {
-		return err
-	}
+	qb.ParseOrderByFromArray(orderByArray)
 
-	result, err := t.PagingWithBuilder(&aepr.Log, rowPerPage, pageIndex, qb, orderByStr)
-	if err != nil {
-		return err
-	}
-
-	for i, row := range result.Rows {
-		userId, err := utils.GetInt64FromKV(row, "id")
-		if err != nil {
-			return err
+	return t.DoRequestSearchPagingList(aepr, qb, func(aepr *api.DXAPIEndPointRequest, list []utils.JSON) ([]utils.JSON, error) {
+		for i, row := range list {
+			userId, err := utils.GetInt64FromKV(row, "id")
+			if err != nil {
+				return list, err
+			}
+			_, userOrganizationMemberships, err := um.UserOrganizationMembership.Select(&aepr.Log, nil, utils.JSON{
+				"user_id": userId,
+			}, nil, nil, nil, nil)
+			if err != nil {
+				return list, err
+			}
+			list[i]["organizations"] = userOrganizationMemberships
+			_, userRoleMemberships, err := um.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
+				"user_id": userId,
+			}, nil, nil, nil, nil)
+			if err != nil {
+				return list, err
+			}
+			list[i]["roles"] = userRoleMemberships
 		}
-		_, userOrganizationMemberships, err := um.UserOrganizationMembership.Select(&aepr.Log, nil, utils.JSON{
-			"user_id": userId,
-		}, nil, nil, nil, nil)
-		if err != nil {
-			return err
-		}
-		result.Rows[i]["organizations"] = userOrganizationMemberships
-		_, userRoleMemberships, err := um.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
-			"user_id": userId,
-		}, nil, nil, nil, nil)
-		if err != nil {
-			return err
-		}
-		result.Rows[i]["roles"] = userRoleMemberships
-	}
-
-	aepr.WriteResponseAsJSON(http.StatusOK, nil, result.ToResponseJSON())
-	return nil
+		return list, nil
+	})
 }
 
 func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err error) {
