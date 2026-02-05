@@ -649,6 +649,14 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	if err != nil {
 		return err
 	}
+	_, isOrganic, err := aepr.GetParameterValueAsBool("is_organic", false)
+	if err != nil {
+		return err
+	}
+	_, membershipNumber, err := aepr.GetParameterValueAsString("membership_number", "")
+	if err != nil {
+		return err
+	}
 	status := UserStatusActive
 
 	p := utils.JSON{
@@ -660,6 +668,8 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		"attribute":            attribute,
 		"must_change_password": false,
 		"is_avatar_exist":      false,
+		"is_organic":           isOrganic,
+		"membership_number":    membershipNumber,
 	}
 
 	identityNumber, ok := aepr.ParameterValues["identity_number"].Value.(string)
@@ -680,11 +690,6 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	addressOnIdentityCard, ok := aepr.ParameterValues["address_on_identity_card"].Value.(string)
 	if ok {
 		p["address_on_identity_card"] = addressOnIdentityCard
-	}
-
-	membershipNumber, ok := aepr.ParameterValues["membership_number"].Value.(string)
-	if !ok {
-		membershipNumber = ""
 	}
 
 	var userId int64
