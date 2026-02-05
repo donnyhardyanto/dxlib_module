@@ -2069,7 +2069,6 @@ func (s *DxmSelf) SelfUserMessagePagingListAll(aepr *api.DXAPIEndPointRequest) (
 		return err
 	}
 	qb := user_management.ModuleUserManagement.UserMessage.NewTableSelectQueryBuilder()
-	qb.NotDeleted()
 	qb.Eq("user_id", userId)
 	qb.OrderByDesc("id")
 	err = user_management.ModuleUserManagement.UserMessage.DoRequestSearchPagingList(aepr, qb, nil)
