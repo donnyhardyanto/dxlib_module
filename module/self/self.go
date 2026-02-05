@@ -6,16 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
-
-	"log/slog"
-	"os"
 
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/configuration"
@@ -1664,7 +1662,7 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 
 	userEffectivePrivilegeIds, err := utils.GetVFromKV[utils.JSON](sessionObject, "user_effective_privilege_ids")
 	if err != nil {
-		// fallback to map[string]int64 if it was stored that way (e.g. before serialized to JSON)
+		// fallback to map[string]int64 if it was stored that way (e.g., before serialized to JSON)
 		userEffectivePrivilegeIdsMap, ok := sessionObject["user_effective_privilege_ids"].(map[string]int64)
 		if !ok {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:USER_EFFECTIVE_PRIVILEGE_IDS_NOT_FOUND")
@@ -1706,7 +1704,7 @@ func (s *DxmSelf) MiddlewareRequestRateLimitCheck(aepr *api.DXAPIEndPointRequest
 	w := *aepr.ResponseWriter
 	if !allowed {
 		// Get blocked status and remaining time if blocked
-		blocked, remaining, _ := limiter.GetBlockedStatus(aepr.Request.Context(), rateLimitGroupNameId, identifier) // error discarded: IsAllowed above already succeeded on same backend, so this call is virtually guaranteed to succeed; worst case, Retry-After header is omitted and 429 is still returned
+		blocked, remaining, _ := limiter.GetBlockedStatus(aepr.Request.Context(), rateLimitGroupNameId, identifier) // error discarded: IsAllowed above already succeeded on the same backend, so this call is virtually guaranteed to succeed; the worst case, Retry-After header is omitted and 429 is still returned
 		if blocked {
 			w.Header().Set("Retry-After", fmt.Sprintf("%d", int(remaining.Seconds())))
 		}
@@ -1736,93 +1734,6 @@ func (s *DxmSelf) SelfLogout(aepr *api.DXAPIEndPointRequest) (err error) {
 	return nil
 }
 
-func PasswordFormatValidation(password string) (err error) {
-	configSystem := *configuration.Manager.Configurations["system"].Data
-	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
-	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
-	}
-
-	passwordMinLength, ok := configSystemSession["password_min_length"].(int)
-	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MIN_LENGTH_NOT_FOUND_OR_NOT_INT")
-	}
-
-	passwordMaxLength, ok := configSystemSession["password_max_length"].(int)
-	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MAX_LENGTH_NOT_FOUND_OR_NOT_INT")
-	}
-
-	passwordMustHaveChars, ok := configSystemSession["password_must_have_chars"].(string)
-	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MUST_HAVE_CHARS_NOT_FOUND_OR_NOT_STRING")
-	}
-
-	passwordMustHaveCharsMinCount, ok := configSystemSession["password_must_have_chars_min_count"].(int)
-	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MUST_HAVE_CHARS_MIN_COUNT_NOT_FOUND_OR_NOT_INT")
-	}
-
-	passwordMustHaveCharsMaxCount, ok := configSystemSession["password_must_have_chars_max_count"].(int)
-	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_PASSWORD_MUST_HAVE_CHARS_MAX_COUNT_NOT_FOUND_OR_NOT_INT")
-	}
-
-	if len(password) < passwordMinLength {
-		return errors.Errorf("PASSWORD_MUST_HAVE_MINIMUM_LENGTH")
-	}
-
-	if passwordMaxLength > 0 {
-		if len(password) > passwordMaxLength {
-			return errors.Errorf("PASSWORD_MUST_HAVE_MAXIMUM_LENGTH")
-		}
-	}
-
-	hasUpper := false
-	hasLower := false
-	hasNumber := false
-
-	numberMustHaveChars := 0
-	for _, char := range password {
-		switch {
-		case unicode.IsUpper(char):
-			hasUpper = true
-		case unicode.IsLower(char):
-			hasLower = true
-		case unicode.IsNumber(char):
-			hasNumber = true
-
-		default:
-		}
-		if strings.ContainsRune(passwordMustHaveChars, char) {
-			numberMustHaveChars++
-		}
-	}
-
-	if !hasUpper {
-		return errors.Errorf("MUST_HAVE_AT_LEAST_ONE_UPPERCASE_LETTER")
-	}
-	if !hasLower {
-		return errors.Errorf("MUST_HAVE_AT_LEAST_ONE_LOWERCASE_LETTER")
-	}
-	if !hasNumber {
-		return errors.Errorf("MUST_HAVE_AT_LEAST_ONE_NUMBER")
-	}
-
-	if passwordMustHaveCharsMinCount > 0 {
-		if numberMustHaveChars < passwordMustHaveCharsMinCount {
-			return errors.Errorf("PASSWORD_MUST_HAVE_MINIMUM_NUMBER_OF_MUST_HAVE_CHARS")
-		}
-	}
-	if passwordMustHaveCharsMaxCount > 0 {
-		if numberMustHaveChars > passwordMustHaveCharsMaxCount {
-			return errors.Errorf("PASSWORD_MUST_HAVE_MAXIMUM_NUMBER_OF__MUST_HAVE_CHARS")
-		}
-	}
-
-	return nil
-}
-
 func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, preKeyIndex, err := aepr.GetParameterValueAsString("i")
 	if err != nil {
@@ -1844,9 +1755,11 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	userPasswordNew := string(lvPayloadNewPassword.Value)
 	userPasswordOld := string(lvPayloadOldPassword.Value)
 
-	err = PasswordFormatValidation(userPasswordNew)
-	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+	if user_management.ModuleUserManagement.OnUserFormatPasswordValidation != nil {
+		err = user_management.ModuleUserManagement.OnUserFormatPasswordValidation(userPasswordNew)
+		if err != nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+		}
 	}
 
 	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
@@ -1908,11 +1821,12 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 		return err
 	}
 
-	err = PasswordFormatValidation(userPasswordNew)
-	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+	if user_management.ModuleUserManagement.OnUserFormatPasswordValidation != nil {
+		err = user_management.ModuleUserManagement.OnUserFormatPasswordValidation(userPasswordNew)
+		if err != nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+		}
 	}
-
 	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
 	if err != nil {
 		return err

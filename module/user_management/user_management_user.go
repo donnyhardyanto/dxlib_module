@@ -454,6 +454,13 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	lvPayloadPassword := lvPayloadElements[0]
 	userPassword := string(lvPayloadPassword.Value)
 
+	if um.OnUserFormatPasswordValidation != nil {
+		err = um.OnUserFormatPasswordValidation(userPassword)
+		if err != nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+		}
+	}
+
 	attribute, ok := aepr.ParameterValues["attribute"].Value.(string)
 	if !ok {
 		attribute = ""
@@ -690,6 +697,13 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	addressOnIdentityCard, ok := aepr.ParameterValues["address_on_identity_card"].Value.(string)
 	if ok {
 		p["address_on_identity_card"] = addressOnIdentityCard
+	}
+
+	if um.OnUserFormatPasswordValidation != nil {
+		err = um.OnUserFormatPasswordValidation(userPassword)
+		if err != nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+		}
 	}
 
 	var userId int64

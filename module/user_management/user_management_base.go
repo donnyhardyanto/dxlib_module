@@ -28,6 +28,7 @@ const (
 	UserOrganizationMembershipTypeMultipleOrganizationPerUser UserOrganizationMembershipType = "MULTIPLE_ORGANIZATION_PER_USER"
 )
 
+type OnUserPasswordValidationDef func(password string) (err error)
 type DxmUserManagement struct {
 	dxlibModule.DXModule
 	UserPasswordEncryptionKeyDef         *databases.EncryptionKeyDef
@@ -47,6 +48,7 @@ type DxmUserManagement struct {
 	RolePrivilege                        *tables.DXTable
 	UserRoleMembership                   *tables.DXTable
 	MenuItem                             *tables.DXTable
+	OnUserFormatPasswordValidation       OnUserPasswordValidationDef
 	OnUserAfterCreate                    func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
 	OnUserResetPassword                  func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, user utils.JSON, userPassword string) (err error)
 	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userRoleMembership utils.JSON, organizationId int64) (err error)
