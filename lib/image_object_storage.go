@@ -128,7 +128,7 @@ func (ios *ImageObjectStorage) ValidateImageDimensions(data []byte) error {
 
 		pixelsPerByte := float64(totalPixels) / float64(fileSize)
 		if pixelsPerByte > float64(ios.MaxBytesPerPixel) {
-			return errors.Errorf("SUSPICIOUS_PIXELS_TO_FILESIZE_RATIO:ratio=%.2f", pixelsPerByte)
+			return errors.Errorf("SUSPICIOUS_FILESIZE_TO_PIXELS_RATIO:ratio=%.2f", pixelsPerByte)
 		}
 
 		return nil
