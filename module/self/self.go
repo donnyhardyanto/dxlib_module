@@ -2106,6 +2106,37 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest)
 	return nil
 }
 
+func (s *DxmSelf) SelfUserMessageIsReadSetToTrueByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
+	_, userMessageUid, err := aepr.GetParameterValueAsString("user_message_uid")
+	if err != nil {
+		return err
+	}
+	_, userMessage, err := user_management.ModuleUserManagement.UserMessage.ShouldGetByUidAuto(&aepr.Log, userMessageUid)
+	if err != nil {
+		return err
+	}
+	// Verify the message belongs to the logged-in user
+	messageUserId, ok := userMessage["user_id"].(int64)
+	if !ok || messageUserId != userId {
+		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "",
+			"USER_MESSAGE_NOT_FOUND_OR_NOT_OWNED")
+	}
+	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(utils.JSON{
+		"is_read": true,
+	}, utils.JSON{
+		"uid":     userMessageUid,
+		"user_id": userId,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *DxmSelf) SelfUserMessageAllIsReadSetToTrue(aepr *api.DXAPIEndPointRequest) (err error) {
 	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
 	if err != nil {
