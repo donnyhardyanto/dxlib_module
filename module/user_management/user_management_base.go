@@ -28,6 +28,18 @@ const (
 	UserOrganizationMembershipTypeMultipleOrganizationPerUser UserOrganizationMembershipType = "MULTIPLE_ORGANIZATION_PER_USER"
 )
 
+type DXMUserLoginIdSyncTo string
+
+const (
+	DXMUserLoginIdSyncToNone        DXMUserLoginIdSyncTo = "NONE"
+	DXMUserLoginIdSyncToEmail       DXMUserLoginIdSyncTo = "EMAIL"
+	DXMUserLoginIdSyncToPhoneNumber DXMUserLoginIdSyncTo = "PHONE_NUMBER"
+)
+
+var (
+	DXMUserLoginIdSyncToEnumSetAll = []any{DXMUserLoginIdSyncToNone, DXMUserLoginIdSyncToEmail, DXMUserLoginIdSyncToPhoneNumber}
+)
+
 type OnUserPasswordValidationDef func(password string) (err error)
 type DxmUserManagement struct {
 	dxlibModule.DXModule

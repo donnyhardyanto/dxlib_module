@@ -660,11 +660,28 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	if err != nil {
 		return err
 	}
+	_, loginIdSyncTo, err := aepr.GetParameterValueAsString("loginid_sync_to", DXMUserLoginIdSyncToNone)
+	if err != nil {
+		return err
+	}
+
 	_, membershipNumber, err := aepr.GetParameterValueAsString("membership_number", "")
 	if err != nil {
 		return err
 	}
 	status := UserStatusActive
+
+	loginidSyncToAsEnum := DXMUserLoginIdSyncTo(loginIdSyncTo)
+	switch loginidSyncToAsEnum {
+	case DXMUserLoginIdSyncToNone:
+		break
+	case DXMUserLoginIdSyncToEmail:
+		loginId = email
+	case DXMUserLoginIdSyncToPhoneNumber:
+		loginId = phonenumber
+	default:
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
+	}
 
 	p := utils.JSON{
 		"loginid":              loginId,
@@ -676,6 +693,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		"must_change_password": false,
 		"is_avatar_exist":      false,
 		"is_organic":           isOrganic,
+		"loginid_sync_to":      loginIdSyncTo,
 	}
 
 	identityNumber, ok := aepr.ParameterValues["identity_number"].Value.(string)
@@ -844,6 +862,36 @@ func (um *DxmUserManagement) UserEdit(aepr *api.DXAPIEndPointRequest) (err error
 			if err2 != nil {
 				return err2
 			}
+			_, user, err2 := um.User.ShouldGetById(&aepr.Log, id)
+			if err2 != nil {
+				return err2
+			}
+			_, ok := newKeyValues["loginid_sync_to"]
+			if ok {
+				loginIdSyncTo, err := utils.GetStringFromKV(newKeyValues, "loginid_sync_to")
+				if err != nil {
+					return err
+				}
+				loginidSyncToAsEnum := DXMUserLoginIdSyncTo(loginIdSyncTo)
+				switch loginidSyncToAsEnum {
+				case DXMUserLoginIdSyncToNone:
+					break
+				case DXMUserLoginIdSyncToEmail:
+					email, err2 := utils.GetStringFromKV(user, "email")
+					if err2 != nil {
+						return err2
+					}
+					newKeyValues["loginid"] = email
+				case DXMUserLoginIdSyncToPhoneNumber:
+					phonenumber, err2 := utils.GetStringFromKV(user, "phonenumber")
+					if err2 != nil {
+						return err2
+					}
+					newKeyValues["loginid"] = phonenumber
+				default:
+					return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
+				}
+			}
 		}
 		if len(p1) > 0 {
 			_, err2 = um.UserOrganizationMembership.TxUpdateSimple(dtx, p1, utils.JSON{
@@ -954,6 +1002,36 @@ func (um *DxmUserManagement) UserEditByUid(aepr *api.DXAPIEndPointRequest) (err 
 			})
 			if err2 != nil {
 				return err2
+			}
+			_, user, err2 := um.User.ShouldGetById(&aepr.Log, id)
+			if err2 != nil {
+				return err2
+			}
+			_, ok := newKeyValues["loginid_sync_to"]
+			if ok {
+				loginIdSyncTo, err := utils.GetStringFromKV(newKeyValues, "loginid_sync_to")
+				if err != nil {
+					return err
+				}
+				loginidSyncToAsEnum := DXMUserLoginIdSyncTo(loginIdSyncTo)
+				switch loginidSyncToAsEnum {
+				case DXMUserLoginIdSyncToNone:
+					break
+				case DXMUserLoginIdSyncToEmail:
+					email, err2 := utils.GetStringFromKV(user, "email")
+					if err2 != nil {
+						return err2
+					}
+					newKeyValues["loginid"] = email
+				case DXMUserLoginIdSyncToPhoneNumber:
+					phonenumber, err2 := utils.GetStringFromKV(user, "phonenumber")
+					if err2 != nil {
+						return err2
+					}
+					newKeyValues["loginid"] = phonenumber
+				default:
+					return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
+				}
 			}
 		}
 		if len(p1) > 0 {
