@@ -660,7 +660,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	if err != nil {
 		return err
 	}
-	_, loginIdSyncTo, err := aepr.GetParameterValueAsString("loginid_sync_to", DXMUserLoginIdSyncToNone)
+	_, loginIdSyncTo, err := aepr.GetParameterValueAsString("loginid_sync_to", string(DXMUserLoginIdSyncToNone))
 	if err != nil {
 		return err
 	}
