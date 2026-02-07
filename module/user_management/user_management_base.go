@@ -31,7 +31,7 @@ const (
 type DXMUserLoginIdSyncTo string
 
 const (
-	DXMUserLoginIdSyncToNone        DXMUserLoginIdSyncTo = "NONE"
+	DXMUserLoginIdSyncToNone        DXMUserLoginIdSyncTo = ""
 	DXMUserLoginIdSyncToEmail       DXMUserLoginIdSyncTo = "EMAIL"
 	DXMUserLoginIdSyncToPhoneNumber DXMUserLoginIdSyncTo = "PHONE_NUMBER"
 )
