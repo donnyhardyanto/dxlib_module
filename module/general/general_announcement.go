@@ -71,6 +71,38 @@ func (g *DxmGeneral) AnnouncementPictureUpdateFileContentBase64(aepr *api.DXAPIE
 	return nil
 }
 
+func (g *DxmGeneral) AnnouncementPictureUpdateFileContentBase64ByUid(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, uid, err := aepr.GetParameterValueAsString("uid")
+	if err != nil {
+		return err
+	}
+
+	_, announcement, err := g.Announcement.ShouldGetByUid(&aepr.Log, uid)
+	if err != nil {
+		return err
+	}
+
+	announcementId, ok := announcement["id"].(int64)
+	if !ok {
+		return errors.Errorf("IMPOSSIBLE:ANNOUNCEMENT_ID_NOT_FOUND_IN_ANNOUNCEMENT")
+	}
+
+	idAsString := utils.Int64ToString(announcementId)
+
+	filename := idAsString + ".webp"
+
+	_, fileContentBase64, err := aepr.GetParameterValueAsString("content_base64")
+	if err != nil {
+		return err
+	}
+
+	err = g.AnnouncementPicture.Update(aepr, filename, fileContentBase64)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, id, err := aepr.GetParameterValueAsInt64("id")
 	if err != nil {
