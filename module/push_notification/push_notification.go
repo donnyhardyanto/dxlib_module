@@ -18,7 +18,6 @@ import (
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/databases"
-	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/messaging/fcm"
@@ -709,11 +708,14 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 		return errors.Errorf("failed to get Firebase app: %v", err)
 	}
 
-	_, fcmMessages, err := f.FCMMessage.Select(&log.Log, nil, utils.JSON{
-		"fcm_application_id": applicationId,
-		"c1":                 db.SQLExpression{Expression: fmt.Sprintf("((status = '%s') OR (status = '%s'))", StatusPending, StatusFailed)},
-		"c2":                 db.SQLExpression{Expression: "((next_retry_time <= NOW()) or (next_retry_time IS NULL))"},
-	}, nil, nil, 100, nil)
+	// Use QueryBuilder for safe parameterized query
+	qb := f.FCMMessage.NewTableSelectQueryBuilder()
+	qb.Eq("fcm_application_id", applicationId)
+	qb.InStrings("status", []string{StatusPending, StatusFailed})
+	qb.And("((next_retry_time <= NOW()) or (next_retry_time IS NULL))")
+	qb.Limit(100)
+
+	_, fcmMessages, err := f.FCMMessage.SelectWithBuilder(&log.Log, qb)
 	if err != nil {
 		return errors.Errorf("failed to fetch messages: %v", err)
 	}
@@ -822,11 +824,14 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 		return errors.Errorf("failed to get Firebase app: %v", err)
 	}
 
-	_, fcmTopicMessages, err := f.FCMTopicMessage.Select(&log.Log, nil, utils.JSON{
-		"fcm_application_id": applicationId,
-		"c1":                 db.SQLExpression{Expression: fmt.Sprintf("((status = '%s') OR (status = '%s'))", StatusPending, StatusFailed)},
-		"c2":                 db.SQLExpression{Expression: "((next_retry_time <= NOW()) or (next_retry_time IS NULL))"},
-	}, nil, nil, 100, nil)
+	// Use QueryBuilder for safe parameterized query
+	qb := f.FCMTopicMessage.NewTableSelectQueryBuilder()
+	qb.Eq("fcm_application_id", applicationId)
+	qb.InStrings("status", []string{StatusPending, StatusFailed})
+	qb.And("((next_retry_time <= NOW()) or (next_retry_time IS NULL))")
+	qb.Limit(100)
+
+	_, fcmTopicMessages, err := f.FCMTopicMessage.SelectWithBuilder(&log.Log, qb)
 	if err != nil {
 		return errors.Errorf("failed to fetch messages: %v", err)
 	}
