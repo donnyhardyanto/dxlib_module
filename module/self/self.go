@@ -886,6 +886,194 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 	return err
 }
 
+func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, userLoginId, err := aepr.GetParameterValueAsString("user_login_id")
+	if err != nil {
+		return err
+	}
+	_, userPassword, err := aepr.GetParameterValueAsString("user_login_password")
+	if err != nil {
+		return err
+	}
+	_, organizationUId, err := aepr.GetParameterValueAsString("organization_uid", "")
+	if err != nil {
+		return err
+	}
+	_, captchaId, err := aepr.GetParameterValueAsString("captcha_id", "")
+	if err != nil {
+		return err
+	}
+	_, captchaText, err := aepr.GetParameterValueAsString("captcha_text", "")
+	if err != nil {
+		return err
+	}
+
+	preKeyData := aepr.EncryptionParameters["PRE_KEY_DATA"].(utils.JSON)
+
+	storedCaptchaId, err := utils.GetStringFromKV(preKeyData, "captcha_id")
+	if err != nil {
+		return err
+	}
+	storedCaptchaText, err := utils.GetStringFromKV(preKeyData, "captcha_text")
+	if err != nil {
+		return err
+	}
+
+	if captchaId != storedCaptchaId {
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		return
+	}
+	if captchaText != storedCaptchaText {
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnprocessableEntity, "INVALID_CAPTCHA", "NOT_ERROR:INVALID_CAPTCHA")
+		return
+	}
+
+	var user utils.JSON
+	var userOrganizationMemberships []utils.JSON
+	var userLoggedOrganizationId int64
+	var userLoggedOrganizationUid string
+	var userLoggedOrganization utils.JSON
+	var verificationResult bool
+	if s.OnAuthenticateUser != nil {
+		verificationResult, user, userLoggedOrganization, err = s.OnAuthenticateUser(aepr, userLoginId, userPassword, organizationUId)
+		if err != nil {
+			return err
+		}
+		if !verificationResult {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		userId, err := utils.GetInt64FromKV(user, "id")
+		if err != nil {
+			return err
+		}
+
+		us := utils.JSON{
+			"user_id": userId,
+		}
+
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
+		}
+
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
+			map[string]string{"order_index": "asc"}, nil, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		userLoggedOrganizationId, err = utils.GetInt64FromKV(userLoggedOrganization, "id")
+		if err != nil {
+			return err
+		}
+		userLoggedOrganizationUid, err = utils.GetStringFromKV(userLoggedOrganization, "uid")
+		if err != nil {
+			return err
+		}
+	} else {
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+			"loginid": userLoginId,
+		}, nil, nil)
+		if err != nil {
+			return err
+		}
+		if user == nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		userId, err := utils.GetInt64FromKV(user, "id")
+		if err != nil {
+			return err
+		}
+
+		us := utils.JSON{
+			"user_id": userId,
+		}
+
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
+		}
+
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
+			map[string]string{"order_index": "asc"}, nil, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		userLoggedOrganizationId, err = utils.GetInt64FromKV(userOrganizationMemberships[0], "organization_id")
+		if err != nil {
+			return err
+		}
+		userLoggedOrganizationUid, err = utils.GetStringFromKV(userOrganizationMemberships[0], "organization_uid")
+		if err != nil {
+			return err
+		}
+
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
+		if err != nil {
+			return err
+		}
+
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPassword)
+		if err != nil {
+			return err
+		}
+
+		if !verificationResult {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+	}
+
+	sessionKey, err := GenerateSessionKey()
+	if err != nil {
+		return err
+	}
+
+	userId, ok := user["id"].(int64)
+	if !ok {
+		return aepr.WriteResponseAndLogAsErrorf(500, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:USER_ID_NOT_FOUND_IN_USER")
+	}
+	a := []any{userOrganizationMemberships}
+	sessionObject, allowed, err2 := s.RegenerateSessionObject(aepr, userId, sessionKey, user, userLoggedOrganizationId, userLoggedOrganizationUid, userLoggedOrganization, a)
+	if err2 != nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_KEY_EXPIRED", "NOT_ERROR:SESSION_KEY_EXPIRED_%s", err2.Error())
+	}
+
+	if !allowed {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
+	}
+
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+	}
+	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
+	}
+
+	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
+
+	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
+		"session_object": sessionObject,
+	})
+	return err
+}
+
 func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId int64, sessionKey string, user utils.JSON, userLoggedOrganizationId int64,
 	userLoggedOrganizationUid string, userLoggedOrganization utils.JSON, userOrganizationMemberships []any) (sessionObject utils.JSON, allowed bool, err error) {
 	var userEffectivePrivilegeIds map[string]int64
