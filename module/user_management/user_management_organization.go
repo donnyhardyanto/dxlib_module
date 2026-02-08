@@ -486,3 +486,56 @@ func (um *DxmUserManagement) OrganizationEdit(aepr *api.DXAPIEndPointRequest) (e
 func (um *DxmUserManagement) OrganizationDelete(aepr *api.DXAPIEndPointRequest) (err error) {
 	return um.Organization.RequestSoftDelete(aepr)
 }
+
+// OrganizationEditByUidHandler - Handles organization edit with UID-based parameters
+// Converts parent_uid to parent_id before database update
+func (um *DxmUserManagement) OrganizationEditByUidHandler(aepr *api.DXAPIEndPointRequest) error {
+	isNewExist, new, err := aepr.GetParameterValueAsJSON("new")
+	if err != nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PARAMETER_NEW_REQUIRED", "Parameter new is required")
+	}
+
+	if !isNewExist || new == nil {
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PARAMETER_NEW_REQUIRED", "Parameter new is required")
+	}
+
+	// Convert parent_uid to parent_id
+	if parentUid, exists := new["parent_uid"]; exists {
+		if parentUid != nil && parentUid != "" {
+			uid, ok := parentUid.(string)
+			if !ok || uid == "" {
+				// Set to null if invalid
+				delete(new, "parent_uid")
+				new["parent_id"] = nil
+			} else {
+				// Get parent organization by UID and convert to ID
+				_, parentOrg, err := um.Organization.GetByUid(&aepr.Log, uid)
+				if err != nil {
+					aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_PARENT_ORGANIZATION", err)
+					return err
+				}
+				if parentOrg == nil {
+					return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "PARENT_ORGANIZATION_NOT_FOUND", "Parent organization with uid %s not found", uid)
+				}
+
+				parentId, err := utils.GetInt64FromKV(parentOrg, "id")
+				if err != nil {
+					aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_PARENT_ID", err)
+					return err
+				}
+
+				// Replace UID with ID for database update
+				delete(new, "parent_uid")
+				new["parent_id"] = parentId
+			}
+		} else {
+			// Set to null if empty
+			delete(new, "parent_uid")
+			new["parent_id"] = nil
+		}
+	}
+
+	// Update parameter and call standard handler
+	aepr.ParameterValues["new"] = &api.DXAPIEndPointRequestParameterValue{Value: new}
+	return um.Organization.RequestEditByUidWithValidation(aepr)
+}
