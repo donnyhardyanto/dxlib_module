@@ -42,7 +42,7 @@ type DXMAccountLockout struct {
 	ConfigDB   *databases.DXDatabase
 
 	// Tables
-	AccountLockoutEvents *tables.DXTable
+	AccountLockoutEvents *tables.DXRawTable
 	AccountLockoutConfig *tables.DXTable
 
 	// Circuit Breaker
@@ -121,7 +121,7 @@ func (al *DXMAccountLockout) Init(
 	al.ConfigDB = databases.Manager.Databases[configDBNameId]
 
 	// Initialize tables
-	al.AccountLockoutEvents = tables.NewDXTableSimple(
+	al.AccountLockoutEvents = tables.NewDXRawTableSimple(
 		auditLogDBNameId,
 		"partner_auditlog.account_lockout_events",
 		"partner_auditlog.account_lockout_events",
