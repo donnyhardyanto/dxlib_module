@@ -133,6 +133,7 @@ func (al *DXMAccountLockout) Init(
 		[]string{"id", "uid", "event_type", "event_timestamp", "user_id", "user_uid",
 			"user_loginid", "organization_id", "lockout_reason", "failed_attempts_count",
 			"locked_at", "unlock_at", "attempt_type", "attempt_ip_address"},
+		[]string{"id", "uid", "user_id", "user_uid", "organization_id", "event_type", "attempt_type", "event_timestamp", "locked_at", "unlock_at", "created_at"},
 	)
 
 	al.AccountLockoutConfig = tables.NewDXTableSimple(
@@ -146,6 +147,7 @@ func (al *DXMAccountLockout) Init(
 		[]string{"organization_id", "max_failed_attempts", "lockout_duration_minutes"},
 		[]string{"id", "uid", "organization_id", "max_failed_attempts",
 			"lockout_duration_minutes", "lockout_type", "is_active"},
+		[]string{"id", "uid", "organization_id", "lockout_type", "is_active", "created_at", "last_modified_at", "is_deleted"},
 	)
 
 	// Initialize async write queue if enabled

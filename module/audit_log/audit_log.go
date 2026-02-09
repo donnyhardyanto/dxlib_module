@@ -26,6 +26,7 @@ func (al *DxmAudit) Init(databaseNameId string) {
 		nil,
 		[]string{"api_title", "method", "api_url", "ip_address", "user_loginid", "user_fullname", "activity_name", "activity_result_status"},
 		[]string{"start_time", "user_fullname", "ip_address", "api_title", "api_url", "method", "status_code", "end_time"},
+		[]string{"id", "uid", "user_id", "user_uid", "api_url", "method", "status_code", "start_time", "end_time", "activity_name", "activity_result_status"},
 	)
 	al.UserActivityLog.FieldMaxLengths = map[string]int{"error_message": 16000}
 
@@ -36,6 +37,7 @@ func (al *DxmAudit) Init(databaseNameId string) {
 		nil,
 		[]string{"prefix", "log_level", "location", "message"},
 		[]string{"at", "location", "message", "stack"},
+		[]string{"id", "uid", "log_level", "at", "created_at"},
 	)
 	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }

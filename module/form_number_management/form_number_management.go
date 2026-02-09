@@ -27,6 +27,7 @@ func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 		[][]string{{"nameid"}},
 		[]string{"nameid", "type", "prefix"},
 		[]string{"id", "nameid", "type", "last_year", "last_month", "last_sequence"},
+		[]string{"id", "uid", "nameid", "type", "created_at", "last_modified_at"},
 	)
 }
 

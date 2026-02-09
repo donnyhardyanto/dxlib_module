@@ -102,6 +102,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		[][]string{{"nameid"}},
 		[]string{"nameid", "service_account_source"},
 		[]string{"id", "nameid", "created_at"},
+		[]string{"id", "uid", "nameid", "service_account_source", "created_at", "last_modified_at", "is_deleted"},
 	)
 	f.FCMUserToken = tables.NewDXTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "push_notification.fcm_user_token",
@@ -110,6 +111,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		nil,
 		[]string{"fcm_token", "device_type"},
 		[]string{"id", "user_id", "fcm_application_id", "device_type", "created_at"},
+		[]string{"id", "uid", "user_id", "user_uid", "fcm_application_id", "device_type", "created_at", "last_modified_at", "is_deleted"},
 	)
 	f.FCMMessage = tables.NewDXTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_message", "push_notification.fcm_message", "push_notification.v_fcm_message",
@@ -118,6 +120,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		nil,
 		[]string{"status", "title", "body", "device_type"},
 		[]string{"id", "fcm_user_token_id", "status", "is_read", "retry_count", "created_at"},
+		[]string{"id", "uid", "fcm_user_token_id", "user_id", "user_uid", "status", "is_read", "device_type", "created_at", "last_modified_at"},
 	)
 	f.FCMTopicMessage = tables.NewDXTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "push_notification.fcm_topic_message",
@@ -126,6 +129,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		nil,
 		[]string{"topic", "status", "title", "body"},
 		[]string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at"},
+		[]string{"id", "uid", "fcm_application_id", "topic", "status", "created_at", "last_modified_at"},
 	)
 }
 

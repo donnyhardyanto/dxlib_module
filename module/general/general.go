@@ -32,6 +32,7 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		nil,
 		[]string{"title", "content"},
 		[]string{"id", "title", "timestamp", "created_at"},
+		[]string{"id", "uid", "timestamp", "created_at", "last_modified_at", "is_deleted"},
 	)
 	g.Template = tables.NewDXTableSimple(g.DatabaseNameId,
 		"general.template", "general.template", "general.template",
@@ -40,6 +41,7 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		[][]string{{"nameid"}},
 		[]string{"nameid", "type", "subject", "body"},
 		[]string{"id", "nameid", "type", "subject", "created_at"},
+		[]string{"id", "uid", "nameid", "type", "content_type", "created_at", "last_modified_at", "is_deleted"},
 	)
 }
 
