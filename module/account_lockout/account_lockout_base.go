@@ -144,7 +144,7 @@ func (al *DXMAccountLockout) Init(
 		"id", "uid", "", "data",
 		nil,
 		[][]string{{"organization_id"}},
-		[]string{"organization_id", "max_failed_attempts", "lockout_duration_minutes", "is_deleted"},
+		[]string{"organization_id", "max_failed_attempts", "lockout_duration_minutes"},
 		[]string{"id", "uid", "organization_id", "max_failed_attempts",
 			"lockout_duration_minutes", "lockout_type", "is_active"},
 		[]string{"id", "uid", "organization_id", "lockout_type", "is_active", "created_at", "last_modified_at", "is_deleted"},

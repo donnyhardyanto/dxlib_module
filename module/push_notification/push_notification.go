@@ -100,7 +100,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
-		[]string{"nameid", "service_account_source", "is_deleted"},
+		[]string{"nameid", "service_account_source"},
 		[]string{"id", "nameid", "created_at"},
 		[]string{"id", "uid", "nameid", "service_account_source", "created_at", "last_modified_at", "is_deleted"},
 	)
@@ -109,7 +109,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		"id", "uid", "", "data",
 		nil,
 		nil,
-		[]string{"fcm_token", "device_type", "is_deleted"},
+		[]string{"fcm_token", "device_type"},
 		[]string{"id", "user_id", "fcm_application_id", "device_type", "created_at"},
 		[]string{"id", "uid", "user_id", "user_uid", "fcm_application_id", "device_type", "created_at", "last_modified_at", "is_deleted"},
 	)
