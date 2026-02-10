@@ -127,7 +127,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		"id", "uid", "", "data",
 		nil,
 		nil,
-		[]string{"topic", "status", "title", "body"},
+		[]string{"fcm_application_id", "topic", "status", "title", "body"},
 		[]string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at"},
 		[]string{"id", "uid", "fcm_application_id", "topic", "status", "created_at", "last_modified_at"},
 	)
@@ -691,11 +691,11 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 			}
 			err := f.processSendTopic(fcmApplicationId)
 			if err != nil {
-				log.Log.Warnf("ERROR_PROCESSING_TOPIC_MESSAGES_FOR_SENDING_FROM_FCM_APPLICATION:%s:%v", fcmApplicationNameId, err)
+				log.Log.Warnf("ERROR_PROCESSING_TOPIC_MESSAGES_FOR_SENDING_FROM_FCM_APPLICATION:%s:%+v", fcmApplicationNameId, err)
 			}
 			err = f.processMessages(fcmApplicationId)
 			if err != nil {
-				log.Log.Warnf("ERROR_PROCESSING_MESSAGES_FOR_SENDING_FROM_FCM_APPLICAtiON:%s:%v", fcmApplicationNameId, err)
+				log.Log.Warnf("ERROR_PROCESSING_MESSAGES_FOR_SENDING_FROM_FCM_APPLICAtiON:%s:%+v", fcmApplicationNameId, err)
 			}
 		}()
 	}
