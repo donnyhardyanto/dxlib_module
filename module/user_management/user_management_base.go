@@ -76,7 +76,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		"id", "uid", "loginid", "data",
 		nil,
 		[][]string{{"loginid"}, {"identity_number"}},
-		[]string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type"},
+		[]string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type", "is_deleted"},
 		[]string{"id", "fullname", "email", "membership_number", "organization_name", "status", "phonenumber", "loginid", "identity_type", "identity_number", "attribute", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
 		[]string{"id", "uid", "loginid", "status", "identity_type", "identity_number", "membership_number", "created_at", "last_modified_at", "is_deleted"},
 	)
@@ -97,7 +97,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}, {"name"}},
-		[]string{"nameid", "name", "description"},
+		[]string{"nameid", "name", "description", "is_deleted"},
 		[]string{"id", "name", "nameid", "sales_area_name", "description", "organization_name", "organization_types", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
 		[]string{"id", "uid", "nameid", "organization_id", "sales_area_id", "created_at", "last_modified_at", "is_deleted"},
 	)
