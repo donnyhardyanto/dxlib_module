@@ -1139,10 +1139,17 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 		return nil, false, err
 	}
 
+	// Extract user language preference (default to 'id' if not set)
+	userLanguage, err := utils.GetStringFromKV(user, "language")
+	if err != nil || userLanguage == "" {
+		userLanguage = "id" // Default to Indonesian
+	}
+
 	sessionObject = utils.JSON{
 		"session_key":                   sessionKey,
 		"user_id":                       userId,
 		"user":                          user,
+		"language":                      userLanguage,
 		"organization_id":               userLoggedOrganizationId,
 		"organization_uid":              userLoggedOrganizationUid,
 		"organization":                  userLoggedOrganization,
@@ -1752,11 +1759,19 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	if user == nil {
 		return nil, aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "USER_NOT_FOUND")
 	}
+
+	// Extract user language from session (default to 'id' if not set)
+	userLanguage, err := utilsJSON.GetString(sessionObject, "language")
+	if err != nil || userLanguage == "" {
+		userLanguage = "id" // Default to Indonesian
+	}
+
 	aepr.LocalData["session_object"] = sessionObject
 	aepr.LocalData["session_key"] = sessionKey
 	aepr.LocalData["user_id"] = userId
 	aepr.LocalData["user_uid"] = userUid
 	aepr.LocalData["user"] = user
+	aepr.LocalData["language"] = userLanguage
 	aepr.LocalData["organization_id"] = organizationId
 	aepr.LocalData["organization_uid"] = organizationUid
 	aepr.LocalData["organization_name"] = organizationName
@@ -1919,6 +1934,80 @@ func (s *DxmSelf) SelfLogout(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (s *DxmSelf) SelfUpdateLanguage(aepr *api.DXAPIEndPointRequest) (err error) {
+	// Get user ID from session
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
+
+	// Get language parameter
+	_, language, err := aepr.GetParameterValueAsString("language")
+	if err != nil {
+		return err
+	}
+
+	// Validate language (only 'id' or 'en' allowed)
+	if language != "id" && language != "en" {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_LANGUAGE", "Language must be 'id' or 'en'")
+	}
+
+	// Update user language in database
+	_, err = user_management.ModuleUserManagement.User.UpdateById(&aepr.Log, userId, utils.JSON{
+		"language": language,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Update session object with new language
+	sessionKey, ok := aepr.LocalData["session_key"].(string)
+	if !ok || sessionKey == "" {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "", "SESSION_KEY_IS_NOT_IN_REQUEST_PARAMETER")
+	}
+
+	// Get current session object
+	configSystem := *configuration.Manager.Configurations["system"].Data
+	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+	}
+	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
+	if !ok {
+		return errors.New("SHOULD_NOT_HAPPEN:SESSIONS_TTL_SECOND_NOT_FOUND_OR_NOT_INT")
+	}
+	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
+
+	sessionObject, err := user_management.ModuleUserManagement.SessionRedis.GetEx(sessionKey, sessionKeyTTLAsDuration)
+	if err != nil {
+		return err
+	}
+	if sessionObject == nil {
+		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "SESSION_NOT_FOUND", "NOT_ERROR:SESSION_NOT_FOUND")
+	}
+
+	// Update language in session object
+	sessionObject["language"] = language
+
+	// Save updated session back to Redis
+	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	if err != nil {
+		return err
+	}
+
+	// Update aepr.LocalData for immediate effect
+	aepr.LocalData["language"] = language
+
+	// Return success response
+	responseBody := utils.JSON{
+		"language": language,
+		"message":  aepr.TranslateMessage("Language updated successfully"),
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, responseBody)
 	return nil
 }
 
