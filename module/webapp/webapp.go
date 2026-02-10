@@ -20,10 +20,12 @@ func (w *DxmWebapp) Init(databaseNameId string) {
 		nil,
 		nil,
 		nil,
+		nil,
 	)
 	w.Page = tables.NewDXTableSimple(databaseNameId,
 		"webapp.page", "webapp.page", "webapp.page",
 		"id", "uid", "nameid", "data",
+		nil,
 		nil,
 		nil,
 		nil,
