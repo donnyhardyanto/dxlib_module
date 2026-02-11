@@ -98,8 +98,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"nameid"}, {"name"}},
 		[]string{"nameid", "name", "description"},
-		[]string{"id", "name", "nameid", "sales_area_name", "description", "organization_name", "organization_types", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
-		[]string{"id", "uid", "nameid", "organization_id", "sales_area_id", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"id", "name", "nameid", "description", "organization_types", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
+		[]string{"id", "uid", "nameid", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Role.FieldNameForRowUtag = "utag"
 	um.Role.FieldTypeMapping = map[string]string{
