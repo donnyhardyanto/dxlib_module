@@ -100,8 +100,8 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
-		[]string{"nameid", "service_account_source"},
-		[]string{"id", "nameid", "created_at"},
+		[]string{"nameid", "service_account_source", "id", "uid"},
+		[]string{"id", "nameid", "created_at", "uid"},
 		[]string{"id", "uid", "nameid", "service_account_source", "created_at", "last_modified_at", "is_deleted"},
 	)
 	f.FCMUserToken = tables.NewDXTableSimple(f.DatabaseNameId,
@@ -109,8 +109,8 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		"id", "uid", "", "data",
 		nil,
 		nil,
-		[]string{"fcm_token", "device_type"},
-		[]string{"id", "user_id", "fcm_application_id", "device_type", "created_at"},
+		[]string{"fcm_token", "device_type", "id", "uid"},
+		[]string{"id", "user_id", "fcm_application_id", "device_type", "created_at", "uid"},
 		[]string{"id", "uid", "user_id", "user_uid", "fcm_application_id", "device_type", "created_at", "last_modified_at", "is_deleted"},
 	)
 	f.FCMMessage = tables.NewDXTableSimple(f.DatabaseNameId,
@@ -118,8 +118,8 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		"id", "uid", "", "data",
 		nil,
 		nil,
-		[]string{"fcm_application_id", "status", "title", "body", "device_type"},
-		[]string{"id", "fcm_user_token_id", "status", "is_read", "retry_count", "created_at"},
+		[]string{"fcm_application_id", "status", "title", "body", "device_type", "id", "uid"},
+		[]string{"id", "fcm_user_token_id", "status", "is_read", "retry_count", "created_at", "uid"},
 		[]string{"id", "uid", "fcm_user_token_id", "user_id", "user_uid", "status", "is_read", "device_type", "created_at", "last_modified_at"},
 	)
 	f.FCMTopicMessage = tables.NewDXTableSimple(f.DatabaseNameId,
@@ -127,8 +127,8 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		"id", "uid", "", "data",
 		nil,
 		nil,
-		[]string{"fcm_application_id", "topic", "status", "title", "body"},
-		[]string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at"},
+		[]string{"fcm_application_id", "topic", "status", "title", "body", "id", "uid"},
+		[]string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at", "uid"},
 		[]string{"id", "uid", "fcm_application_id", "topic", "status", "created_at", "last_modified_at"},
 	)
 }

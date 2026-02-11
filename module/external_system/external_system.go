@@ -23,8 +23,8 @@ func (w *DxmExternalSystem) Init(databaseNameId string) {
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
-		[]string{"nameid", "type"},
-		[]string{"id", "nameid", "type", "created_at", "last_modified_at"},
+		[]string{"nameid", "type", "id", "uid"},
+		[]string{"id", "nameid", "type", "created_at", "last_modified_at", "uid"},
 		[]string{"id", "uid", "nameid", "type", "created_at", "last_modified_at", "is_deleted"},
 	)
 }

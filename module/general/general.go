@@ -25,8 +25,8 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
-		[]string{"nameid", "type"},
-		[]string{"id", "nameid", "type", "created_at"},
+		[]string{"nameid", "type", "id", "uid"},
+		[]string{"id", "nameid", "type", "created_at", "uid"},
 		[]string{"nameid", "type"},
 	)
 	g.Announcement = tables.NewDXTableSimple(databaseNameId,
@@ -34,8 +34,8 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		"id", "uid", "uid", "data",
 		nil,
 		nil,
-		[]string{"title", "content"},
-		[]string{"id", "title", "timestamp", "created_at"},
+		[]string{"title", "content", "id", "uid"},
+		[]string{"id", "title", "timestamp", "created_at", "uid"},
 		[]string{"title", "content"},
 	)
 	g.Template = tables.NewDXTableSimple(g.DatabaseNameId,
@@ -43,8 +43,8 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
-		[]string{"nameid", "type", "subject", "body"},
-		[]string{"id", "nameid", "type", "subject", "created_at"},
+		[]string{"nameid", "type", "subject", "body", "id", "uid"},
+		[]string{"id", "nameid", "type", "subject", "created_at", "uid"},
 		[]string{"nameid", "type", "subject", "body"},
 	)
 }

@@ -18,8 +18,8 @@ func (w *DxmWebapp) Init(databaseNameId string) {
 		"id", "uid", "nameid", "data",
 		nil,
 		nil,
-		nil,
-		nil,
+		[]string{"id", "uid"},
+		[]string{"id", "uid"},
 		nil,
 	)
 	w.Page = tables.NewDXTableSimple(databaseNameId,
@@ -27,8 +27,8 @@ func (w *DxmWebapp) Init(databaseNameId string) {
 		"id", "uid", "nameid", "data",
 		nil,
 		nil,
-		nil,
-		nil,
+		[]string{"id", "uid"},
+		[]string{"id", "uid"},
 		nil,
 	)
 }
