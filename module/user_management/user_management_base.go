@@ -6,10 +6,12 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/databases"
+	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/log"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/redis"
 	"github.com/donnyhardyanto/dxlib/tables"
+	"github.com/donnyhardyanto/dxlib/types"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"github.com/repoareta/pgn-partner-common/infrastructure/base"
@@ -102,8 +104,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[]string{"id", "uid", "nameid", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Role.FieldNameForRowUtag = "utag"
-	um.Role.FieldTypeMapping = map[string]string{
-		"organization_types": "array-string",
+	um.Role.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
+		"organization_types": types.APIParameterTypeArrayString,
 	}
 	um.Organization = tables.NewDXTableSimple(databaseNameId,
 		"user_management.organization", "user_management.organization", "user_management.organization",
