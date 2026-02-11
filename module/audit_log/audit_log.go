@@ -35,9 +35,9 @@ func (al *DxmAudit) Init(databaseNameId string) {
 		"id", "uid", "id", "data",
 		nil,
 		nil,
-		[]string{"prefix", "log_level", "location", "message"},
-		[]string{"at", "location", "message", "stack"},
-		[]string{"id", "uid", "log_level", "at", "created_at"},
+		[]string{"prefix", "log_level", "location", "url", "message"},
+		[]string{"at", "location", "url", "message", "stack"},
+		[]string{"id", "uid", "log_level", "url", "at", "created_at"},
 	)
 	al.ErrorLog.FieldMaxLengths = map[string]int{"message": 16000}
 }
@@ -62,11 +62,17 @@ func (al *DxmAudit) DoError(callerLog *log.DXLog, errPrev error, logLevel log.DX
 	originalOnError := log.OnError
 	log.OnError = nil
 
+	requestURL := ""
+	if callerLog != nil {
+		requestURL = callerLog.RequestURL
+	}
+
 	_, returningValues, err := ModuleAuditLog.ErrorLog.Insert(&log.Log, utils.JSON{
 		"at":        time.Now(),
 		"prefix":    app.App.NameId + " " + app.App.Version,
 		"log_level": logLevelAsString,
 		"location":  location,
+		"url":       requestURL,
 		"message":   st,
 		"stack":     stack,
 	}, []string{"id", "uid"})
