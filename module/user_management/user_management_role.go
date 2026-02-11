@@ -73,14 +73,6 @@ func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err err
 	return nil
 }
 
-func (um *DxmUserManagement) RoleRead(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.RequestRead(aepr)
-}
-
-func (um *DxmUserManagement) RoleReadByNameId(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.RequestReadByNameId(aepr)
-}
-
 func (um *DxmUserManagement) RoleEdit(aepr *api.DXAPIEndPointRequest) (err error) {
 	t := um.Role
 	_, id, err := aepr.GetParameterValueAsInt64(t.FieldNameForRowId)
@@ -182,12 +174,4 @@ func (um *DxmUserManagement) RoleEditByUid(aepr *api.DXAPIEndPointRequest) (err 
 		return err
 	}
 	return nil
-}
-
-func (um *DxmUserManagement) RoleDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.RequestSoftDelete(aepr)
-}
-
-func (um *DxmUserManagement) RoleDeleteByUid(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Role.RequestSoftDeleteByUid(aepr)
 }
