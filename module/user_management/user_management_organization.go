@@ -490,23 +490,23 @@ func (um *DxmUserManagement) OrganizationDelete(aepr *api.DXAPIEndPointRequest) 
 // OrganizationEditByUidHandler - Handles organization edit with UID-based parameters
 // Converts parent_uid to parent_id before database update
 func (um *DxmUserManagement) OrganizationEditByUidHandler(aepr *api.DXAPIEndPointRequest) error {
-	isNewExist, new, err := aepr.GetParameterValueAsJSON("new")
+	isNewExist, newData, err := aepr.GetParameterValueAsJSON("new")
 	if err != nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PARAMETER_NEW_REQUIRED", "Parameter new is required")
 	}
 
-	if !isNewExist || new == nil {
+	if !isNewExist || newData == nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PARAMETER_NEW_REQUIRED", "Parameter new is required")
 	}
 
 	// Convert parent_uid to parent_id
-	if parentUid, exists := new["parent_uid"]; exists {
+	if parentUid, exists := newData["parent_uid"]; exists {
 		if parentUid != nil && parentUid != "" {
 			uid, ok := parentUid.(string)
 			if !ok || uid == "" {
 				// Set to null if invalid
-				delete(new, "parent_uid")
-				new["parent_id"] = nil
+				delete(newData, "parent_uid")
+				newData["parent_id"] = nil
 			} else {
 				// Get parent organization by UID and convert to ID
 				_, parentOrg, err := um.Organization.GetByUid(&aepr.Log, uid)
@@ -525,17 +525,17 @@ func (um *DxmUserManagement) OrganizationEditByUidHandler(aepr *api.DXAPIEndPoin
 				}
 
 				// Replace UID with ID for database update
-				delete(new, "parent_uid")
-				new["parent_id"] = parentId
+				delete(newData, "parent_uid")
+				newData["parent_id"] = parentId
 			}
 		} else {
 			// Set to null if empty
-			delete(new, "parent_uid")
-			new["parent_id"] = nil
+			delete(newData, "parent_uid")
+			newData["parent_id"] = nil
 		}
 	}
 
 	// Update parameter and call standard handler
-	aepr.ParameterValues["new"] = &api.DXAPIEndPointRequestParameterValue{Value: new}
+	aepr.ParameterValues["new"] = &api.DXAPIEndPointRequestParameterValue{Value: newData}
 	return um.Organization.RequestEditByUidWithValidation(aepr)
 }
