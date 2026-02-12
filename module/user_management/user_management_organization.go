@@ -48,9 +48,9 @@ func (um *DxmUserManagement) OrganizationCreateBulk(aepr *api.DXAPIEndPointReque
 }
 
 func (um *DxmUserManagement) parseAndCreateOrganizationsFromCSV(buf *bytes.Buffer, aepr *api.DXAPIEndPointRequest) error {
-	// Create a new reader with comma as delimiter
+	// Create a new reader with comma as a delimiter
 	reader := csv.NewReader(buf)
-	reader.Comma = ';'          // Set comma as delimiter
+	reader.Comma = ';'          // Set comma as a delimiter
 	reader.LazyQuotes = true    // Handle quotes more flexibly
 	reader.FieldsPerRecord = -1 // Allow variable number of fields
 

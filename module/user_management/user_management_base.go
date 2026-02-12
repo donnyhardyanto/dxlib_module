@@ -113,8 +113,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"code"}, {"name"}},
 		[]string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status"},
-		[]string{"code", "name", "tags", "status", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
-		[]string{"id", "uid", "code", "type", "status", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"code", "name", "tags", "status", "parent_uid", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
+		[]string{"id", "uid", "parent_uid", "code", "type", "status", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Organization.FieldNameForRowUtag = "utag"
 	um.OrganizationRoles = tables.NewDXTableSimple(databaseNameId,
