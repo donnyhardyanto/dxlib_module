@@ -124,7 +124,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[][]string{{"organization_id", "role_id"}},
 		[]string{"role_nameid", "role_name", "role_description", "organization_name", "organization_type", "organization_address"},
 		[]string{"id", "role_nameid", "role_name", "organization_id", "role_id", "created_at", "last_modified_at"},
-		[]string{"id", "uid", "role_nameid", "role_name", "organization_id", "role_id", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"id", "uid", "organization_uid", "role_nameid", "role_name", "organization_id", "role_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.UserOrganizationMembership = tables.NewDXTableSimple(databaseNameId,
 		"user_management.user_organization_membership", "user_management.user_organization_membership", "user_management.v_user_organization_membership",
