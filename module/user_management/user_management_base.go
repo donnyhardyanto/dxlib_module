@@ -123,8 +123,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"organization_id", "role_id"}},
 		[]string{"role_nameid", "role_name", "role_description", "organization_name", "organization_type", "organization_address"},
-		[]string{"id", "organization_id", "role_id", "created_at", "last_modified_at"},
-		[]string{"id", "uid", "organization_id", "role_id", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"id", "role_nameid", "role_name", "organization_id", "role_id", "created_at", "last_modified_at"},
+		[]string{"id", "uid", "role_nameid", "role_name", "organization_id", "role_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.UserOrganizationMembership = tables.NewDXTableSimple(databaseNameId,
 		"user_management.user_organization_membership", "user_management.user_organization_membership", "user_management.v_user_organization_membership",
@@ -195,8 +195,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		nil,
 		[]string{"title", "body", "user_message_channel_type_nameid", "user_message_channel_type_name", "user_message_category_nameid", "user_message_category_name"},
-		[]string{"id", "user_id", "user_message_channel_type_id", "user_message_category_id", "is_read", "created_at", "last_modified_at"},
-		[]string{"id", "uid", "user_id", "user_message_channel_type_id", "user_message_category_id", "fcm_message_id", "fcm_application_id", "is_read", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"title", "body", "id", "user_id", "user_message_channel_type_id", "user_message_category_id", "is_read", "created_at", "last_modified_at"},
+		[]string{"id", "uid", "user_id", "title", "body", "user_message_channel_type_id", "user_message_category_id", "fcm_message_id", "fcm_application_id", "is_read", "created_at", "last_modified_at", "is_deleted"},
 	)
 }
 
