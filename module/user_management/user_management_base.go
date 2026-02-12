@@ -79,7 +79,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"loginid"}, {"identity_number"}},
 		[]string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type"},
-		[]string{"id", "fullname", "email", "membership_number", "organization_name", "status", "phonenumber", "loginid", "identity_type", "identity_number", "attribute", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
+		[]string{"fullname", "email", "membership_number", "organization_name", "status", "phonenumber", "loginid", "identity_type", "identity_number", "attribute", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "loginid", "status", "identity_type", "identity_number", "membership_number", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.UserPassword = tables.NewDXTableWithEncryption(databaseNameId,
@@ -91,7 +91,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		},
 		nil,
 		nil,
-		[]string{"id", "user_id", "created_at"},
+		[]string{"user_id", "created_at", "id", "uid"},
 		[]string{"id", "uid", "user_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Role = tables.NewDXTableSimple(databaseNameId,
@@ -100,7 +100,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"nameid"}, {"name"}},
 		[]string{"nameid", "name", "description"},
-		[]string{"id", "name", "nameid", "description", "organization_types", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
+		[]string{"name", "nameid", "description", "organization_types", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "nameid", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Role.FieldNameForRowUtag = "utag"
@@ -113,7 +113,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"code"}, {"name"}},
 		[]string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status"},
-		[]string{"id", "code", "name", "tags", "status", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
+		[]string{"code", "name", "tags", "status", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "code", "type", "status", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Organization.FieldNameForRowUtag = "utag"
@@ -123,7 +123,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"organization_id", "role_id"}},
 		[]string{"role_nameid", "role_name", "role_description", "organization_name", "organization_type", "organization_address"},
-		[]string{"id", "role_nameid", "role_name", "organization_id", "role_id", "created_at", "last_modified_at"},
+		[]string{"role_nameid", "role_name", "organization_id", "role_id", "created_at", "last_modified_at", "id", "uid"},
 		[]string{"id", "uid", "organization_uid", "role_nameid", "role_name", "organization_id", "role_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.UserOrganizationMembership = tables.NewDXTableSimple(databaseNameId,
@@ -132,7 +132,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"user_id"}},
 		[]string{"membership_number", "organization_name", "organization_type"},
-		[]string{"id", "user_id", "organization_id", "order_index", "created_at", "last_modified_at"},
+		[]string{"user_id", "organization_id", "order_index", "created_at", "last_modified_at", "id", "uid"},
 		[]string{"id", "uid", "user_id", "organization_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Privilege = tables.NewDXTableSimple(databaseNameId,
@@ -141,7 +141,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"nameid"}},
 		[]string{"nameid", "name", "description"},
-		[]string{"id", "name", "nameid", "description", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"},
+		[]string{"name", "nameid", "description", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "nameid", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.RolePrivilege = tables.NewDXTableSimple(databaseNameId,
@@ -150,7 +150,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"role_id", "privilege_id"}},
 		[]string{"privilege_nameid", "privilege_name"},
-		[]string{"id", "role_id", "privilege_id", "created_at", "last_modified_at"},
+		[]string{"role_id", "privilege_id", "created_at", "last_modified_at", "id", "uid"},
 		[]string{"id", "uid", "role_id", "privilege_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.UserRoleMembership = tables.NewDXTableSimple(databaseNameId,
@@ -159,7 +159,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"user_id", "role_id"}},
 		[]string{"role_nameid", "role_name"},
-		[]string{"id", "user_id", "role_id", "organization_id", "created_at", "last_modified_at"},
+		[]string{"user_id", "role_id", "organization_id", "created_at", "last_modified_at", "id", "uid"},
 		[]string{"id", "uid", "user_id", "role_id", "organization_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.MenuItem = tables.NewDXTableSimple(databaseNameId,
@@ -168,7 +168,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		nil,
 		[]string{"nameid", "name", "composite_nameid", "privilege_nameid"},
-		[]string{"id", "parent_id", "nameid", "name", "level", "item_index", "created_at", "last_modified_at"},
+		[]string{"parent_id", "nameid", "name", "level", "item_index", "created_at", "last_modified_at", "id", "uid"},
 		[]string{"id", "uid", "parent_id", "nameid", "composite_nameid", "privilege_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.UserMessageChannelType = tables.NewDXRawTableSimple(databaseNameId,
@@ -177,7 +177,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"nameid"}, {"name"}},
 		[]string{"nameid", "name"},
-		[]string{"id", "nameid", "name"},
+		[]string{"nameid", "name", "id", "uid"},
 		[]string{"id", "uid", "nameid"},
 	)
 	um.UserMessageCategory = tables.NewDXRawTableSimple(databaseNameId,
@@ -186,7 +186,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"nameid"}, {"name"}},
 		[]string{"nameid", "name"},
-		[]string{"id", "nameid", "name"},
+		[]string{"nameid", "name", "id", "uid"},
 		[]string{"id", "uid", "nameid"},
 	)
 	um.UserMessage = tables.NewDXTableSimple(databaseNameId,
@@ -195,7 +195,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		nil,
 		[]string{"title", "body", "user_message_channel_type_nameid", "user_message_channel_type_name", "user_message_category_nameid", "user_message_category_name"},
-		[]string{"title", "body", "id", "user_id", "user_message_channel_type_id", "user_message_category_id", "is_read", "created_at", "last_modified_at"},
+		[]string{"title", "body", "id", "user_id", "user_message_channel_type_id", "user_message_category_id", "is_read", "created_at", "last_modified_at", "id", "uid"},
 		[]string{"id", "uid", "user_id", "title", "body", "user_message_channel_type_id", "user_message_category_id", "fcm_message_id", "fcm_application_id", "is_read", "created_at", "last_modified_at", "is_deleted"},
 	)
 }
