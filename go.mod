@@ -5,7 +5,7 @@ go 1.25.7
 require (
 	firebase.google.com/go/v4 v4.18.0
 	github.com/HugoSmits86/nativewebp v1.2.1
-	github.com/donnyhardyanto/dxlib v1.82.0
+	github.com/donnyhardyanto/dxlib v1.90.0
 	github.com/google/uuid v1.6.0
 	github.com/tealeg/xlsx v1.0.5
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
