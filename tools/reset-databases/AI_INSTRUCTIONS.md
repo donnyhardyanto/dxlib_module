@@ -95,7 +95,66 @@ func main() {
 }
 ```
 
-## Step 4: Create Seed Package (If Needed)
+## Step 4: Generate Documentation Files
+
+Generate README.md and HOW_TO_USE.md from templates to provide comprehensive project documentation.
+
+### README.md Generation
+
+Read the template from `templates/README.template.md` and replace all placeholders:
+
+**Template Variables:**
+- `{{.ProjectName}}` - From config: `project_name`
+- `{{.ProjectDescription}}` - From config: `project_description`
+- `{{.EnvVarPrefix}}` - From config: `env_var_prefix`
+- `{{.ConfirmationKey1}}` - From config: `confirmation_key_1`
+- `{{.ConfirmationKey2}}` - From config: `confirmation_key_2`
+- `{{range .Databases}}...{{end}}` - Loop through databases array
+  - `{{.NameId}}` - Database `name_id`
+  - `{{.DisplayName}}` - Database `display_name`
+  - `{{.ModelName}}` - Database `model_name`
+  - `{{.DDLOutputFileName}}` - Database `ddl_output_filename`
+
+**Output:** Write to `cmd/tool-{project-name}-reset/README.md`
+
+### HOW_TO_USE.md Generation
+
+Read the template from `templates/HOW_TO_USE.template.md` and replace the same placeholders.
+
+**Output:** Write to `cmd/tool-{project-name}-reset/HOW_TO_USE.md`
+
+### Template Processing Example
+
+If config has:
+```json
+{
+  "project_name": "pgn-partner-reset",
+  "env_var_prefix": "PGN_PARTNER",
+  "databases": [
+    {"name_id": "config", "display_name": "Config Database", ...}
+  ]
+}
+```
+
+Template with:
+```markdown
+# {{.ProjectName}}
+Environment: {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION
+
+{{range .Databases}}
+- {{.DisplayName}} ({{.NameId}})
+{{end}}
+```
+
+Generates:
+```markdown
+# pgn-partner-reset
+Environment: PGN_PARTNER_RESET_BYPASS_CONFIRMATION
+
+- Config Database (config)
+```
+
+## Step 5: Create Seed Package (If Needed)
 
 If `seed_package` is specified but doesn't exist, create:
 
@@ -112,15 +171,18 @@ func Seed() error {
 }
 ```
 
-## Step 5: Verify Generated Code
+## Step 6: Verify Generated Code
 
 Check:
 1. ✅ All imports resolve correctly
 2. ✅ Model names match actual struct names
 3. ✅ Package paths are correct
 4. ✅ `go build` succeeds without errors
+5. ✅ README.md generated with all placeholders replaced
+6. ✅ HOW_TO_USE.md generated with all placeholders replaced
+7. ✅ Documentation matches project configuration
 
-## Step 6: Test the Tool
+## Step 7: Test the Tool
 
 Run basic tests:
 ```bash
@@ -180,12 +242,18 @@ AI: Generated confirmation keys:
     Key 1: "confirm-db-wipe-7x9k"
     Key 2: "proceed-reset-4m2n"
 
-    Creating tool at: cmd/tool-myproject-reset/main.go
+    Creating tool at: cmd/tool-myproject-reset/
     [✓] Generated main.go
+    [✓] Generated README.md
+    [✓] Generated HOW_TO_USE.md
     [✓] Created seed package stub
     [✓] Build successful
 
-    Your reset tool is ready! Run with:
+    Your reset tool is ready! Documentation:
+    - README.md: Quick start and overview
+    - HOW_TO_USE.md: Complete usage guide
+
+    Run with:
     IS_LOCAL=true ./tool-myproject-reset
 ```
 
