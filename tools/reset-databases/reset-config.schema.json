@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Database Reset Tool Configuration",
+  "description": "Configuration for generating a database reset tool using dxlib_module/tools/reset-databases",
+  "type": "object",
+  "required": [
+    "project_name",
+    "project_description",
+    "databases",
+    "infrastructure_package",
+    "assets_package"
+  ],
+  "properties": {
+    "project_name": {
+      "type": "string",
+      "description": "Name of the reset tool binary (e.g., 'my-project-reset')",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "project_description": {
+      "type": "string",
+      "description": "Human-readable description of the tool",
+      "minLength": 1
+    },
+    "confirmation_key_1": {
+      "type": "string",
+      "description": "First confirmation prompt (leave empty for auto-generation)",
+      "minLength": 3
+    },
+    "confirmation_key_2": {
+      "type": "string",
+      "description": "Second confirmation prompt (leave empty for auto-generation)",
+      "minLength": 3
+    },
+    "env_var_prefix": {
+      "type": "string",
+      "description": "Prefix for environment variables (e.g., 'MY_PROJECT' generates 'IS_MY_PROJECT_RESET_DELETE_AND_CREATE_DB')",
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "ddl_output_folder": {
+      "type": "string",
+      "description": "Folder where DDL SQL files will be written",
+      "default": "."
+    },
+    "databases": {
+      "type": "array",
+      "description": "List of databases to reset",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name_id", "display_name", "model_package", "model_name", "ddl_output_filename"],
+        "properties": {
+          "name_id": {
+            "type": "string",
+            "description": "Database identifier (key in databases.Manager.Databases)",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Human-readable database name for error messages",
+            "minLength": 1
+          },
+          "model_package": {
+            "type": "string",
+            "description": "Go import path for the database model package",
+            "pattern": "^[a-z0-9./\\-_]+$"
+          },
+          "model_name": {
+            "type": "string",
+            "description": "Name of the database model struct (e.g., 'PartnerConfigDB')",
+            "pattern": "^[A-Z][A-Za-z0-9]*$"
+          },
+          "ddl_output_filename": {
+            "type": "string",
+            "description": "Filename for DDL output (e.g., 'db_main.sql')",
+            "pattern": "^[a-z0-9_]+\\.sql$"
+          }
+        }
+      }
+    },
+    "infrastructure_package": {
+      "type": "string",
+      "description": "Go import path for infrastructure package with DefineConfiguration and DoOnDefineSetVariables",
+      "pattern": "^[a-z0-9./\\-_]+$"
+    },
+    "assets_package": {
+      "type": "string",
+      "description": "Go import path for assets package with GetSQLContent function",
+      "pattern": "^[a-z0-9./\\-_]+$"
+    },
+    "seed_package": {
+      "type": "string",
+      "description": "Optional Go import path for seed package with Seed() function",
+      "pattern": "^[a-z0-9./\\-_]+$"
+    },
+    "disable_redis_connections": {
+      "type": "boolean",
+      "description": "Disable Redis connections during reset",
+      "default": true
+    }
+  }
+}
