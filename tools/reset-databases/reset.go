@@ -75,12 +75,12 @@ func Run(config *Config) {
 // defineConfiguration sets up the configuration phase (extracted from doOnDefineConfiguration)
 func defineConfiguration(config *Config) error {
 	// Read IS_LOCAL environment variable to determine if running in local/dev environment
-	isLocal = osUtils.GetEnvDefaultValueAsBool("IS_LOCAL", false)
+	isLocal = osUtils.GetEnvDefaultValueAsBool(config.EnvVarPrefix+"_IS_LOCAL", false)
 
 	// IS_LOCAL=true (Development): Allow DB drop and bypass confirmation (both can be overridden)
 	// IS_LOCAL=false (Staging/Production): Block DB drop and require confirmation (CANNOT be overridden)
 
-	deleteAndCreateDBEnvVar := "IS_" + config.EnvVarPrefix + "_RESET_DELETE_AND_CREATE_DB"
+	deleteAndCreateDBEnvVar := config.EnvVarPrefix + "_RESET_DELETE_AND_CREATE_DB"
 	bypassConfirmationEnvVar := config.EnvVarPrefix + "_RESET_BYPASS_CONFIRMATION"
 
 	if isLocal {
