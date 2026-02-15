@@ -75,7 +75,7 @@ func Run(config *Config) {
 // defineConfiguration sets up the configuration phase (extracted from doOnDefineConfiguration)
 func defineConfiguration(config *Config) error {
 	// Read IS_LOCAL environment variable to determine if running in local/dev environment
-	isLocal = osUtils.GetEnvDefaultValue("IS_LOCAL", "false") == "true"
+	isLocal = osUtils.GetEnvDefaultValueAsBool("IS_LOCAL", false)
 
 	// IS_LOCAL=true (Development): Allow DB drop and bypass confirmation (both can be overridden)
 	// IS_LOCAL=false (Staging/Production): Block DB drop and require confirmation (CANNOT be overridden)
@@ -91,10 +91,7 @@ func defineConfiguration(config *Config) error {
 		}
 
 		// DEVELOPMENT MODE: Bypass confirmation (default: true, can override to false)
-		t2 := osUtils.GetEnvDefaultValueAsInt(bypassConfirmationEnvVar, 1)
-		if t2 == 1 {
-			bypassConfirmation = true
-		}
+		bypassConfirmation = osUtils.GetEnvDefaultValueAsBool(bypassConfirmationEnvVar, true)
 	} else {
 		// STAGING/PRODUCTION MODE: Force safe behavior (CANNOT be overridden)
 		deleteAndCreateDb = false  // HARD BLOCK: Never drop databases in staging/production
