@@ -38,11 +38,30 @@ func Run(config *Config) {
 		"__VAULT__",
 		osUtils.GetEnvDefaultValue("VAULT_PATH", "kv/data/pgn-partner-dev"),
 	)
+
+	// Encryption vault configuration - MUST be explicitly set, no defaults
+	encryptionVaultAddress := osUtils.GetEnvDefaultWithFallback([]string{"ENCRYPTION_VAULT_ADDRESS", "VAULT_ADDRESS"}, "")
+	encryptionVaultToken := osUtils.GetEnvDefaultWithFallback([]string{"ENCRYPTION_VAULT_TOKEN", "VAULT_TOKEN"}, "")
+	encryptionVaultPath := osUtils.GetEnvDefaultWithFallback([]string{"ENCRYPTION_VAULT_PATH", "VAULT_PATH"}, "")
+
+	if encryptionVaultPath == "" {
+		log.Log.Fatal("ENCRYPTION_VAULT_PATH or VAULT_PATH environment variable must be set")
+		stdos.Exit(1)
+	}
+	if encryptionVaultAddress == "" {
+		log.Log.Fatal("ENCRYPTION_VAULT_ADDRESS or VAULT_ADDRESS environment variable must be set")
+		stdos.Exit(1)
+	}
+	if encryptionVaultToken == "" {
+		log.Log.Fatal("ENCRYPTION_VAULT_TOKEN or VAULT_TOKEN environment variable must be set")
+		stdos.Exit(1)
+	}
+
 	app.App.EncryptionVault = vault.NewHashiCorpVault(
-		osUtils.GetEnvDefaultWithFallback([]string{"ENCRYPTION_VAULT_ADDRESS", "VAULT_ADDRESS"}, "http://127.0.0.1:8200/"),
-		osUtils.GetEnvDefaultWithFallback([]string{"ENCRYPTION_VAULT_TOKEN", "VAULT_TOKEN"}, " dev-vault-token"),
+		encryptionVaultAddress,
+		encryptionVaultToken,
 		"__VAULT__",
-		osUtils.GetEnvDefaultWithFallback([]string{"ENCRYPTION_VAULT_PATH", "VAULT_PATH"}, "db_field_vault/data/db_field"),
+		encryptionVaultPath,
 	)
 
 	app.Set(config.ProjectName,
