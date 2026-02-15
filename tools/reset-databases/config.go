@@ -21,7 +21,7 @@ type Config struct {
 	OnSeed                func() error
 
 	// Environment variable customization
-	EnvVarPrefix string // e.g., "PGN_PARTNER" generates "IS_PGN_PARTNER_RESET_DELETE_AND_CREATE_DB"
+	EnvVarPrefix string // e.g., "PGN_PARTNER" generates "PGN_PARTNER_IS_DEV", "PGN_PARTNER_RESET_DELETE_AND_CREATE_DB"
 
 	// DDL output settings
 	DDLOutputFolder string // default: "."

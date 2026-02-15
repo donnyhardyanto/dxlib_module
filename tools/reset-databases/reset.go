@@ -20,7 +20,7 @@ import (
 var (
 	bypassConfirmation = false
 	deleteAndCreateDb  = false
-	isLocal            = false
+	isDev              = false
 )
 
 // Run executes the database reset tool with the provided configuration
@@ -74,24 +74,23 @@ func Run(config *Config) {
 
 // defineConfiguration sets up the configuration phase (extracted from doOnDefineConfiguration)
 func defineConfiguration(config *Config) error {
-	// Read IS_LOCAL environment variable to determine if running in local/dev environment
-	isLocal = osUtils.GetEnvDefaultValueAsBool(config.EnvVarPrefix+"_IS_LOCAL", false)
+	// Read IS_DEV environment variable to determine if running in local/dev environment
+	isDev = osUtils.GetEnvDefaultValueAsBool(config.EnvVarPrefix+"_IS_DEV", false)
 
-	// IS_LOCAL=true (Development): Allow DB drop and bypass confirmation (both can be overridden)
-	// IS_LOCAL=false (Staging/Production): Block DB drop and require confirmation (CANNOT be overridden)
+	// IS_DEV=true (Development): Allow a DB drop and bypass confirmation (both can be overridden)
+	// IS_DEV=false (Staging/Production): Block a DB drop and require confirmation (CANNOT be overridden)
 
 	deleteAndCreateDBEnvVar := config.EnvVarPrefix + "_RESET_DELETE_AND_CREATE_DB"
 	bypassConfirmationEnvVar := config.EnvVarPrefix + "_RESET_BYPASS_CONFIRMATION"
 
-	if isLocal {
-		// DEVELOPMENT MODE: Allow DB drop (default: true, can override to false)
-		t1 := osUtils.GetEnvDefaultValue(deleteAndCreateDBEnvVar, "true")
-		if t1 == "true" {
+	if isDev {
+		t1 := osUtils.GetEnvDefaultValueAsBool(deleteAndCreateDBEnvVar, false)
+		if t1 {
 			deleteAndCreateDb = true
 		}
 
-		// DEVELOPMENT MODE: Bypass confirmation (default: true, can override to false)
-		bypassConfirmation = osUtils.GetEnvDefaultValueAsBool(bypassConfirmationEnvVar, true)
+		// DEVELOPMENT MODE: Bypass confirmation (default: false, can override to true)
+		bypassConfirmation = osUtils.GetEnvDefaultValueAsBool(bypassConfirmationEnvVar, false)
 	} else {
 		// STAGING/PRODUCTION MODE: Force safe behavior (CANNOT be overridden)
 		deleteAndCreateDb = false  // HARD BLOCK: Never drop databases in staging/production
@@ -99,7 +98,7 @@ func defineConfiguration(config *Config) error {
 
 		fmt.Println()
 		fmt.Println("╔════════════════════════════════════════════════════════════════╗")
-		fmt.Println("║  STAGING/PRODUCTION MODE DETECTED (IS_LOCAL=false)            ║")
+		fmt.Println("║  STAGING/PRODUCTION MODE DETECTED (IS_DEV=false)              ║")
 		fmt.Println("║  - Database DROP is BLOCKED (cannot be overridden)            ║")
 		fmt.Println("║  - Confirmation is REQUIRED (cannot be overridden)            ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════════╝")
@@ -209,8 +208,8 @@ func defineConfiguration(config *Config) error {
 
 // executeReset performs the drop/create/execute phase (extracted from doOnAfterConfigurationStartAll)
 func executeReset(config *Config) error {
-	// Save and disable database error logging during DB creation phase
-	// because error_log table doesn't exist yet
+	// Save and disable database error logging during the DB creation phase
+	// because the error_log table doesn't exist yet
 	originalOnError := log.OnError
 	log.OnError = nil
 	defer func() {
@@ -228,12 +227,12 @@ func executeReset(config *Config) error {
 
 	fmt.Println("Executing wipe... START")
 
-	// Double-check: NEVER allow database DROP in staging/production (IS_LOCAL=false)
-	if deleteAndCreateDb && !isLocal {
+	// Double-check: NEVER allow database DROP in staging/production (IS_DEV=false)
+	if deleteAndCreateDb && !isDev {
 		PrintErrorBanner(
 			"⛔ CRITICAL SAFETY VIOLATION:",
 			"Database DROP Blocked in Production",
-			"Attempted to DROP databases with IS_LOCAL=false - this is wrong",
+			"Attempted to DROP databases with IS_DEV=false - this is wrong",
 			"",
 			"This safeguard CANNOT be overridden. Use dev environment.",
 		)
