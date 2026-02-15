@@ -31,7 +31,7 @@ func Run(config *Config) {
 	}
 
 	// Initialize vault and app
-	log.SetFormatText()
+	log.SetFormatSimple()
 	app.App.InitVault = vault.NewHashiCorpVault(
 		osUtils.GetEnvDefaultValue("VAULT_ADDRESS", "http://127.0.0.1:8200/"),
 		osUtils.GetEnvDefaultValue("VAULT_TOKEN", " dev-vault-token"),
