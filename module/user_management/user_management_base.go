@@ -159,7 +159,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"user_id", "role_id"}},
 		[]string{"role_nameid", "role_name"},
-		[]string{"user_id", "role_id", "organization_id", "created_at", "last_modified_at", "id", "uid"},
+		[]string{"user_id", "role_nameid", "role_name", "role_id", "organization_id", "created_at", "last_modified_at", "id", "uid"},
 		[]string{"id", "uid", "user_id", "role_id", "organization_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.MenuItem = tables.NewDXTableSimple(databaseNameId,
