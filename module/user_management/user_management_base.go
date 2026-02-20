@@ -195,7 +195,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		nil,
 		[]string{"title", "body", "user_message_channel_type_nameid", "user_message_channel_type_name", "user_message_category_nameid", "user_message_category_name"},
-		[]string{"title", "body", "id", "user_id", "user_message_channel_type_id", "user_message_category_id", "is_read", "created_at", "last_modified_at", "id", "uid"},
+		[]string{"title", "body", "id", "user_id", "user_message_channel_type_id", "user_message_category_id", "is_read", "sent_at", "arrive_at", "read_at", "created_at", "last_modified_at", "id", "uid"},
 		[]string{"id", "uid", "user_id", "title", "body", "user_message_channel_type_id", "user_message_category_id", "fcm_message_id", "fcm_application_id", "is_read", "created_at", "last_modified_at", "is_deleted"},
 	)
 }
