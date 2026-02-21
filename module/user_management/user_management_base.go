@@ -150,8 +150,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"role_id", "privilege_id"}},
 		[]string{"privilege_nameid", "privilege_name"},
-		[]string{"role_id", "privilege_id", "created_at", "last_modified_at", "id", "uid"},
-		[]string{"id", "uid", "role_id", "privilege_id", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"role_id", "privilege_id", "privilege_nameid", "created_at", "last_modified_at", "id", "uid"},
+		[]string{"id", "uid", "role_id", "role_uid", "privilege_id", "privilege_nameid", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.UserRoleMembership = tables.NewDXTableSimple(databaseNameId,
 		"user_management.user_role_membership", "user_management.user_role_membership", "user_management.v_user_role_membership",
