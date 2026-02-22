@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/donnyhardyanto/dxlib"
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/configuration"
 	"github.com/donnyhardyanto/dxlib/databases"
@@ -295,6 +296,12 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 		"c1": captchaID,
 		"d1": preKeyTTLAsInt,
 	}
+
+	// Include captcha text in debug mode for easier testing
+	if dxlib.IsDebug {
+		r["c2"] = captchaText
+	}
+
 	rAsBytes, err := json.Marshal(r)
 	if err != nil {
 		return err
