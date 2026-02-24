@@ -105,22 +105,28 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		[]string{"id", "uid", "nameid", "service_account_source", "created_at", "last_modified_at", "is_deleted"},
 	)
 	f.FCMUserToken = tables.NewDXTableSimple(f.DatabaseNameId,
-		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "push_notification.fcm_user_token",
+		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "push_notification.v_fcm_user_token",
 		"id", "uid", "", "data",
 		nil,
 		nil,
-		[]string{"fcm_token", "device_type", "id", "uid"},
-		[]string{"id", "user_id", "fcm_application_id", "device_type", "created_at", "uid"},
-		[]string{"id", "uid", "user_id", "user_uid", "fcm_application_id", "device_type", "created_at", "last_modified_at", "is_deleted"},
+		// SearchTextFieldNames — string fields only, no id/uid/*_id/*_uid
+		[]string{"fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid"},
+		// OrderByFieldNames — all fields returned to client, uid last
+		[]string{"id", "user_id", "fcm_application_id", "fcm_token", "device_type", "is_deleted", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
+		// FilterableFieldNames — superset of OrderByFieldNames
+		[]string{"id", "uid", "user_id", "fcm_application_id", "fcm_token", "device_type", "is_deleted", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
 	)
 	f.FCMMessage = tables.NewDXTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_message", "push_notification.fcm_message", "push_notification.v_fcm_message",
 		"id", "uid", "", "data",
 		nil,
 		nil,
-		[]string{"fcm_application_id", "status", "title", "body", "device_type", "id", "uid"},
-		[]string{"id", "fcm_user_token_id", "status", "is_read", "retry_count", "created_at", "uid"},
-		[]string{"id", "uid", "fcm_user_token_id", "user_id", "user_uid", "status", "is_read", "device_type", "created_at", "last_modified_at"},
+		// SearchTextFieldNames — string fields only, no id/uid/*_id/*_uid
+		[]string{"status", "title", "body", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid"},
+		// OrderByFieldNames — all fields returned to client, uid last
+		[]string{"id", "fcm_user_token_id", "fcm_application_id", "status", "title", "body", "data", "next_retry_time", "retry_count", "is_read", "is_deleted", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
+		// FilterableFieldNames — superset of OrderByFieldNames
+		[]string{"id", "uid", "fcm_user_token_id", "user_id", "fcm_application_id", "status", "title", "body", "data", "next_retry_time", "is_read", "is_deleted", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
 	)
 	f.FCMTopicMessage = tables.NewDXTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "push_notification.fcm_topic_message",
