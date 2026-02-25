@@ -25,18 +25,18 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
-		[]string{"nameid", "type", "id", "uid"},
-		[]string{"id", "nameid", "type", "created_at", "uid"},
 		[]string{"nameid", "type"},
+		[]string{"id", "nameid", "type", "created_at", "uid"},
+		[]string{"id", "nameid", "type", "created_at", "uid"},
 	)
 	g.Announcement = tables.NewDXTableSimple(databaseNameId,
 		"general.announcement", "general.announcement", "general.announcement",
 		"id", "uid", "uid", "data",
 		nil,
 		nil,
-		[]string{"title", "content", "id", "uid"},
+		[]string{"title", "content"},
 		[]string{"id", "title", "content", "timestamp", "created_at", "is_deleted", "uid"},
-		[]string{"title", "content", "is_deleted"},
+		[]string{"id", "title", "content", "timestamp", "created_at", "is_deleted", "uid"},
 	)
 	g.Announcement.DownloadableOrderByFieldNames = []string{"id", "title", "content", "created_at", "uid"}
 	g.Template = tables.NewDXTableSimple(g.DatabaseNameId,
@@ -44,9 +44,9 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
-		[]string{"nameid", "type", "subject", "body", "id", "uid"},
+		[]string{"nameid", "type", "subject", "body"},
 		[]string{"id", "nameid", "type", "subject", "created_at", "is_deleted", "uid"},
-		[]string{"nameid", "type", "subject", "body", "is_deleted"},
+		[]string{"id", "nameid", "type", "subject", "body", "created_at", "is_deleted", "uid"},
 	)
 }
 

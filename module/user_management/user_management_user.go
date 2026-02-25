@@ -858,7 +858,7 @@ func (um *DxmUserManagement) DoUserEdit(aepr *api.DXAPIEndPointRequest, userId i
 			if err2 != nil {
 				return err2
 			}
-			_, user, err2 := um.User.ShouldGetById(&aepr.Log, userId)
+			_, user, err2 := um.User.TxShouldGetById(dtx, userId)
 			if err2 != nil {
 				return err2
 			}
