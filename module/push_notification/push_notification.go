@@ -134,8 +134,8 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		nil,
 		nil,
 		[]string{"fcm_application_id", "topic", "status", "title", "body", "id", "uid"},
-		[]string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at", "uid"},
-		[]string{"id", "uid", "fcm_application_id", "topic", "status", "created_at", "last_modified_at"},
+		[]string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at", "is_deleted", "uid"},
+		[]string{"id", "uid", "fcm_application_id", "topic", "status", "created_at", "last_modified_at", "is_deleted"},
 	)
 }
 
