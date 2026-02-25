@@ -850,6 +850,11 @@ func (um *DxmUserManagement) DoUserEdit(aepr *api.DXAPIEndPointRequest, userId i
 		}
 	}
 
+	// Convert empty identity_number to NULL to avoid UNIQUE constraint violation
+	if identityNumber, ok := newKeyValues["identity_number"].(string); ok && identityNumber == "" {
+		newKeyValues["identity_number"] = nil
+	}
+
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) (err2 error) {
 		if len(newKeyValues) > 0 {
 			_, err2 = um.User.TxUpdateSimple(dtx, newKeyValues, utils.JSON{
