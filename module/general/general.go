@@ -38,6 +38,7 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 		[]string{"id", "title", "content", "timestamp", "created_at", "is_deleted", "uid"},
 		[]string{"title", "content", "is_deleted"},
 	)
+	g.Announcement.DownloadableOrderByFieldNames = []string{"id", "title", "content", "created_at", "uid"}
 	g.Template = tables.NewDXTableSimple(g.DatabaseNameId,
 		"general.template", "general.template", "general.template",
 		"id", "uid", "nameid", "data",
