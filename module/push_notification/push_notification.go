@@ -1052,6 +1052,7 @@ func isPermanentFCMError(err error) bool {
 		"InvalidPackageName",
 		"MismatchSenderId",
 		"not-found",
+		"Requested entity was not found",
 		"permission-denied",
 		"unauthenticated",
 		"authentication-error",

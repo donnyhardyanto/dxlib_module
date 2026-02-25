@@ -123,9 +123,9 @@ func (al *DXMAccountLockout) Init(
 	// Initialize tables
 	al.AccountLockoutEvents = tables.NewDXRawTableSimple(
 		auditLogDBNameId,
-		"partner_auditlog.account_lockout_events",
-		"partner_auditlog.account_lockout_events",
-		"partner_auditlog.account_lockout_events",
+		"account_lockout.account_lockout_events",
+		"account_lockout.account_lockout_events",
+		"account_lockout.account_lockout_events",
 		"id", "uid", "", "metadata",
 		nil,
 		[][]string{{"user_id"}, {"user_uid"}, {"event_timestamp"}},
@@ -138,9 +138,9 @@ func (al *DXMAccountLockout) Init(
 
 	al.AccountLockoutConfig = tables.NewDXTableSimple(
 		configDBNameId,
-		"partner_config.account_lockout_config",
-		"partner_config.account_lockout_config",
-		"partner_config.account_lockout_config",
+		"account_lockout.account_lockout_config",
+		"account_lockout.account_lockout_config",
+		"account_lockout.account_lockout_config",
 		"id", "uid", "", "data",
 		nil,
 		[][]string{{"organization_id"}},
