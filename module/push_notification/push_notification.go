@@ -122,11 +122,11 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		nil,
 		nil,
 		// SearchTextFieldNames — string fields only, no id/uid/*_id/*_uid
-		[]string{"status", "title", "body", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid"},
+		[]string{"status", "title", "body", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid"},
 		// OrderByFieldNames — all fields returned to client, uid last
-		[]string{"id", "fcm_user_token_id", "fcm_application_id", "status", "title", "body", "data", "next_retry_time", "retry_count", "is_read", "is_deleted", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
+		[]string{"id", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "next_retry_time", "retry_count", "is_read", "is_deleted", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
 		// FilterableFieldNames — superset of OrderByFieldNames
-		[]string{"id", "uid", "fcm_user_token_id", "user_id", "fcm_application_id", "status", "title", "body", "data", "next_retry_time", "is_read", "is_deleted", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
+		[]string{"id", "uid", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "next_retry_time", "is_read", "is_deleted", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
 	)
 	f.FCMTopicMessage = tables.NewDXTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "push_notification.fcm_topic_message",
@@ -174,6 +174,7 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 }
 
 func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, deviceType string, userId int64, token string) (err error) {
+	deviceType = strings.ToUpper(deviceType)
 	if err = f.Database.EnsureConnection(); err != nil {
 		return err
 	}
@@ -347,12 +348,25 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 	if err != nil {
 		return err
 	}
+
+	userLoginId, _ := utils.GetStringFromKV(userToken, "user_loginid")
+	userFullName, _ := utils.GetStringFromKV(userToken, "user_fullname")
+	fcmApplicationNameId, _ := utils.GetStringFromKV(userToken, "fcm_application_nameid")
+	deviceType, _ := utils.GetStringFromKV(userToken, "device_type")
+
 	fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
-		"fcm_user_token_id": userTokenId,
-		"status":            StatusPending,
-		"title":             msgTitle,
-		"body":              msgBody,
-		"data":              msgDataAsString,
+		"fcm_user_token_id":    userTokenId,
+		"user_id":              userId,
+		"fcm_application_id":   fcmApplicationId,
+		"fcm_token":            token,
+		"device_type":          deviceType,
+		"user_loginid":         userLoginId,
+		"user_fullname":        userFullName,
+		"fcm_application_nameid": fcmApplicationNameId,
+		"status":               StatusPending,
+		"title":                msgTitle,
+		"body":                 msgBody,
+		"data":                 msgDataAsString,
 	})
 	if err != nil {
 		return err
@@ -404,12 +418,24 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 
 	var fcmMessageIds []int64
 	for _, userToken := range userTokens {
+		tokenFcmToken, _ := utils.GetStringFromKV(userToken, "fcm_token")
+		tokenDeviceType, _ := utils.GetStringFromKV(userToken, "device_type")
+		tokenUserLoginId, _ := utils.GetStringFromKV(userToken, "user_loginid")
+		tokenUserFullName, _ := utils.GetStringFromKV(userToken, "user_fullname")
+
 		fcmMessageId, err := f.FCMMessage.InsertReturningId(l, utils.JSON{
-			"fcm_user_token_id": userToken["id"],
-			"status":            StatusPending,
-			"title":             msgTitle,
-			"body":              msgBody,
-			"data":              msgDataAsJSONString,
+			"fcm_user_token_id":      userToken["id"],
+			"user_id":                userId,
+			"fcm_application_id":     fcmApplicationId,
+			"fcm_token":              tokenFcmToken,
+			"device_type":            tokenDeviceType,
+			"user_loginid":           tokenUserLoginId,
+			"user_fullname":          tokenUserFullName,
+			"fcm_application_nameid": applicationNameId,
+			"status":                 StatusPending,
+			"title":                  msgTitle,
+			"body":                   msgBody,
+			"data":                   msgDataAsJSONString,
 		})
 		if err != nil {
 			return err
@@ -517,12 +543,24 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 
 		var fcmMessageIds []int64
 		for _, userToken := range userTokens {
+			tokenFcmToken, _ := utils.GetStringFromKV(userToken, "fcm_token")
+			tokenDeviceType, _ := utils.GetStringFromKV(userToken, "device_type")
+			tokenUserLoginId, _ := utils.GetStringFromKV(userToken, "user_loginid")
+			tokenUserFullName, _ := utils.GetStringFromKV(userToken, "user_fullname")
+
 			fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
-				"fcm_user_token_id": userToken["id"],
-				"status":            StatusPending,
-				"title":             msgTitle,
-				"body":              msgBody,
-				"data":              msgDataAsJSONString,
+				"fcm_user_token_id":      userToken["id"],
+				"user_id":                userId,
+				"fcm_application_id":     fcmApplicationId,
+				"fcm_token":              tokenFcmToken,
+				"device_type":            tokenDeviceType,
+				"user_loginid":           tokenUserLoginId,
+				"user_fullname":          tokenUserFullName,
+				"fcm_application_nameid": fcmApplicationNameId,
+				"status":                 StatusPending,
+				"title":                  msgTitle,
+				"body":                   msgBody,
+				"data":                   msgDataAsJSONString,
 			})
 			if err != nil {
 				return err
