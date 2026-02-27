@@ -154,7 +154,7 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 	}
 	_, serviceAccountSource, err := aepr.GetParameterValueAsString("service_account_source")
 	if err != nil {
-		return nil
+		return err
 	}
 	if !utils.TsIsContain[string](FcmServiceAccountSourceValues, serviceAccountSource) {
 		return errors.Errorf("INVALID_FCM_SERVICE_ACCOUNT_SOURCE_VALUE:%v", serviceAccountSource)
@@ -455,7 +455,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
 		}
 
-		fcmMessageId, err := f.FCMMessage.InsertReturningId(l, utils.JSON{
+		fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
 			"fcm_user_token_id":      userToken["id"],
 			"user_id":                userId,
 			"fcm_application_id":     fcmApplicationId,
@@ -807,44 +807,44 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 	for _, fcmMessage := range fcmMessages {
 		fcmMessageId, err := utils.GetInt64FromKV(fcmMessage, "id")
 		if err != nil {
-			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_ID_TYPE_ASSERTION_FAILED:%v", err)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_ID_TYPE_ASSERTION_FAILED")
 			continue // Cannot mark as failed without ID
 		}
 		log.Log.Debugf("Processing message %d", fcmMessageId)
 
 		retryCount, err := utils.GetInt64FromKV(fcmMessage, "retry_count")
 		if err != nil {
-			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
 			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, 0)
 			continue
 		}
 		fcmToken, err := utils.GetStringFromKV(fcmMessage, "fcm_token")
 		if err != nil {
-			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_FCM_TOKEN_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_FCM_TOKEN_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
 			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		deviceType, err := utils.GetStringFromKV(fcmMessage, "device_type")
 		if err != nil {
-			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_DEVICE_TYPE_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_DEVICE_TYPE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
 			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgTitle, err := utils.GetStringFromKV(fcmMessage, "title")
 		if err != nil {
-			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
 			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgBody, err := utils.GetStringFromKV(fcmMessage, "body")
 		if err != nil {
-			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
 			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgData, err := utils.GetMapStringStringFromKV(fcmMessage, "data")
 		if err != nil {
-			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
 			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
@@ -856,7 +856,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 			}
 		}
 
-		// Check if a message has exceeded the maximum retry count
+		// Check if message exceeded max retry count
 		if retryCount >= FCMMessageMaxRetryAttemptCount {
 			log.Log.Warnf("Message %d exceeded max retry count (%d), marking as permanently failed", fcmMessageId, FCMMessageMaxRetryAttemptCount)
 			err = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
@@ -866,7 +866,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 			continue
 		}
 
-		// Check if a message has expired
+		// Check if message has expired
 		createdAt, err := utils.GetTimeFromKV(fcmMessage, "created_at")
 		if err == nil {
 			expirationDuration := time.Duration(FCMMessageExpirationInSeconds) * time.Second
@@ -889,15 +889,9 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 
 		err = f.sendNotificationWithErrorHandling(ctx, firebaseServiceAccount.Client, fcmToken, deviceType, msgTitle, msgBody, msgData, fcmMessageId, retryCount)
 		if err != nil {
-			log.Log.Warnf("ERROR SEND NOTIFICATION %d: %v", fcmMessageId, err)
-			retryCount++
-			err = f.updateMessageStatus(fcmMessageId, StatusFailed, retryCount)
+			log.Log.Warnf("ERROR_SEND_NOTIFICATION:%d:%+v", fcmMessageId, err)
 		} else {
-			log.Log.Warnf("SENT NOTIFICATION:%d", fcmMessageId)
-			err = f.updateMessageStatus(fcmMessageId, StatusSent, retryCount)
-		}
-		if err != nil {
-			log.Log.Warnf("ERROR UPDATING FCM MESSAGE ID %d STATUS: %+v", fcmMessageId, err)
+			log.Log.Warnf("SENT_NOTIFICATION:%d", fcmMessageId)
 		}
 	}
 
@@ -925,57 +919,54 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 	}
 
 	for _, fcmTopicMessage := range fcmTopicMessages {
-		fcmMessageId, err := utils.GetInt64FromKV(fcmTopicMessage, "id")
+		fcmTopicMessageId, err := utils.GetInt64FromKV(fcmTopicMessage, "id")
 		if err != nil {
-			log.Log.Warnf("FCM_TOPIC_MESSAGE_ID_TYPE_ASSERTION_FAILED")
-			continue
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_ID_TYPE_ASSERTION_FAILED")
+			continue // Cannot mark as failed without ID
 		}
-		log.Log.Debugf("Processing topic message %d", fcmMessageId)
+		log.Log.Debugf("Processing topic message %d", fcmTopicMessageId)
 
 		retryCount, err := utils.GetInt64FromKV(fcmTopicMessage, "retry_count")
 		if err != nil {
-			log.Log.Warnf("FCM_TOPIC_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
-			continue
-		}
-		fcmTopicMessageId, err := utils.GetInt64FromKV(fcmTopicMessage, "id")
-		if err != nil {
-			log.Log.Warnf("FCM_TOPIC_MESSAGE_ID_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
+			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, 0)
 			continue
 		}
 		msgTopic, err := utils.GetStringFromKV(fcmTopicMessage, "topic")
 		if err != nil {
-			log.Log.Warnf("FCM_TOPIC_MESSAGE_TOPIC_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_TOPIC_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
+			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgTitle, err := utils.GetStringFromKV(fcmTopicMessage, "title")
 		if err != nil {
-			log.Log.Warnf("FCM_TOPIC_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
+			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgBody, err := utils.GetStringFromKV(fcmTopicMessage, "body")
 		if err != nil {
-			log.Log.Warnf("FCM_TOPIC_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
+			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
-		msgData := map[string]string{"retry_count": fmt.Sprintf("%d", retryCount)}
-		if msgDataTemp, err := utils.GetMapStringStringFromKV(fcmTopicMessage, "data"); err == nil {
-			msgData = msgDataTemp
+		msgData, err := utils.GetMapStringStringFromKV(fcmTopicMessage, "data")
+		if err != nil {
+			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
+			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
+			continue
 		}
 
-		if fcmTopicMessage["next_retry_time"] != nil {
-			MsgNextRetryTime, err := utils.GetVFromKV[time.Time](fcmTopicMessage, "next_retry_time")
-			if err != nil {
-				log.Log.Warnf("FCM_TOPIC_MESSAGE_NEXT_RETRY_TIME_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
-				continue
-			}
+		MsgNextRetryTime, err := utils.GetTimeFromKV(fcmTopicMessage, "next_retry_time")
+		if err == nil {
 			if MsgNextRetryTime.After(time.Now()) {
 				continue // Skip messages that are not ready for retry
 			}
 		}
 
-		// Check if a message has exceeded the maximum retry count
+		// Check if message exceeded max retry count
 		if retryCount >= FCMTopicMessageMaxRetryAttemptCount {
-			log.Log.Warnf("Topic message %d exceeded max retry count (%d), marking as permanently failed", fcmTopicMessageId, FCMMessageMaxRetryAttemptCount)
+			log.Log.Warnf("Topic message %d exceeded max retry count (%d), marking as permanently failed", fcmTopicMessageId, FCMTopicMessageMaxRetryAttemptCount)
 			err = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
 			if err != nil {
 				log.Log.Warnf("Failed to update topic message status to FAILED_PERMANENT: %v", err)
@@ -983,8 +974,9 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 			continue
 		}
 
-		// Check if a message has expired
-		if createdAt, ok := fcmTopicMessage["created_at"].(time.Time); ok {
+		// Check if message has expired
+		createdAt, err := utils.GetTimeFromKV(fcmTopicMessage, "created_at")
+		if err == nil {
 			expirationDuration := time.Duration(FCMTopicMessageExpirationInSeconds) * time.Second
 			if time.Since(createdAt) > expirationDuration {
 				log.Log.Warnf("Topic message %d has expired (created: %v), marking as expired", fcmTopicMessageId, createdAt)
@@ -1006,14 +998,8 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 		err = f.sendTopicNotificationWithErrorHandling(ctx, firebaseServiceAccount.Client, msgTopic, msgTitle, msgBody, msgData, fcmTopicMessageId, retryCount)
 		if err != nil {
 			log.Log.Warnf("ERROR_SEND_TOPIC_NOTIFICATION:%d:%+v", fcmTopicMessageId, err)
-			retryCount++
-			err = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailed, retryCount)
 		} else {
 			log.Log.Warnf("SENT_TOPIC_NOTIFICATION:%d", fcmTopicMessageId)
-			err = f.updateTopicMessageStatus(fcmTopicMessageId, StatusSent, retryCount)
-		}
-		if err != nil {
-			log.Log.Warnf("ERROR_UPDATING_FCM_TOPIC_MESSAGE_ID %d STATUS: %+v", fcmTopicMessageId, err)
 		}
 	}
 
