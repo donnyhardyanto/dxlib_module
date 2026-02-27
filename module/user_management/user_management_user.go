@@ -612,22 +612,34 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 }
 
 func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err error) {
-	organizationId, ok := aepr.ParameterValues["organization_id"].Value.(int64)
-	if !ok {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
-	}
-	_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
-	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
-	}
+	var organizationId int64
+	var roleId int64
+	var ok bool
+	hasOrganizationRole := false
 
-	roleId, ok := aepr.ParameterValues["role_id"].Value.(int64)
-	if !ok {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING", "")
-	}
-	_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
-	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
+	if paramValue, exists := aepr.ParameterValues["organization_id"]; exists && paramValue != nil {
+		organizationId, ok = paramValue.Value.(int64)
+		if !ok {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
+		}
+		_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
+		if err != nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
+		}
+
+		if paramValueRole, existsRole := aepr.ParameterValues["role_id"]; existsRole && paramValueRole != nil {
+			roleId, ok = paramValueRole.Value.(int64)
+			if !ok {
+				return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING", "")
+			}
+		} else {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING_WHEN_ORGANIZATION_ID_PROVIDED", "")
+		}
+		_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
+		if err != nil {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
+		}
+		hasOrganizationRole = true
 	}
 
 	userPassword, ok := aepr.ParameterValues["password"].Value.(string)
@@ -748,29 +760,31 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 			userUid = uid
 		}
 
-		_, orgMemberReturning, err2 := um.UserOrganizationMembership.TxInsert(tx, map[string]any{
-			"user_id":           userId,
-			"organization_id":   organizationId,
-			"membership_number": membershipNumber,
-		}, []string{"uid"})
-		if err2 != nil {
-			return err2
-		}
-		if uid, ok := orgMemberReturning["uid"].(string); ok {
-			userOrganizationMembershipUid = uid
-		}
+		if hasOrganizationRole {
+			_, orgMemberReturning, err2 := um.UserOrganizationMembership.TxInsert(tx, map[string]any{
+				"user_id":           userId,
+				"organization_id":   organizationId,
+				"membership_number": membershipNumber,
+			}, []string{"uid"})
+			if err2 != nil {
+				return err2
+			}
+			if uid, ok := orgMemberReturning["uid"].(string); ok {
+				userOrganizationMembershipUid = uid
+			}
 
-		_, roleMemberReturning, err2 := um.UserRoleMembership.TxInsert(tx, map[string]any{
-			"user_id":         userId,
-			"organization_id": organizationId,
-			"role_id":         roleId,
-		}, []string{"id", "uid"})
-		if err2 != nil {
-			return err2
-		}
-		userRoleMembershipId, _ = utilsJson.GetInt64(roleMemberReturning, "id")
-		if uid, ok := roleMemberReturning["uid"].(string); ok {
-			userRoleMembershipUid = uid
+			_, roleMemberReturning, err2 := um.UserRoleMembership.TxInsert(tx, map[string]any{
+				"user_id":         userId,
+				"organization_id": organizationId,
+				"role_id":         roleId,
+			}, []string{"id", "uid"})
+			if err2 != nil {
+				return err2
+			}
+			userRoleMembershipId, _ = utilsJson.GetInt64(roleMemberReturning, "id")
+			if uid, ok := roleMemberReturning["uid"].(string); ok {
+				userRoleMembershipUid = uid
+			}
 		}
 
 		err2 = um.TxUserPasswordCreate(tx, userId, userPassword)
@@ -789,19 +803,20 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 			if err2 != nil {
 				return err2
 			}
-
 		}
 
-		_, userRoleMembership, err2 := um.UserRoleMembership.TxSelectOne(tx, nil, utils.JSON{
-			"id": userRoleMembershipId,
-		}, nil, nil, nil)
-		if err2 != nil {
-			return err2
-		}
-		if um.OnUserRoleMembershipAfterCreate != nil {
-			err2 = um.OnUserRoleMembershipAfterCreate(aepr, tx, userRoleMembership, organizationId)
+		if hasOrganizationRole {
+			_, userRoleMembership, err2 := um.UserRoleMembership.TxSelectOne(tx, nil, utils.JSON{
+				"id": userRoleMembershipId,
+			}, nil, nil, nil)
 			if err2 != nil {
 				return err2
+			}
+			if um.OnUserRoleMembershipAfterCreate != nil {
+				err2 = um.OnUserRoleMembershipAfterCreate(aepr, tx, userRoleMembership, organizationId)
+				if err2 != nil {
+					return err2
+				}
 			}
 		}
 		return nil
