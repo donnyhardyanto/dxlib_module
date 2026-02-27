@@ -988,6 +988,9 @@ func (f *FirebaseCloudMessaging) sendNotificationWithErrorHandling(ctx context.C
 		// Check if this is a permanent error that shouldn't be retried
 		if isPermanentFCMError(err) {
 			log.Log.Warnf("Permanent FCM error for message %d: %v, marking as permanently failed", fcmMessageId, err)
+			if isTokenRelatedPermanentError(err) {
+				f.deleteUserTokenByFCMToken(token)
+			}
 			return f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 		}
 
@@ -1079,6 +1082,7 @@ func isPermanentFCMError(err error) bool {
 	permanentErrorPatterns := []string{
 		"registration-token-not-registered",
 		"invalid-registration-token",
+		"not a valid fcm registration token",
 		"invalid-argument",
 		"invalid-recipient",
 		"invalid-package-name",
@@ -1115,6 +1119,55 @@ func isPermanentFCMError(err error) bool {
 	}
 
 	return false
+}
+
+func isTokenRelatedPermanentError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	tokenPatterns := []string{
+		"registration-token-not-registered",
+		"invalid-registration-token",
+		"not a valid fcm registration token",
+		"unregistered",
+		"invalidregistration",
+		"notregistered",
+		"not-found",
+		"requested entity was not found",
+	}
+	for _, pattern := range tokenPatterns {
+		if strings.Contains(errStr, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *FirebaseCloudMessaging) deleteUserTokenByFCMToken(fcmToken string) {
+	if err := f.Database.EnsureConnection(); err != nil {
+		log.Log.Warnf("Failed to ensure connection for token cleanup: %v", err)
+		return
+	}
+
+	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
+	if err != nil {
+		log.Log.Warnf("Failed to begin transaction for token cleanup: %v", err)
+		return
+	}
+	defer dtx.Rollback()
+
+	_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{"fcm_token": fcmToken})
+	if err != nil {
+		log.Log.Warnf("Failed to delete invalid FCM user token [%s]: %v", fcmToken, err)
+		return
+	}
+
+	if err = dtx.Commit(); err != nil {
+		log.Log.Warnf("Failed to commit token cleanup for [%s]: %v", fcmToken, err)
+	} else {
+		log.Log.Infof("Deleted invalid FCM user token [%s]", fcmToken)
+	}
 }
 
 func (f *FirebaseCloudMessaging) updateMessageStatus(messageId int64, status string, retryCount int64) (err error) {
