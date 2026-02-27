@@ -349,10 +349,22 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 		return err
 	}
 
-	userLoginId, _ := utils.GetStringFromKV(userToken, "user_loginid")
-	userFullName, _ := utils.GetStringFromKV(userToken, "user_fullname")
-	fcmApplicationNameId, _ := utils.GetStringFromKV(userToken, "fcm_application_nameid")
-	deviceType, _ := utils.GetStringFromKV(userToken, "device_type")
+	userLoginId, err := utils.GetStringFromKV(userToken, "user_loginid")
+	if err != nil {
+		return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_LOGINID_INVALID")
+	}
+	userFullName, err := utils.GetStringFromKV(userToken, "user_fullname")
+	if err != nil {
+		return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
+	}
+	fcmApplicationNameId, err := utils.GetStringFromKV(userToken, "fcm_application_nameid")
+	if err != nil {
+		return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_FCM_APPLICATION_NAMEID_INVALID")
+	}
+	deviceType, err := utils.GetStringFromKV(userToken, "device_type")
+	if err != nil {
+		return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
+	}
 
 	fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
 		"fcm_user_token_id":      userTokenId,
@@ -418,10 +430,22 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 
 	var fcmMessageIds []int64
 	for _, userToken := range userTokens {
-		tokenFcmToken, _ := utils.GetStringFromKV(userToken, "fcm_token")
-		tokenDeviceType, _ := utils.GetStringFromKV(userToken, "device_type")
-		tokenUserLoginId, _ := utils.GetStringFromKV(userToken, "user_loginid")
-		tokenUserFullName, _ := utils.GetStringFromKV(userToken, "user_fullname")
+		tokenFcmToken, err := utils.GetStringFromKV(userToken, "fcm_token")
+		if err != nil {
+			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_FCM_TOKEN_INVALID")
+		}
+		tokenDeviceType, err := utils.GetStringFromKV(userToken, "device_type")
+		if err != nil {
+			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
+		}
+		tokenUserLoginId, err := utils.GetStringFromKV(userToken, "user_loginid")
+		if err != nil {
+			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_LOGINID_INVALID")
+		}
+		tokenUserFullName, err := utils.GetStringFromKV(userToken, "user_fullname")
+		if err != nil {
+			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
+		}
 
 		fcmMessageId, err := f.FCMMessage.InsertReturningId(l, utils.JSON{
 			"fcm_user_token_id":      userToken["id"],
@@ -543,10 +567,22 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 
 		var fcmMessageIds []int64
 		for _, userToken := range userTokens {
-			tokenFcmToken, _ := utils.GetStringFromKV(userToken, "fcm_token")
-			tokenDeviceType, _ := utils.GetStringFromKV(userToken, "device_type")
-			tokenUserLoginId, _ := utils.GetStringFromKV(userToken, "user_loginid")
-			tokenUserFullName, _ := utils.GetStringFromKV(userToken, "user_fullname")
+			tokenFcmToken, err := utils.GetStringFromKV(userToken, "fcm_token")
+			if err != nil {
+				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_FCM_TOKEN_INVALID")
+			}
+			tokenDeviceType, err := utils.GetStringFromKV(userToken, "device_type")
+			if err != nil {
+				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
+			}
+			tokenUserLoginId, err := utils.GetStringFromKV(userToken, "user_loginid")
+			if err != nil {
+				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_LOGINID_INVALID")
+			}
+			tokenUserFullName, err := utils.GetStringFromKV(userToken, "user_fullname")
+			if err != nil {
+				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
+			}
 
 			fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
 				"fcm_user_token_id":      userToken["id"],
@@ -771,39 +807,45 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 	for _, fcmMessage := range fcmMessages {
 		fcmMessageId, err := utils.GetInt64FromKV(fcmMessage, "id")
 		if err != nil {
-			log.Log.Warnf("FCM_MESSAGE_ID_TYPE_ASSERTION_FAILED:%v", err)
-			continue
+			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_ID_TYPE_ASSERTION_FAILED:%v", err)
+			continue // Cannot mark as failed without ID
 		}
 		log.Log.Debugf("Processing message %d", fcmMessageId)
 
 		retryCount, err := utils.GetInt64FromKV(fcmMessage, "retry_count")
 		if err != nil {
-			log.Log.Warnf("FCM_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, 0)
 			continue
 		}
 		fcmToken, err := utils.GetStringFromKV(fcmMessage, "fcm_token")
 		if err != nil {
-			log.Log.Warnf("FCM_MESSAGE_FCM_TOKEN_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_FCM_TOKEN_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		deviceType, err := utils.GetStringFromKV(fcmMessage, "device_type")
 		if err != nil {
-			log.Log.Warnf("FCM_MESSAGE_DEVICE_TYPE_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_DEVICE_TYPE_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgTitle, err := utils.GetStringFromKV(fcmMessage, "title")
 		if err != nil {
-			log.Log.Warnf("FCM_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgBody, err := utils.GetStringFromKV(fcmMessage, "body")
 		if err != nil {
-			log.Log.Warnf("FCM_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgData, err := utils.GetVFromKV[map[string]string](fcmMessage, "data")
 		if err != nil {
-			log.Log.Warnf("FCM_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 
