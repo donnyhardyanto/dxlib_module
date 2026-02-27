@@ -18,10 +18,12 @@ import (
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/app"
 	"github.com/donnyhardyanto/dxlib/databases"
+	db "github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/messaging/fcm"
 	"github.com/donnyhardyanto/dxlib/tables"
+	"github.com/donnyhardyanto/dxlib/types"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
 
@@ -128,6 +130,9 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		// FilterableFieldNames — superset of OrderByFieldNames
 		[]string{"id", "uid", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "next_retry_time", "is_read", "is_deleted", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
 	)
+	f.FCMMessage.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
+		"data": types.APIParameterTypeMapStringString,
+	}
 	f.FCMTopicMessage = tables.NewDXTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "push_notification.fcm_topic_message",
 		"id", "uid", "", "data",
@@ -137,6 +142,9 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		[]string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at", "is_deleted", "uid"},
 		[]string{"id", "uid", "fcm_application_id", "topic", "status", "created_at", "last_modified_at", "is_deleted"},
 	)
+	f.FCMTopicMessage.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
+		"data": types.APIParameterTypeMapStringString,
+	}
 }
 
 func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -423,7 +431,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 		return err
 	}
 
-	msgDataAsJSONString, err := json.Marshal(msgData)
+	msgDataAsBytes, err := json.Marshal(msgData)
 	if err != nil {
 		return err
 	}
@@ -459,7 +467,7 @@ func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId stri
 			"status":                 StatusPending,
 			"title":                  msgTitle,
 			"body":                   msgBody,
-			"data":                   msgDataAsJSONString,
+			"data":                   msgDataAsBytes,
 		})
 		if err != nil {
 			return err
@@ -503,17 +511,9 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 		return err
 	}
 
-	_, msgDataRaw, err := aepr.GetParameterValueAsJSON("msg_data")
+	_, msgData, err := aepr.GetParameterValueAsMapStringString("msg_data")
 	if err != nil {
 		return err
-	}
-	msgData := make(map[string]string)
-	for k, v := range msgDataRaw {
-		if str, ok := v.(string); ok {
-			msgData[k] = str
-		} else {
-			msgData[k] = fmt.Sprintf("%v", v)
-		}
 	}
 
 	err = f.SendToUser(&aepr.Log, applicationNameId, userId, msgTitle, msgBody, msgData, nil)
@@ -541,7 +541,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 		return err
 	}
 
-	msgDataAsJSONString, err := json.Marshal(msgData)
+	msgDataAsBytes, err := json.Marshal(msgData)
 	if err != nil {
 		return errors.Wrap(err, "FAILED_TO_MARSHAL_MSG_DATA")
 	}
@@ -596,7 +596,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 				"status":                 StatusPending,
 				"title":                  msgTitle,
 				"body":                   msgBody,
-				"data":                   msgDataAsJSONString,
+				"data":                   msgDataAsBytes,
 			})
 			if err != nil {
 				return err
@@ -630,7 +630,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic str
 		return err
 	}
 
-	msgDataAsJSONString, err := json.Marshal(msgData)
+	msgDataAsBytes, err := json.Marshal(msgData)
 	if err != nil {
 		return errors.Wrap(err, "FAILED_TO_MARSHAL_MSG_DATA")
 	}
@@ -652,7 +652,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic str
 			"topic":              topic,
 			"title":              msgTitle,
 			"body":               msgBody,
-			"data":               msgDataAsJSONString,
+			"data":               msgDataAsBytes,
 		})
 		if err != nil {
 			return err
@@ -842,7 +842,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
-		msgData, err := utils.GetVFromKV[map[string]string](fcmMessage, "data")
+		msgData, err := utils.GetMapStringStringFromKV(fcmMessage, "data")
 		if err != nil {
 			log.Log.Warnf("SHOULD_NOT_HAPPEN:FCM_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
 			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
@@ -958,7 +958,7 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 			continue
 		}
 		msgData := map[string]string{"retry_count": fmt.Sprintf("%d", retryCount)}
-		if msgDataTemp, err := utils.GetVFromKV[map[string]string](fcmTopicMessage, "data"); err == nil {
+		if msgDataTemp, err := utils.GetMapStringStringFromKV(fcmTopicMessage, "data"); err == nil {
 			msgData = msgDataTemp
 		}
 
