@@ -355,18 +355,18 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 	deviceType, _ := utils.GetStringFromKV(userToken, "device_type")
 
 	fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
-		"fcm_user_token_id":    userTokenId,
-		"user_id":              userId,
-		"fcm_application_id":   fcmApplicationId,
-		"fcm_token":            token,
-		"device_type":          deviceType,
-		"user_loginid":         userLoginId,
-		"user_fullname":        userFullName,
+		"fcm_user_token_id":      userTokenId,
+		"user_id":                userId,
+		"fcm_application_id":     fcmApplicationId,
+		"fcm_token":              token,
+		"device_type":            deviceType,
+		"user_loginid":           userLoginId,
+		"user_fullname":          userFullName,
 		"fcm_application_nameid": fcmApplicationNameId,
-		"status":               StatusPending,
-		"title":                msgTitle,
-		"body":                 msgBody,
-		"data":                 msgDataAsString,
+		"status":                 StatusPending,
+		"title":                  msgTitle,
+		"body":                   msgBody,
+		"data":                   msgDataAsString,
 	})
 	if err != nil {
 		return err
@@ -769,49 +769,46 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 	}
 
 	for _, fcmMessage := range fcmMessages {
-		fcmMessageId, ok := fcmMessage["id"].(int64)
-		if !ok {
-			log.Log.Warnf("FCM_MESSAGE_ID_TYPE_ASSERTION_FAILED")
+		fcmMessageId, err := utils.GetInt64FromKV(fcmMessage, "id")
+		if err != nil {
+			log.Log.Warnf("FCM_MESSAGE_ID_TYPE_ASSERTION_FAILED:%v", err)
 			continue
 		}
 		log.Log.Debugf("Processing message %d", fcmMessageId)
 
-		retryCount, ok := fcmMessage["retry_count"].(int64)
-		if !ok {
-			log.Log.Warnf("FCM_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+		retryCount, err := utils.GetInt64FromKV(fcmMessage, "retry_count")
+		if err != nil {
+			log.Log.Warnf("FCM_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
 			continue
 		}
-		fcmToken, ok := fcmMessage["fcm_token"].(string)
-		if !ok {
-			log.Log.Warnf("FCM_MESSAGE_FCM_TOKEN_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+		fcmToken, err := utils.GetStringFromKV(fcmMessage, "fcm_token")
+		if err != nil {
+			log.Log.Warnf("FCM_MESSAGE_FCM_TOKEN_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
 			continue
 		}
-		deviceType, ok := fcmMessage["device_type"].(string)
-		if !ok {
-			log.Log.Warnf("FCM_MESSAGE_DEVICE_TYPE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+		deviceType, err := utils.GetStringFromKV(fcmMessage, "device_type")
+		if err != nil {
+			log.Log.Warnf("FCM_MESSAGE_DEVICE_TYPE_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
 			continue
 		}
-		msgTitle, ok := fcmMessage["title"].(string)
-		if !ok {
-			log.Log.Warnf("FCM_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+		msgTitle, err := utils.GetStringFromKV(fcmMessage, "title")
+		if err != nil {
+			log.Log.Warnf("FCM_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
 			continue
 		}
-		msgBody, ok := fcmMessage["body"].(string)
-		if !ok {
-			log.Log.Warnf("FCM_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
+		msgBody, err := utils.GetStringFromKV(fcmMessage, "body")
+		if err != nil {
+			log.Log.Warnf("FCM_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
 			continue
 		}
-		msgData := map[string]string{"retry_count": fmt.Sprintf("%d", retryCount)}
-		if msgDataTemp, ok := fcmMessage["data"].(map[string]string); ok {
-			msgData = msgDataTemp
+		msgData, err := utils.GetVFromKV[map[string]string](fcmMessage, "data")
+		if err != nil {
+			log.Log.Warnf("FCM_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d:%v", fcmMessageId, err)
+			continue
 		}
 
-		if fcmMessage["next_retry_time"] != nil {
-			MsgNextRetryTime, ok := fcmMessage["next_retry_time"].(time.Time)
-			if !ok {
-				log.Log.Warnf("FCM_MESSAGE_NEXT_RETRY_TIME_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
-				continue
-			}
+		MsgNextRetryTime, err := utils.GetTimeFromKV(fcmMessage, "next_retry_time")
+		if err == nil {
 			if MsgNextRetryTime.After(time.Now()) {
 				continue // Skip messages that are not ready for retry
 			}
@@ -828,7 +825,8 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 		}
 
 		// Check if a message has expired
-		if createdAt, ok := fcmMessage["created_at"].(time.Time); ok {
+		createdAt, err := utils.GetTimeFromKV(fcmMessage, "created_at")
+		if err == nil {
 			expirationDuration := time.Duration(FCMMessageExpirationInSeconds) * time.Second
 			if time.Since(createdAt) > expirationDuration {
 				log.Log.Warnf("Message %d has expired (created: %v), marking as expired", fcmMessageId, createdAt)
