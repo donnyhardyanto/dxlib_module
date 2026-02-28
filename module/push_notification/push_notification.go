@@ -114,9 +114,9 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		// SearchTextFieldNames — string fields only, no id/uid/*_id/*_uid
 		[]string{"fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid"},
 		// OrderByFieldNames — all fields returned to client, uid last
-		[]string{"id", "user_id", "fcm_application_id", "fcm_token", "device_type", "is_deleted", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
+		[]string{"id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
 		// FilterableFieldNames — superset of OrderByFieldNames
-		[]string{"id", "uid", "user_id", "fcm_application_id", "fcm_token", "device_type", "is_deleted", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
+		[]string{"id", "uid", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
 	)
 	f.FCMMessage = tables.NewDXTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_message", "push_notification.fcm_message", "push_notification.v_fcm_message",
