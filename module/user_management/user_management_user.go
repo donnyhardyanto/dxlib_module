@@ -753,6 +753,19 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		if user != nil {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
 		}
+
+		if identityNumber != "" {
+			_, existingUserByIdentity, err2 := um.User.TxSelectOne(tx, nil, utils.JSON{
+				"identity_number": identityNumber,
+			}, nil, nil, nil)
+			if err2 != nil {
+				return err2
+			}
+			if existingUserByIdentity != nil {
+				return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "IDENTITY_NUMBER_ALREADY_EXISTS", "IDENTITY_NUMBER_ALREADY_EXISTS:%v", identityNumber)
+			}
+		}
+
 		_, userReturning, err2 := um.User.TxInsert(tx, p, []string{"id", "uid"})
 		if err2 != nil {
 			return err2

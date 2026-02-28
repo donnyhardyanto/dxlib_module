@@ -72,7 +72,7 @@ type FCMTopicMessageFunc func(dtx *databases.DXDatabaseTx, l *log.DXLog, fcmTopi
 
 type FirebaseCloudMessaging struct {
 	FCMApplication  *tables.DXTable
-	FCMUserToken    *tables.DXTable
+	FCMUserToken    *tables.DXRawTable
 	FCMMessage      *tables.DXTable
 	FCMTopicMessage *tables.DXTable
 	DatabaseNameId  string
@@ -106,7 +106,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		[]string{"id", "nameid", "created_at", "uid"},
 		[]string{"id", "uid", "nameid", "service_account_source", "created_at", "last_modified_at", "is_deleted"},
 	)
-	f.FCMUserToken = tables.NewDXTableSimple(f.DatabaseNameId,
+	f.FCMUserToken = tables.NewDXRawTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "push_notification.v_fcm_user_token",
 		"id", "uid", "", "data",
 		nil,
