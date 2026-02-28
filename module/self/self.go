@@ -160,7 +160,7 @@ func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	}
 
 	preKeyTTLAsDuration := time.Duration(preKeyTTLAsInt) * time.Second
-	err = user_management.ModuleUserManagement.PreKeyRedis.Set(preKeyString, utils.JSON{
+	err = user_management.ModuleUserManagement.PreKeyRedis.Set(aepr.Context, preKeyString, utils.JSON{
 		"shared_key_1":   sharedKey1AsHexString,
 		"shared_key_2":   sharedKey2AsHexString,
 		"a0_public_key":  edA0PublicKeyAsHexString,
@@ -271,7 +271,7 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	}
 
 	preKeyTTLAsDuration := time.Duration(preKeyTTLAsInt) * time.Second
-	err = user_management.ModuleUserManagement.PreKeyRedis.Set(preKeyString, utils.JSON{
+	err = user_management.ModuleUserManagement.PreKeyRedis.Set(aepr.Context, preKeyString, utils.JSON{
 		"captcha_id":     captchaID,
 		"captcha_text":   captchaText,
 		"shared_key_1":   sharedKey1AsHexString,
@@ -703,7 +703,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
-	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	err = user_management.ModuleUserManagement.SessionRedis.Set(aepr.Context, sessionKey, sessionObject, sessionKeyTTLAsDuration)
 	if err != nil {
 		return err
 	}
@@ -884,7 +884,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
-	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	err = user_management.ModuleUserManagement.SessionRedis.Set(aepr.Context, sessionKey, sessionObject, sessionKeyTTLAsDuration)
 	if err != nil {
 		return err
 	}
@@ -1072,7 +1072,7 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
-	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	err = user_management.ModuleUserManagement.SessionRedis.Set(aepr.Context, sessionKey, sessionObject, sessionKeyTTLAsDuration)
 	if err != nil {
 		return err
 	}
@@ -1374,7 +1374,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
-	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	err = user_management.ModuleUserManagement.SessionRedis.Set(aepr.Context, sessionKey, sessionObject, sessionKeyTTLAsDuration)
 	if err != nil {
 		return err
 	}
@@ -1605,7 +1605,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
-	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	err = user_management.ModuleUserManagement.SessionRedis.Set(aepr.Context, sessionKey, sessionObject, sessionKeyTTLAsDuration)
 	if err != nil {
 		return err
 	}
@@ -1693,7 +1693,7 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
-	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	err = user_management.ModuleUserManagement.SessionRedis.Set(aepr.Context, sessionKey, sessionObject, sessionKeyTTLAsDuration)
 	if err != nil {
 		return err
 	}
@@ -1717,7 +1717,7 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	}
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
-	sessionObject, err = user_management.ModuleUserManagement.SessionRedis.GetEx(sessionKey, sessionKeyTTLAsDuration)
+	sessionObject, err = user_management.ModuleUserManagement.SessionRedis.GetEx(aepr.Context, sessionKey, sessionKeyTTLAsDuration)
 	if err != nil {
 		return nil, err
 	}
@@ -2002,7 +2002,7 @@ func (s *DxmSelf) SelfUpdateLanguage(aepr *api.DXAPIEndPointRequest) (err error)
 	sessionObject["language"] = language
 
 	// Save updated session back to Redis
-	err = user_management.ModuleUserManagement.SessionRedis.Set(sessionKey, sessionObject, sessionKeyTTLAsDuration)
+	err = user_management.ModuleUserManagement.SessionRedis.Set(aepr.Context, sessionKey, sessionObject, sessionKeyTTLAsDuration)
 	if err != nil {
 		return err
 	}

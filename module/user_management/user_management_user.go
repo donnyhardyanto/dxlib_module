@@ -448,7 +448,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "PASSWORD_DATA_BLOCK_MISSING", "")
 	}
 
-	lvPayloadElements, _, _, err := um.PreKeyUnpack(passwordI, passwordD)
+	lvPayloadElements, _, _, err := um.PreKeyUnpack(aepr.Context, passwordI, passwordD)
 	if err != nil {
 		return err
 	}
@@ -1335,12 +1335,12 @@ func (um *DxmUserManagement) UserPasswordVerify(l *dxlibLog.DXLog, userId int64,
 	return verificationResult, nil
 }
 
-func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString string) (lvPayloadElements []*lv.LV, sharedKey2AsBytes []byte, edB0PrivateKeyAsBytes []byte, err error) {
+func (um *DxmUserManagement) PreKeyUnpack(ctx context.Context, preKeyIndex string, datablockAsString string) (lvPayloadElements []*lv.LV, sharedKey2AsBytes []byte, edB0PrivateKeyAsBytes []byte, err error) {
 	if preKeyIndex == "" || datablockAsString == "" {
 		return nil, nil, nil, errors.New("PARAMETER_IS_EMPTY")
 	}
 
-	preKeyData, err := um.PreKeyRedis.Get(preKeyIndex)
+	preKeyData, err := um.PreKeyRedis.Get(ctx, preKeyIndex)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1391,14 +1391,14 @@ func (um *DxmUserManagement) PreKeyUnpack(preKeyIndex string, datablockAsString 
 	return lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, nil
 }
 
-func (um *DxmUserManagement) PreKeyUnpackCaptcha(preKeyIndex string, datablockAsString string) (
+func (um *DxmUserManagement) PreKeyUnpackCaptcha(ctx context.Context, preKeyIndex string, datablockAsString string) (
 	lvPayloadElements []*lv.LV, sharedKey2AsBytes []byte, edB0PrivateKeyAsBytes []byte, captchaId string, captchaText string, err error,
 ) {
 	if preKeyIndex == "" || datablockAsString == "" {
 		return nil, nil, nil, "", "", errors.New("PARAMETER_IS_EMPTY")
 	}
 
-	preKeyData, err := um.PreKeyRedis.Get(preKeyIndex)
+	preKeyData, err := um.PreKeyRedis.Get(ctx, preKeyIndex)
 	if err != nil {
 		return nil, nil, nil, "", "", err
 	}
