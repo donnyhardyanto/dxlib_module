@@ -494,7 +494,7 @@ func (s *DxmSelf) SelfConfiguration(aepr *api.DXAPIEndPointRequest) (err error) 
 		return err
 	}
 
-	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
+	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, err := user_management.ModuleUserManagement.PreKeyUnpack(aepr.Context, preKeyIndex, dataAsHexString)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "", "UNPACK_ERROR:%v", err.Error())
 	}
@@ -1816,7 +1816,7 @@ func CheckUserPrivilegeForEndPoint(aepr *api.DXAPIEndPointRequest, userEffective
 }
 
 func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffectivePrivilegeIds utils.JSON) (err error) {
-	globalStoreSystemValue, err := s.GlobalStoreRedis.Get(s.KeyGlobalStoreSystem)
+	globalStoreSystemValue, err := s.GlobalStoreRedis.Get(aepr.Context, s.KeyGlobalStoreSystem)
 	if err != nil {
 		// if no key set, that means Normal mode
 		return CheckUserPrivilegeForEndPoint(aepr, userEffectivePrivilegeIds)
@@ -1939,7 +1939,7 @@ func (s *DxmSelf) SelfLogout(aepr *api.DXAPIEndPointRequest) (err error) {
 	if sessionKey == "" {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusNotFound, "", "SESSION_KEY_IS_EMPTY")
 	}
-	err = user_management.ModuleUserManagement.SessionRedis.Delete(sessionKey)
+	err = user_management.ModuleUserManagement.SessionRedis.Delete(aepr.Context, sessionKey)
 	if err != nil {
 		return err
 	}
@@ -1990,7 +1990,7 @@ func (s *DxmSelf) SelfUpdateLanguage(aepr *api.DXAPIEndPointRequest) (err error)
 	}
 	sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
 
-	sessionObject, err := user_management.ModuleUserManagement.SessionRedis.GetEx(sessionKey, sessionKeyTTLAsDuration)
+	sessionObject, err := user_management.ModuleUserManagement.SessionRedis.GetEx(aepr.Context, sessionKey, sessionKeyTTLAsDuration)
 	if err != nil {
 		return err
 	}
@@ -2030,7 +2030,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 		return err
 	}
 
-	lvPayloadElements, _, _, err := user_management.ModuleUserManagement.PreKeyUnpack(preKeyIndex, dataAsHexString)
+	lvPayloadElements, _, _, err := user_management.ModuleUserManagement.PreKeyUnpack(aepr.Context, preKeyIndex, dataAsHexString)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "UNPACK_ERROR:%s", err.Error())
 	}
@@ -2440,7 +2440,7 @@ func (s *DxmSelf) SelfUserMessageAllIsReadSetToTrue(aepr *api.DXAPIEndPointReque
 }
 
 func (s *DxmSelf) SystemModeIsMaintenance() (isMaintenance bool) {
-	globalStoreSystemValue, err := s.GlobalStoreRedis.Get(s.KeyGlobalStoreSystem)
+	globalStoreSystemValue, err := s.GlobalStoreRedis.Get(context.Background(), s.KeyGlobalStoreSystem)
 	if err != nil {
 		return false
 	}
@@ -2471,7 +2471,7 @@ func (s *DxmSelf) SelfSystemModeIsMaintenance(aepr *api.DXAPIEndPointRequest) (e
 }
 
 func (s *DxmSelf) SelfSystemSetModeToMaintenance(aepr *api.DXAPIEndPointRequest) (err error) {
-	err = s.GlobalStoreRedis.Set(s.KeyGlobalStoreSystem, utils.JSON{
+	err = s.GlobalStoreRedis.Set(aepr.Context, s.KeyGlobalStoreSystem, utils.JSON{
 		s.KeyGlobalStoreSystemMode: s.ValueGlobalStoreSystemModeMaintenance,
 	}, 0)
 	if err != nil {
@@ -2484,7 +2484,7 @@ func (s *DxmSelf) SelfSystemSetModeToMaintenance(aepr *api.DXAPIEndPointRequest)
 }
 
 func (s *DxmSelf) SelfSystemSetModeToNormal(aepr *api.DXAPIEndPointRequest) (err error) {
-	err = s.GlobalStoreRedis.Set(s.KeyGlobalStoreSystem, utils.JSON{
+	err = s.GlobalStoreRedis.Set(aepr.Context, s.KeyGlobalStoreSystem, utils.JSON{
 		s.KeyGlobalStoreSystemMode: s.ValueGlobalStoreSystemModeNormal,
 	}, 0)
 	if err != nil {
