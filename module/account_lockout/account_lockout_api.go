@@ -17,7 +17,7 @@ import (
 // This is the FIXED/HOW logic separated from API configuration
 func (al *DXMAccountLockout) GetStatusByUserUid(aepr *api.DXAPIEndPointRequest, userUid string) error {
 	// Get user by UID
-	_, user, err := user_management.ModuleUserManagement.User.GetByUid(&aepr.Log, userUid)
+	_, user, err := user_management.ModuleUserManagement.User.GetByUid(aepr.Context, &aepr.Log, userUid)
 	if err != nil {
 		aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_USER", err)
 		return err
@@ -61,7 +61,7 @@ func (al *DXMAccountLockout) GetStatusByUserUid(aepr *api.DXAPIEndPointRequest, 
 // This is the FIXED/HOW logic separated from API configuration
 func (al *DXMAccountLockout) UnlockByUserUid(aepr *api.DXAPIEndPointRequest, userUid string, reason string) error {
 	// Get user by UID
-	_, user, err := user_management.ModuleUserManagement.User.GetByUid(&aepr.Log, userUid)
+	_, user, err := user_management.ModuleUserManagement.User.GetByUid(aepr.Context, &aepr.Log, userUid)
 	if err != nil {
 		aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_USER", err)
 		return err
@@ -133,7 +133,7 @@ func (al *DXMAccountLockout) GetHistoryByUserUid(aepr *api.DXAPIEndPointRequest,
 	}
 
 	// Get user by UID
-	_, user, err := user_management.ModuleUserManagement.User.GetByUid(&aepr.Log, userUid)
+	_, user, err := user_management.ModuleUserManagement.User.GetByUid(aepr.Context, &aepr.Log, userUid)
 	if err != nil {
 		aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_USER", err)
 		return err

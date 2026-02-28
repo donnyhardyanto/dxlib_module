@@ -128,7 +128,7 @@ func (um *DxmUserManagement) RoleEditByUid(aepr *api.DXAPIEndPointRequest) (err 
 	if err != nil {
 		return err
 	}
-	_, row, err := t.ShouldGetByUid(&aepr.Log, uid)
+	_, row, err := t.ShouldGetByUid(aepr.Context, &aepr.Log, uid)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@
 package form_number_management
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -79,7 +80,7 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 		return "", errors.Errorf("unsupported databases type: %s", fnm.FormNumberCounter.Database.DatabaseType)
 	}
 
-	_, r, err := db.RawQueryRows(fnm.FormNumberCounter.Database.Connection, nil, query, args)
+	_, r, err := db.RawQueryRows(context.Background(), fnm.FormNumberCounter.Database.Connection, nil, query, args)
 	if err != nil {
 		return "", errors.Errorf("failed to generate form number: %+v", err)
 	}

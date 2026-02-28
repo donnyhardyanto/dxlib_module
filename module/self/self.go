@@ -1,6 +1,7 @@
 package self
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
@@ -19,6 +20,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/captcha"
 	"github.com/donnyhardyanto/dxlib/configuration"
 	"github.com/donnyhardyanto/dxlib/databases"
+	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/endpoint_rate_limiter"
 	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
@@ -337,9 +339,9 @@ func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *log.DXLog, menuitem util
 	}
 	parentId := menuitem["parent_id"]
 	if parentId != nil {
-		_, parentMenuItem, err := user_management.ModuleUserManagement.MenuItem.SelectOne(l, nil, utils.JSON{
+		_, parentMenuItem, err := user_management.ModuleUserManagement.MenuItem.SelectOne(context.Background(), l, nil, utils.JSON{
 			"id": parentId,
-		}, nil, map[string]string{"id": "ASC"})
+		}, nil, db.DXDatabaseTableFieldsOrderBy{"id": "ASC"})
 		if err != nil {
 			return err
 		}
@@ -399,7 +401,7 @@ func pruneMenuItems(menuItem *utils.JSON) {
 func (s *DxmSelf) fetchMenuTree(l *log.DXLog, userEffectivePrivilegeIds map[string]int64) ([]*utils.JSON, error) {
 	// select all menu items available
 	allMenuItems := map[int64]utils.JSON{}
-	_, menuItems, err := user_management.ModuleUserManagement.MenuItem.Select(l, nil, nil, nil, map[string]string{"id": "ASC"}, nil, nil)
+	_, menuItems, err := user_management.ModuleUserManagement.MenuItem.Select(context.Background(), l, nil, nil, nil, db.DXDatabaseTableFieldsOrderBy{"id": "ASC"}, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -594,8 +596,8 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -613,7 +615,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:ORGANIZATION_UID_NOT_STRING")
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -636,8 +638,8 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -655,7 +657,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:ORGANIZATION_UID_NOT_STRING")
 		}
 
-		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(aepr.Context, &aepr.Log, userLoggedOrganizationId)
 		if err != nil {
 			return err
 		}
@@ -775,8 +777,8 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -794,7 +796,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -817,8 +819,8 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -836,7 +838,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 
-		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(aepr.Context, &aepr.Log, userLoggedOrganizationId)
 		if err != nil {
 			return err
 		}
@@ -963,8 +965,8 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -982,7 +984,7 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -1005,8 +1007,8 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -1024,7 +1026,7 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 
-		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(aepr.Context, &aepr.Log, userLoggedOrganizationId)
 		if err != nil {
 			return err
 		}
@@ -1085,16 +1087,16 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 	userLoggedOrganizationUid string, userLoggedOrganization utils.JSON, userOrganizationMemberships []any) (sessionObject utils.JSON, allowed bool, err error) {
 	var userEffectivePrivilegeIds map[string]int64
 
-	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
+	_, userRoleMemberships, err := user_management.ModuleUserManagement.UserRoleMembership.Select(aepr.Context, &aepr.Log, nil, utils.JSON{
 		"user_id": userId,
-	}, nil, map[string]string{"id": "ASC"}, nil, nil)
+	}, nil, db.DXDatabaseTableFieldsOrderBy{"id": "ASC"}, nil, nil)
 	if err != nil {
 		return nil, false, err
 	}
 
 	userEffectivePrivilegeIds = map[string]int64{}
 	for _, roleMembership := range userRoleMemberships {
-		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(&aepr.Log, nil, utils.JSON{
+		_, rolePrivileges, err := user_management.ModuleUserManagement.RolePrivilege.Select(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"role_id": roleMembership["role_id"],
 		}, nil, nil, nil, nil)
 		if err != nil {
@@ -1111,7 +1113,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 				return nil, false, err
 			}
 			if privilegeNameId == "EVERYTHING" {
-				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(&aepr.Log, nil, nil, nil, nil, nil, nil)
+				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(aepr.Context, &aepr.Log, nil, nil, nil, nil, nil, nil)
 				if err != nil {
 					return nil, false, err
 				}
@@ -1284,7 +1286,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	} else {
-		_, user, err = user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+		_, user, err = user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -1307,8 +1309,8 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -1326,7 +1328,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 
-		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(aepr.Context, &aepr.Log, userLoggedOrganizationId)
 		if err != nil {
 			return err
 		}
@@ -1515,7 +1517,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -1538,8 +1540,8 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			us["organization_uid"] = organizationUId
 		}
 
-		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(&aepr.Log, nil, us, nil,
-			map[string]string{"order_index": "asc"}, nil, nil)
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -1557,7 +1559,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 
-		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(&aepr.Log, userLoggedOrganizationId)
+		_, userLoggedOrganization, err = user_management.ModuleUserManagement.Organization.ShouldGetById(aepr.Context, &aepr.Log, userLoggedOrganizationId)
 		if err != nil {
 			return err
 		}
@@ -1666,7 +1668,7 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	_, user, err := user_management.ModuleUserManagement.User.GetById(&aepr.Log, userId)
+	_, user, err := user_management.ModuleUserManagement.User.GetById(aepr.Context, &aepr.Log, userId)
 	if err != nil {
 		return err
 	}
@@ -1963,7 +1965,7 @@ func (s *DxmSelf) SelfUpdateLanguage(aepr *api.DXAPIEndPointRequest) (err error)
 	}
 
 	// Update user language in database
-	_, err = user_management.ModuleUserManagement.User.UpdateById(&aepr.Log, userId, utils.JSON{
+	_, err = user_management.ModuleUserManagement.User.UpdateById(aepr.Context, &aepr.Log, userId, utils.JSON{
 		"language": language,
 	})
 	if err != nil {
@@ -2054,7 +2056,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 
 	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"id": userId,
 		}, nil, nil)
 		if err != nil {
@@ -2119,7 +2121,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 
 	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(&aepr.Log, nil, utils.JSON{
+		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"id": userId,
 		}, nil, nil)
 		if err != nil {
@@ -2180,7 +2182,7 @@ func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
-	_, err = user_management.ModuleUserManagement.User.UpdateById(&aepr.Log, userId, utils.JSON{
+	_, err = user_management.ModuleUserManagement.User.UpdateById(aepr.Context, &aepr.Log, userId, utils.JSON{
 		"is_avatar_exist": true,
 	})
 	return nil
@@ -2211,7 +2213,7 @@ func (s *DxmSelf) SelfAvatarUpdateFileContentBase64(aepr *api.DXAPIEndPointReque
 		return err
 	}
 
-	_, err = user_management.ModuleUserManagement.User.UpdateById(&aepr.Log, userId, utils.JSON{
+	_, err = user_management.ModuleUserManagement.User.UpdateById(aepr.Context, &aepr.Log, userId, utils.JSON{
 		"is_avatar_exist": true,
 	})
 	return nil
@@ -2294,7 +2296,7 @@ func (s *DxmSelf) SelfProfile(aepr *api.DXAPIEndPointRequest) (err error) {
 	if err != nil {
 		return err
 	}
-	_, user, err := user_management.ModuleUserManagement.User.ShouldGetById(&aepr.Log, userId)
+	_, user, err := user_management.ModuleUserManagement.User.ShouldGetById(aepr.Context, &aepr.Log, userId)
 	if err != nil {
 		return err
 	}
@@ -2371,7 +2373,7 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest)
 	if err != nil {
 		return err
 	}
-	_, _, err = user_management.ModuleUserManagement.UserMessage.ShouldSelectOne(&aepr.Log, nil, utils.JSON{
+	_, _, err = user_management.ModuleUserManagement.UserMessage.ShouldSelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 		"id":      userMessageId,
 		"user_id": userId,
 	}, nil, nil)
@@ -2399,7 +2401,7 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrueByUid(aepr *api.DXAPIEndPointReq
 	if err != nil {
 		return err
 	}
-	_, userMessage, err := user_management.ModuleUserManagement.UserMessage.ShouldGetByUidAuto(&aepr.Log, userMessageUid)
+	_, userMessage, err := user_management.ModuleUserManagement.UserMessage.ShouldGetByUidAuto(aepr.Context, &aepr.Log, userMessageUid)
 	if err != nil {
 		return err
 	}

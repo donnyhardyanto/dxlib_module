@@ -1,6 +1,8 @@
 package general
 
 import (
+	"context"
+
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
@@ -51,7 +53,7 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 }
 
 func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.JSON, templateTitle string, templateContentType string, templateBody string, err error) {
-	_, templateMessage, err := g.Template.ShouldGetByNameId(l, nameId)
+	_, templateMessage, err := g.Template.ShouldGetByNameId(context.Background(), l, nameId)
 	if err != nil {
 		return nil, "", "", "", err
 	}

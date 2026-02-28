@@ -2,6 +2,7 @@ package user_management
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/csv"
 	"encoding/hex"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/databases"
+	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/errors"
 	dxlibLog "github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
@@ -250,7 +252,7 @@ func (um *DxmUserManagement) doUserCreate(log *dxlibLog.DXLog, userData map[stri
 		organizationId = int64(orgId)
 	} else if orgName, ok := userData["organization_name"].(string); ok && orgName != "" {
 		// Look up organization by name
-		_, org, err := um.Organization.SelectOne(log, nil, utils.JSON{
+		_, org, err := um.Organization.SelectOne(context.Background(), log, nil, utils.JSON{
 			"name": orgName,
 		}, nil, nil)
 		if err != nil {
@@ -398,14 +400,14 @@ func (um *DxmUserManagement) UserSearchPaging(aepr *api.DXAPIEndPointRequest) (e
 			if err != nil {
 				return list, err
 			}
-			_, userOrganizationMemberships, err := um.UserOrganizationMembership.Select(&aepr.Log, nil, utils.JSON{
+			_, userOrganizationMemberships, err := um.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, utils.JSON{
 				"user_id": userId,
 			}, nil, nil, nil, nil)
 			if err != nil {
 				return list, err
 			}
 			list[i]["organizations"] = userOrganizationMemberships
-			_, userRoleMemberships, err := um.UserRoleMembership.Select(&aepr.Log, nil, utils.JSON{
+			_, userRoleMemberships, err := um.UserRoleMembership.Select(aepr.Context, &aepr.Log, nil, utils.JSON{
 				"user_id": userId,
 			}, nil, nil, nil, nil)
 			if err != nil {
@@ -422,7 +424,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	if !ok {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
 	}
-	_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
+	_, _, err = um.Organization.ShouldGetById(aepr.Context, &aepr.Log, organizationId)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
 	}
@@ -431,7 +433,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	if !ok {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING", "")
 	}
-	_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
+	_, _, err = um.Role.ShouldGetById(aepr.Context, &aepr.Log, roleId)
 	if err != nil {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
 	}
@@ -622,7 +624,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		if !ok {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
 		}
-		_, _, err = um.Organization.ShouldGetById(&aepr.Log, organizationId)
+		_, _, err = um.Organization.ShouldGetById(aepr.Context, &aepr.Log, organizationId)
 		if err != nil {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
 		}
@@ -635,7 +637,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		} else {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING_WHEN_ORGANIZATION_ID_PROVIDED", "")
 		}
-		_, _, err = um.Role.ShouldGetById(&aepr.Log, roleId)
+		_, _, err = um.Role.ShouldGetById(aepr.Context, &aepr.Log, roleId)
 		if err != nil {
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
 		}
@@ -923,7 +925,7 @@ func (um *DxmUserManagement) DoUserEdit(aepr *api.DXAPIEndPointRequest, userId i
 		return 0, nil, err
 	}
 
-	_, userRow, err := t.ShouldGetById(&aepr.Log, userId)
+	_, userRow, err := t.ShouldGetById(aepr.Context, &aepr.Log, userId)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1017,7 +1019,7 @@ func (um *DxmUserManagement) UserEditByUid(aepr *api.DXAPIEndPointRequest) (err 
 	if err != nil {
 		return err
 	}
-	_, row, err := t.ShouldGetByUid(&aepr.Log, uid)
+	_, row, err := t.ShouldGetByUid(aepr.Context, &aepr.Log, uid)
 	if err != nil {
 		return err
 	}
@@ -1043,7 +1045,7 @@ func (um *DxmUserManagement) UserDeleteByUid(aepr *api.DXAPIEndPointRequest) (er
 	if err != nil {
 		return err
 	}
-	_, row, err := um.User.ShouldGetByUid(&aepr.Log, uid)
+	_, row, err := um.User.ShouldGetByUid(aepr.Context, &aepr.Log, uid)
 	if err != nil {
 		return err
 	}
@@ -1300,9 +1302,9 @@ func (um *DxmUserManagement) passwordHashVerify(tryPassword string, hashedPasswo
 }
 
 func (um *DxmUserManagement) UserPasswordVerify(l *dxlibLog.DXLog, userId int64, tryPassword string) (verificationResult bool, err error) {
-	_, userPasswordRow, err := um.UserPassword.SelectOneAuto(l, []string{"id", "user_id", "value"}, utils.JSON{
+	_, userPasswordRow, err := um.UserPassword.SelectOneAuto(context.Background(), l, []string{"id", "user_id", "value"}, utils.JSON{
 		"user_id": userId,
-	}, nil, map[string]string{"id": "DESC"})
+	}, nil, db.DXDatabaseTableFieldsOrderBy{"id": "DESC"})
 	if err != nil {
 		return false, err
 	}
@@ -1452,7 +1454,7 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 		return err
 	}
 
-	_, user, err := um.User.SelectOne(&aepr.Log, nil, utils.JSON{
+	_, user, err := um.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 		"id": userId,
 	}, nil, nil)
 	if err != nil {

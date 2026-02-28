@@ -536,7 +536,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 	}
 	defer dtx.Rollback()
 
-	_, fcmApplications, err := f.FCMApplication.SelectAll(l)
+	_, fcmApplications, err := f.FCMApplication.SelectAll(context.Background(), l)
 	if err != nil {
 		return err
 	}
@@ -625,7 +625,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic str
 	}
 	defer dtx.Rollback()
 
-	_, fcmApplications, err := f.FCMApplication.SelectAll(l)
+	_, fcmApplications, err := f.FCMApplication.SelectAll(context.Background(), l)
 	if err != nil {
 		return err
 	}
@@ -729,7 +729,7 @@ func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON 
 
 func (f *FirebaseCloudMessaging) Execute() (err error) {
 
-	_, fcmApplications, err := f.FCMApplication.SelectAll(&log.Log)
+	_, fcmApplications, err := f.FCMApplication.SelectAll(context.Background(), &log.Log)
 	if err != nil {
 		log.Log.Warnf("Error fetching FirebaseCloudMessaging applications during refresh: %v", err)
 		time.Sleep(1 * time.Minute)
@@ -799,7 +799,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 	qb.And("((next_retry_time <= NOW()) or (next_retry_time IS NULL))")
 	qb.Limit(100)
 
-	_, fcmMessages, err := f.FCMMessage.SelectWithBuilder(&log.Log, qb)
+	_, fcmMessages, err := f.FCMMessage.SelectWithBuilder(context.Background(), &log.Log, qb)
 	if err != nil {
 		return errors.Errorf("failed to fetch messages: %v", err)
 	}
@@ -913,7 +913,7 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 	qb.And("((next_retry_time <= NOW()) or (next_retry_time IS NULL))")
 	qb.Limit(100)
 
-	_, fcmTopicMessages, err := f.FCMTopicMessage.SelectWithBuilder(&log.Log, qb)
+	_, fcmTopicMessages, err := f.FCMTopicMessage.SelectWithBuilder(context.Background(), &log.Log, qb)
 	if err != nil {
 		return errors.Errorf("failed to fetch messages: %v", err)
 	}

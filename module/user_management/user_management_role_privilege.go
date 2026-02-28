@@ -1,6 +1,7 @@
 package user_management
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sync"
@@ -103,7 +104,7 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 		}
 	}()
 
-	_, privilege, err := um.Privilege.ShouldGetByNameId(log, privilegeNameId)
+	_, privilege, err := um.Privilege.ShouldGetByNameId(context.Background(), log, privilegeNameId)
 	if err != nil {
 		return 0
 	}
@@ -114,7 +115,7 @@ func (um *DxmUserManagement) RolePrivilegeMustInsert(log *log.DXLog, roleId int6
 		return 0
 	}
 
-	id, err = um.RolePrivilege.InsertReturningId(log, utils.JSON{
+	id, err = um.RolePrivilege.InsertReturningId(context.Background(), log, utils.JSON{
 		"role_id":      roleId,
 		"privilege_id": privilegeId,
 	})

@@ -1,6 +1,7 @@
 package audit_log
 
 import (
+	"context"
 	"time"
 
 	"github.com/donnyhardyanto/dxlib/app"
@@ -67,7 +68,7 @@ func (al *DxmAudit) DoError(callerLog *log.DXLog, errPrev error, logLevel log.DX
 		requestURL = callerLog.RequestURL
 	}
 
-	_, returningValues, err := ModuleAuditLog.ErrorLog.Insert(&log.Log, utils.JSON{
+	_, returningValues, err := ModuleAuditLog.ErrorLog.Insert(context.Background(), &log.Log, utils.JSON{
 		"at":        time.Now(),
 		"prefix":    app.App.NameId + " " + app.App.Version,
 		"log_level": logLevelAsString,

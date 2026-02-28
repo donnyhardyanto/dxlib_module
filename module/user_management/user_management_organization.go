@@ -2,6 +2,7 @@ package user_management
 
 import (
 	"bytes"
+	"context"
 	"encoding/csv"
 	"io"
 	"net/http"
@@ -275,7 +276,7 @@ func (um *DxmUserManagement) doOrganizationCreate(log *dxlibLog.DXLog, organizat
 	}
 
 	// Create the organization using the existing method - create a dummy aepr for this
-	id, err := um.Organization.InsertReturningId(log, o)
+	id, err := um.Organization.InsertReturningId(context.Background(), log, o)
 	return id, err
 }
 
@@ -299,7 +300,7 @@ func (um *DxmUserManagement) OrganizationSearchPaging(aepr *api.DXAPIEndPointReq
 			if err != nil {
 				return list, err
 			}
-			_, organizationRoles, err := um.OrganizationRoles.Select(&aepr.Log, nil, utils.JSON{
+			_, organizationRoles, err := um.OrganizationRoles.Select(aepr.Context, &aepr.Log, nil, utils.JSON{
 				"organization_id": organizationId,
 			}, nil, nil, nil, nil)
 			if err != nil {
@@ -390,7 +391,7 @@ func (um *DxmUserManagement) OrganizationCreateByUid(aepr *api.DXAPIEndPointRequ
 	if err != nil {
 		return err
 	}
-	_, parentOrganization, err := um.Organization.ShouldGetByUid(&aepr.Log, parentUid)
+	_, parentOrganization, err := um.Organization.ShouldGetByUid(aepr.Context, &aepr.Log, parentUid)
 	if err != nil {
 		return err
 	}
@@ -509,7 +510,7 @@ func (um *DxmUserManagement) OrganizationEditByUidHandler(aepr *api.DXAPIEndPoin
 				newData["parent_id"] = nil
 			} else {
 				// Get parent organization by UID and convert to ID
-				_, parentOrg, err := um.Organization.GetByUid(&aepr.Log, uid)
+				_, parentOrg, err := um.Organization.GetByUid(aepr.Context, &aepr.Log, uid)
 				if err != nil {
 					aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_PARENT_ORGANIZATION", err)
 					return err

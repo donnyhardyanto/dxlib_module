@@ -1,6 +1,9 @@
 package account_lockout
 
 import (
+	"context"
+
+	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
 )
@@ -48,7 +51,7 @@ func (al *DXMAccountLockout) writeAuditLogSync(event *LockoutEvent) {
 		"metadata":                 event.Metadata,
 	}
 
-	_, _, err := al.AccountLockoutEvents.Insert(nil, data, nil)
+	_, _, err := al.AccountLockoutEvents.Insert(context.Background(), &log.Log, data, nil)
 	if err != nil {
 		log.Log.Errorf(err, "Failed to write audit log")
 	}
@@ -57,9 +60,8 @@ func (al *DXMAccountLockout) writeAuditLogSync(event *LockoutEvent) {
 // GetLockoutHistory retrieves lockout history for a user
 func (al *DXMAccountLockout) GetLockoutHistory(userID int64, limit int) ([]utils.JSON, error) {
 	where := utils.JSON{"user_id": userID}
-	orderBy := map[string]string{"event_timestamp": "DESC"}
 
-	_, events, err := al.AccountLockoutEvents.Select(nil, nil, where, nil, orderBy, limit, nil)
+	_, events, err := al.AccountLockoutEvents.Select(context.Background(), &log.Log, nil, where, nil, db.DXDatabaseTableFieldsOrderBy{"event_timestamp": "DESC"}, limit, nil)
 	if err != nil {
 		return nil, err
 	}

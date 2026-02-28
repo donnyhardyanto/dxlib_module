@@ -28,7 +28,7 @@ func (g *DxmGeneral) AnnouncementPictureUpdate(aepr *api.DXAPIEndPointRequest) (
 		return err
 	}
 
-	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
+	_, _, err = g.Announcement.ShouldGetById(aepr.Context, &aepr.Log, id)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (g *DxmGeneral) AnnouncementPictureUpdateFileContentBase64(aepr *api.DXAPIE
 		return err
 	}
 
-	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
+	_, _, err = g.Announcement.ShouldGetById(aepr.Context, &aepr.Log, id)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (g *DxmGeneral) AnnouncementPictureUpdateFileContentBase64ByUid(aepr *api.D
 		return err
 	}
 
-	_, announcement, err := g.Announcement.ShouldGetByUid(&aepr.Log, uid)
+	_, announcement, err := g.Announcement.ShouldGetByUid(aepr.Context, &aepr.Log, uid)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRe
 		return err
 	}
 
-	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
+	_, _, err = g.Announcement.ShouldGetById(aepr.Context, &aepr.Log, id)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSourceByUid(aepr *api.DXAPIEndPo
 		return err
 	}
 
-	_, announcement, err := g.Announcement.ShouldGetByUid(&aepr.Log, uid)
+	_, announcement, err := g.Announcement.ShouldGetByUid(aepr.Context, &aepr.Log, uid)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByUidByProcessedNameId(aepr *api
 		return err
 	}
 
-	_, announcement, err := g.Announcement.ShouldGetByUid(&aepr.Log, uid)
+	_, announcement, err := g.Announcement.ShouldGetByUid(aepr.Context, &aepr.Log, uid)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByProcessedNameId(aepr *api.DXAP
 		return err
 	}
 
-	_, _, err = g.Announcement.ShouldGetById(&aepr.Log, id)
+	_, _, err = g.Announcement.ShouldGetById(aepr.Context, &aepr.Log, id)
 	if err != nil {
 		return err
 	}
