@@ -25,6 +25,9 @@ import (
 	"github.com/donnyhardyanto/dxlib/tables"
 	"github.com/donnyhardyanto/dxlib/types"
 	"github.com/donnyhardyanto/dxlib/utils"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 const (
@@ -272,7 +275,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	return nil
 }
 
-func (f *FirebaseCloudMessaging) SendTopic(l *log.DXLog, applicationNameId string, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
+func (f *FirebaseCloudMessaging) SendTopic(ctx context.Context, l *log.DXLog, applicationNameId string, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
 	if err = f.Database.EnsureConnection(); err != nil {
 		return err
 	}
@@ -319,7 +322,7 @@ func (f *FirebaseCloudMessaging) SendTopic(l *log.DXLog, applicationNameId strin
 	return dtx.Commit()
 }
 
-func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId string, userId int64, token string, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
+func (f *FirebaseCloudMessaging) SendToDevice(ctx context.Context, l *log.DXLog, applicationNameId string, userId int64, token string, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
 	if err = f.Database.EnsureConnection(); err != nil {
 		return err
 	}
@@ -402,7 +405,7 @@ func (f *FirebaseCloudMessaging) SendToDevice(l *log.DXLog, applicationNameId st
 	return dtx.Commit()
 }
 
-func (f *FirebaseCloudMessaging) SendToUser(l *log.DXLog, applicationNameId string, userId int64, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
+func (f *FirebaseCloudMessaging) SendToUser(ctx context.Context, l *log.DXLog, applicationNameId string, userId int64, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
 	if err = f.Database.EnsureConnection(); err != nil {
 		return err
 	}
@@ -516,7 +519,7 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 		return err
 	}
 
-	err = f.SendToUser(&aepr.Log, applicationNameId, userId, msgTitle, msgBody, msgData, nil)
+	err = f.SendToUser(aepr.Context, &aepr.Log, applicationNameId, userId, msgTitle, msgBody, msgData, nil)
 	if err != nil {
 		return errors.Errorf("failed to send test message: %+v", err)
 	}
@@ -525,7 +528,13 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 
 }
 
-func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId int64, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
+func (f *FirebaseCloudMessaging) AllApplicationSendToUser(ctx context.Context, l *log.DXLog, userId int64, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
+	ctx, span := otel.Tracer("push_notification").Start(ctx, "FCM.AllApplicationSendToUser")
+	defer span.End()
+	span.SetAttributes(
+		attribute.Int64("fcm.user_id", userId),
+		attribute.String("fcm.msg_title", msgTitle),
+	)
 	if err = f.Database.EnsureConnection(); err != nil {
 		return err
 	}
@@ -536,8 +545,10 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 	}
 	defer dtx.Rollback()
 
-	_, fcmApplications, err := f.FCMApplication.SelectAll(context.Background(), l)
+	_, fcmApplications, err := f.FCMApplication.SelectAll(ctx, l)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "SELECT_ALL_APPLICATIONS_FAILED")
 		return err
 	}
 
@@ -614,7 +625,13 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(l *log.DXLog, userId i
 
 	return dtx.Commit()
 }
-func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
+func (f *FirebaseCloudMessaging) AllApplicationSendTopic(ctx context.Context, l *log.DXLog, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
+	ctx, span := otel.Tracer("push_notification").Start(ctx, "FCM.AllApplicationSendTopic")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("fcm.topic", topic),
+		attribute.String("fcm.msg_title", msgTitle),
+	)
 	if err = f.Database.EnsureConnection(); err != nil {
 		return err
 	}
@@ -625,8 +642,10 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(l *log.DXLog, topic str
 	}
 	defer dtx.Rollback()
 
-	_, fcmApplications, err := f.FCMApplication.SelectAll(context.Background(), l)
+	_, fcmApplications, err := f.FCMApplication.SelectAll(ctx, l)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "SELECT_ALL_APPLICATIONS_FAILED")
 		return err
 	}
 
@@ -728,8 +747,10 @@ func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON 
 }
 
 func (f *FirebaseCloudMessaging) Execute() (err error) {
+	ctx, span := otel.Tracer("push_notification").Start(context.Background(), "FCM.Execute")
+	defer span.End()
 
-	_, fcmApplications, err := f.FCMApplication.SelectAll(context.Background(), &log.Log)
+	_, fcmApplications, err := f.FCMApplication.SelectAll(ctx, &log.Log)
 	if err != nil {
 		log.Log.Warnf("Error fetching FirebaseCloudMessaging applications during refresh: %v", err)
 		time.Sleep(1 * time.Minute)
@@ -751,7 +772,7 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 			wg.Done()
 			continue
 		}
-		_, err = fcm.Manager.StoreApplication(context.Background(), fcmApplicationId, dataAsJSON)
+		_, err = fcm.Manager.StoreApplication(ctx, fcmApplicationId, dataAsJSON)
 		if err != nil {
 			log.Log.Warnf("ERROR_GET_FIREBASE_APP:%d:%v", fcmApplicationId, err)
 			wg.Done()
@@ -769,11 +790,11 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 				log.Log.Warnf("FCM_APPLICATION_NAMEID_TYPE_ASSERTION_FAILED_IN_GOROUTINE:%d", fcmApplicationId)
 				return
 			}
-			err := f.processSendTopic(fcmApplicationId)
+			err := f.processSendTopic(ctx, fcmApplicationId)
 			if err != nil {
 				log.Log.Warnf("ERROR_PROCESSING_TOPIC_MESSAGES_FOR_SENDING_FROM_FCM_APPLICATION:%s:%+v", fcmApplicationNameId, err)
 			}
-			err = f.processMessages(fcmApplicationId)
+			err = f.processMessages(ctx, fcmApplicationId)
 			if err != nil {
 				log.Log.Warnf("ERROR_PROCESSING_MESSAGES_FOR_SENDING_FROM_FCM_APPLICAtiON:%s:%+v", fcmApplicationNameId, err)
 			}
@@ -783,9 +804,7 @@ func (f *FirebaseCloudMessaging) Execute() (err error) {
 	return nil
 }
 
-func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
-
-	ctx := context.Background()
+func (f *FirebaseCloudMessaging) processMessages(ctx context.Context, applicationId int64) error {
 
 	firebaseServiceAccount, err := fcm.Manager.GetServiceAccount(applicationId)
 	if err != nil {
@@ -799,7 +818,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 	qb.And("((next_retry_time <= NOW()) or (next_retry_time IS NULL))")
 	qb.Limit(100)
 
-	_, fcmMessages, err := f.FCMMessage.SelectWithBuilder(context.Background(), &log.Log, qb)
+	_, fcmMessages, err := f.FCMMessage.SelectWithBuilder(ctx, &log.Log, qb)
 	if err != nil {
 		return errors.Errorf("failed to fetch messages: %v", err)
 	}
@@ -898,8 +917,7 @@ func (f *FirebaseCloudMessaging) processMessages(applicationId int64) error {
 	return nil
 }
 
-func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
-	ctx := context.Background()
+func (f *FirebaseCloudMessaging) processSendTopic(ctx context.Context, applicationId int64) error {
 
 	firebaseServiceAccount, err := fcm.Manager.GetServiceAccount(applicationId)
 	if err != nil {
@@ -913,7 +931,7 @@ func (f *FirebaseCloudMessaging) processSendTopic(applicationId int64) error {
 	qb.And("((next_retry_time <= NOW()) or (next_retry_time IS NULL))")
 	qb.Limit(100)
 
-	_, fcmTopicMessages, err := f.FCMTopicMessage.SelectWithBuilder(context.Background(), &log.Log, qb)
+	_, fcmTopicMessages, err := f.FCMTopicMessage.SelectWithBuilder(ctx, &log.Log, qb)
 	if err != nil {
 		return errors.Errorf("failed to fetch messages: %v", err)
 	}

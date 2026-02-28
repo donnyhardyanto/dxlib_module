@@ -50,8 +50,8 @@ type DxmSelf struct {
 	KeyGlobalStoreSystemMode              string
 	ValueGlobalStoreSystemModeMaintenance string
 	ValueGlobalStoreSystemModeNormal      string
-	OnSystemSetToModeMaintenance          func(l *log.DXLog) (err error)
-	OnSystemSetToModeNormal               func(l *log.DXLog) (err error)
+	OnSystemSetToModeMaintenance          func(ctx context.Context, l *log.DXLog) (err error)
+	OnSystemSetToModeNormal               func(ctx context.Context, l *log.DXLog) (err error)
 	OnInitialize                          func(s *DxmSelf) (err error)
 	OnAuthenticateUser                    func(aepr *api.DXAPIEndPointRequest, loginId string, password string, organizationUid string) (isSuccess bool, user utils.JSON, organization utils.JSON, err error)
 	OnCreateSessionObject                 func(aepr *api.DXAPIEndPointRequest, user utils.JSON, organization utils.JSON, originalSessionObject utils.JSON) (newSessionObject utils.JSON, err error)
@@ -2478,7 +2478,7 @@ func (s *DxmSelf) SelfSystemSetModeToMaintenance(aepr *api.DXAPIEndPointRequest)
 		return err
 	}
 	if s.OnSystemSetToModeMaintenance != nil {
-		err = s.OnSystemSetToModeMaintenance(&aepr.Log)
+		err = s.OnSystemSetToModeMaintenance(aepr.Context, &aepr.Log)
 	}
 	return nil
 }
@@ -2491,7 +2491,7 @@ func (s *DxmSelf) SelfSystemSetModeToNormal(aepr *api.DXAPIEndPointRequest) (err
 		return err
 	}
 	if s.OnSystemSetToModeNormal != nil {
-		err = s.OnSystemSetToModeNormal(&aepr.Log)
+		err = s.OnSystemSetToModeNormal(aepr.Context, &aepr.Log)
 	}
 	return nil
 }

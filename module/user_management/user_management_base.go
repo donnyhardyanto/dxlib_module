@@ -1,6 +1,7 @@
 package user_management
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -200,7 +201,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 	)
 }
 
-func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
+func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(ctx context.Context, l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
 	for key, value := range templateData {
 		placeholder := fmt.Sprintf("<%s>", key)
 		aValue := fmt.Sprintf("%v", value)
@@ -216,7 +217,7 @@ func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(l *log.DXLog, us
 	if err != nil {
 		return err
 	}
-	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(l, userId, msgTitle, msgBody, attachedData,
+	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(ctx, l, userId, msgTitle, msgBody, attachedData,
 		func(dtx *databases.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
 			_, _, err2 = um.UserMessage.TxInsert(dtx, utils.JSON{
 				"user_message_channel_type_id": base.UserMessageChannelTypeIdFCM,
