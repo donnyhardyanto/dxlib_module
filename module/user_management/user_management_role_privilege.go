@@ -70,7 +70,7 @@ func (um *DxmUserManagement) RolePrivilegeTxMustInsert(dtx *databases.DXDatabase
 }
 
 func (um *DxmUserManagement) RolePrivilegeSxMustInsert(log *log.DXLog, roleId int64, privilegeNameId string) (id int64) {
-	err := databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) (err2 error) {
+	err := databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(context.Background(), log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) (err2 error) {
 		_, privilege, err2 := um.Privilege.TxShouldGetByNameId(dtx, privilegeNameId)
 		if err2 != nil {
 			return err2

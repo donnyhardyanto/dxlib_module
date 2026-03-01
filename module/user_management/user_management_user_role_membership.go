@@ -33,7 +33,7 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 
 	var userRoleMembershipId int64
 	var userRoleMembershipUid string
-	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var err2 error
 		userRoleMembershipId, err2 = um.UserRoleMembership.TxInsertReturningId(dtx, map[string]any{
 			"user_id":         userId,
@@ -78,7 +78,7 @@ func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPoin
 	}
 
 	var userRoleMembershipUid string
-	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var userRoleMembership utils.JSON
 		_, userRoleMembership, err2 := um.UserRoleMembership.TxShouldGetById(dtx, userRoleMembershipId)
 		if err2 != nil {
@@ -117,7 +117,7 @@ func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPoin
 	}
 
 	var userRoleMembershipUid string
-	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var userRoleMembership utils.JSON
 		_, userRoleMembership, err2 := um.UserRoleMembership.TxShouldGetById(dtx, userRoleMembershipId)
 		if err2 != nil {

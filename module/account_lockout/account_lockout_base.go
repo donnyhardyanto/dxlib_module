@@ -1,6 +1,7 @@
 package account_lockout
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -188,7 +189,7 @@ func (al *DXMAccountLockout) asyncDBWriter() {
 // flushBatch writes a batch of events to database
 func (al *DXMAccountLockout) flushBatch(batch []*LockoutEvent) {
 	for _, event := range batch {
-		al.writeAuditLogSync(event)
+		al.writeAuditLogSync(context.Background(), event)
 	}
 	fmt.Printf("Flushed %d audit log events to database\n", len(batch))
 }

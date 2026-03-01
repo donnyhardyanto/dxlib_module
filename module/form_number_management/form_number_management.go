@@ -35,7 +35,7 @@ func (fnm *DxmFormNumberManagement) Init(databaseNameId string) {
 // Generate creates a new form number with automatic monthly reset
 // Format: {formType}-YYMMNNNNNN where YYMM is year-month and NNNNNN is 6-digit sequence
 // timezone: IANA timezone name (e.g., "Asia/Jakarta", "UTC", "America/New_York")
-func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (string, error) {
+func (fnm *DxmFormNumberManagement) Generate(ctx context.Context, nameid string, timezone string) (string, error) {
 
 	if timezone == "" {
 		timezone = "UTC"
@@ -80,7 +80,7 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 		return "", errors.Errorf("unsupported databases type: %s", fnm.FormNumberCounter.Database.DatabaseType)
 	}
 
-	_, r, err := db.RawQueryRows(context.Background(), fnm.FormNumberCounter.Database.Connection, nil, query, args)
+	_, r, err := db.RawQueryRows(ctx, fnm.FormNumberCounter.Database.Connection, nil, query, args)
 	if err != nil {
 		return "", errors.Errorf("failed to generate form number: %+v", err)
 	}
@@ -133,8 +133,8 @@ func (fnm *DxmFormNumberManagement) Generate(nameid string, timezone string) (st
 }
 
 // GenerateWithLocal is a convenience method that uses local system timezone
-func (fnm *DxmFormNumberManagement) GenerateWithLocal(nameid string) (string, error) {
-	return fnm.Generate(nameid, "Local")
+func (fnm *DxmFormNumberManagement) GenerateWithLocal(ctx context.Context, nameid string) (string, error) {
+	return fnm.Generate(ctx, nameid, "Local")
 }
 
 var ModuleFormNumberManagement DxmFormNumberManagement

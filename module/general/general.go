@@ -52,8 +52,8 @@ func (g *DxmGeneral) Init(databaseNameId string) {
 	)
 }
 
-func (g *DxmGeneral) TemplateGetByNameId(l *log.DXLog, nameId string) (gt utils.JSON, templateTitle string, templateContentType string, templateBody string, err error) {
-	_, templateMessage, err := g.Template.ShouldGetByNameId(context.Background(), l, nameId)
+func (g *DxmGeneral) TemplateGetByNameId(ctx context.Context, l *log.DXLog, nameId string) (gt utils.JSON, templateTitle string, templateContentType string, templateBody string, err error) {
+	_, templateMessage, err := g.Template.ShouldGetByNameId(ctx, l, nameId)
 	if err != nil {
 		return nil, "", "", "", err
 	}

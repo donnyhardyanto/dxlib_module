@@ -1,6 +1,7 @@
 package resetdatabases
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	stdos "os"
@@ -186,11 +187,11 @@ func defineConfiguration(config *Config) error {
 			adminDBNameId: map[string]any{
 				"nameid":              adminDBNameId,
 				"database_type":       configDatabaseTypeStr,
-				"address":             app.App.InitVault.GetStringOrDefault(envPrefix+"_ADDRESS", ""),
-				"user_name":           app.App.InitVault.GetStringOrDefault(envPrefix+"_USER_NAME", ""),
-				"user_password":       app.App.InitVault.GetStringOrDefault(envPrefix+"_USER_PASSWORD", ""),
+				"address":             app.App.InitVault.GetStringOrDefault(context.Background(), envPrefix+"_ADDRESS", ""),
+				"user_name":           app.App.InitVault.GetStringOrDefault(context.Background(), envPrefix+"_USER_NAME", ""),
+				"user_password":       app.App.InitVault.GetStringOrDefault(context.Background(), envPrefix+"_USER_PASSWORD", ""),
 				"database_name":       adminDBName,
-				"connection_options":  app.App.InitVault.GetStringOrDefault(envPrefix+"_CONNECTION_OPTIONS", "sslmode=disable"),
+				"connection_options":  app.App.InitVault.GetStringOrDefault(context.Background(), envPrefix+"_CONNECTION_OPTIONS", "sslmode=disable"),
 				"must_connected":      true,
 				"is_connect_at_start": true,
 			}}, []string{adminDBNameId + ".user_name", adminDBNameId + ".user_password"})

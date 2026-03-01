@@ -217,7 +217,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 	}
 
 	// Upload the original file
-	uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(buf.Bytes()), filename, filename, "application/octet-stream", false, bodyLen)
+	uploadInfo, err := objectStorage.UploadStream(aepr.Context, bytes.NewReader(buf.Bytes()), filename, filename, "application/octet-stream", false, bodyLen)
 	if err != nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_UPLOAD_SOURCE_IMAGE_TO_OBJECT_STORAGE:%s=%s", ios.ObjectStorageSourceNameId, err.Error())
 	}
@@ -294,7 +294,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		}
 		buf := resizedBuf.Bytes()
 		bufLen := int64(len(buf))
-		uploadInfo, err := objectStorage.UploadStream(bytes.NewReader(buf), processedWebpName, processedWebpName, "image/webp", false, bufLen)
+		uploadInfo, err := objectStorage.UploadStream(aepr.Context, bytes.NewReader(buf), processedWebpName, processedWebpName, "image/webp", false, bufLen)
 		if err != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_UPLOAD_RESIZED_IMAGE_TO_OBJECT_STORAGE:(%s)=%s", processedImage.ObjectStorageNameId, err.Error())
 		}

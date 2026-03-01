@@ -191,7 +191,7 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 		return err
 	}
 
-	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
+	dtx, err := f.Database.TransactionBegin(aepr.Context, sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
@@ -281,7 +281,7 @@ func (f *FirebaseCloudMessaging) SendTopic(ctx context.Context, l *log.DXLog, ap
 		return err
 	}
 
-	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
+	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
@@ -328,7 +328,7 @@ func (f *FirebaseCloudMessaging) SendToDevice(ctx context.Context, l *log.DXLog,
 		return err
 	}
 
-	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
+	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
@@ -411,7 +411,7 @@ func (f *FirebaseCloudMessaging) SendToUser(ctx context.Context, l *log.DXLog, a
 		return err
 	}
 
-	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
+	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
@@ -540,7 +540,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(ctx context.Context, l
 		return err
 	}
 
-	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
+	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
@@ -637,7 +637,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(ctx context.Context, l 
 		return err
 	}
 
-	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
+	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
 	if err != nil {
 		return err
 	}
@@ -737,7 +737,7 @@ func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON 
 		if err != nil {
 			return nil, errors.Wrapf(err, "ERROR_GET_ENV_VAR_NAME:%d:%v", fcmApplicationId, err)
 		}
-		vaultVarValue := app.App.InitVault.GetStringOrDefault(vaultVarName, "")
+		vaultVarValue := app.App.InitVault.GetStringOrDefault(context.Background(), vaultVarName, "")
 		if err := json.Unmarshal([]byte(vaultVarValue), &dataAsJSON); err != nil {
 			return nil, errors.Wrapf(err, "ERROR_PARSING_SERVICE_ACCOUNT_JSON_FROM_VAULT:%d:%v", fcmApplicationId, err)
 		}
@@ -835,37 +835,37 @@ func (f *FirebaseCloudMessaging) processMessages(ctx context.Context, applicatio
 		retryCount, err := utils.GetInt64FromKV(fcmMessage, "retry_count")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
-			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, 0)
+			_ = f.updateMessageStatus(ctx, fcmMessageId, StatusFailedPermanent, 0)
 			continue
 		}
 		fcmToken, err := utils.GetStringFromKV(fcmMessage, "fcm_token")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_FCM_TOKEN_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
-			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
+			_ = f.updateMessageStatus(ctx, fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		deviceType, err := utils.GetStringFromKV(fcmMessage, "device_type")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_DEVICE_TYPE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
-			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
+			_ = f.updateMessageStatus(ctx, fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgTitle, err := utils.GetStringFromKV(fcmMessage, "title")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
-			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
+			_ = f.updateMessageStatus(ctx, fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgBody, err := utils.GetStringFromKV(fcmMessage, "body")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
-			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
+			_ = f.updateMessageStatus(ctx, fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgData, err := utils.GetMapStringStringFromKV(fcmMessage, "data")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
-			_ = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
+			_ = f.updateMessageStatus(ctx, fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 
@@ -879,7 +879,7 @@ func (f *FirebaseCloudMessaging) processMessages(ctx context.Context, applicatio
 		// Check if message exceeded max retry count
 		if retryCount >= FCMMessageMaxRetryAttemptCount {
 			log.Log.Warnf("Message %d exceeded max retry count (%d), marking as permanently failed", fcmMessageId, FCMMessageMaxRetryAttemptCount)
-			err = f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
+			err = f.updateMessageStatus(ctx, fcmMessageId, StatusFailedPermanent, retryCount)
 			if err != nil {
 				log.Log.Warnf("Failed to update message status to FAILED_PERMANENT: %v", err)
 			}
@@ -892,7 +892,7 @@ func (f *FirebaseCloudMessaging) processMessages(ctx context.Context, applicatio
 			expirationDuration := time.Duration(FCMMessageExpirationInSeconds) * time.Second
 			if time.Since(createdAt) > expirationDuration {
 				log.Log.Warnf("Message %d has expired (created: %v), marking as expired", fcmMessageId, createdAt)
-				err = f.updateMessageStatus(fcmMessageId, StatusExpired, retryCount)
+				err = f.updateMessageStatus(ctx, fcmMessageId, StatusExpired, retryCount)
 				if err != nil {
 					log.Log.Warnf("Failed to update message status to EXPIRED: %v", err)
 				}
@@ -948,31 +948,31 @@ func (f *FirebaseCloudMessaging) processSendTopic(ctx context.Context, applicati
 		retryCount, err := utils.GetInt64FromKV(fcmTopicMessage, "retry_count")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_RETRY_COUNT_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
-			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, 0)
+			_ = f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusFailedPermanent, 0)
 			continue
 		}
 		msgTopic, err := utils.GetStringFromKV(fcmTopicMessage, "topic")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_TOPIC_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
-			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
+			_ = f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgTitle, err := utils.GetStringFromKV(fcmTopicMessage, "title")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_TITLE_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
-			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
+			_ = f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgBody, err := utils.GetStringFromKV(fcmTopicMessage, "body")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_BODY_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
-			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
+			_ = f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 		msgData, err := utils.GetMapStringStringFromKV(fcmTopicMessage, "data")
 		if err != nil {
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_TOPIC_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d", fcmTopicMessageId)
-			_ = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
+			_ = f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusFailedPermanent, retryCount)
 			continue
 		}
 
@@ -986,7 +986,7 @@ func (f *FirebaseCloudMessaging) processSendTopic(ctx context.Context, applicati
 		// Check if message exceeded max retry count
 		if retryCount >= FCMTopicMessageMaxRetryAttemptCount {
 			log.Log.Warnf("Topic message %d exceeded max retry count (%d), marking as permanently failed", fcmTopicMessageId, FCMTopicMessageMaxRetryAttemptCount)
-			err = f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
+			err = f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusFailedPermanent, retryCount)
 			if err != nil {
 				log.Log.Warnf("Failed to update topic message status to FAILED_PERMANENT: %v", err)
 			}
@@ -999,7 +999,7 @@ func (f *FirebaseCloudMessaging) processSendTopic(ctx context.Context, applicati
 			expirationDuration := time.Duration(FCMTopicMessageExpirationInSeconds) * time.Second
 			if time.Since(createdAt) > expirationDuration {
 				log.Log.Warnf("Topic message %d has expired (created: %v), marking as expired", fcmTopicMessageId, createdAt)
-				err = f.updateTopicMessageStatus(fcmTopicMessageId, StatusExpired, retryCount)
+				err = f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusExpired, retryCount)
 				if err != nil {
 					log.Log.Warnf("Failed to update topic message status to EXPIRED: %v", err)
 				}
@@ -1034,20 +1034,20 @@ func (f *FirebaseCloudMessaging) sendNotificationWithErrorHandling(ctx context.C
 		if isPermanentFCMError(err) {
 			log.Log.Warnf("Permanent FCM error for message %d: %v, marking as permanently failed", fcmMessageId, err)
 			if isTokenRelatedPermanentError(err) {
-				f.deleteUserTokenByFCMToken(token)
+				f.deleteUserTokenByFCMToken(ctx, token)
 			}
-			return f.updateMessageStatus(fcmMessageId, StatusFailedPermanent, retryCount)
+			return f.updateMessageStatus(ctx, fcmMessageId, StatusFailedPermanent, retryCount)
 		}
 
 		// Temporary error - retry
 		log.Log.Warnf("Temporary error sending notification %d (attempt %d): %v", fcmMessageId, retryCount+1, err)
 		retryCount++
-		return f.updateMessageStatus(fcmMessageId, StatusFailed, retryCount)
+		return f.updateMessageStatus(ctx, fcmMessageId, StatusFailed, retryCount)
 	}
 
 	// Success
 	log.Log.Infof("Successfully sent notification: %d", fcmMessageId)
-	return f.updateMessageStatus(fcmMessageId, StatusSent, retryCount)
+	return f.updateMessageStatus(ctx, fcmMessageId, StatusSent, retryCount)
 }
 
 func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *messaging.Client, token, deviceType string, msgTitle string, msgBody string, msgData map[string]string) error {
@@ -1097,18 +1097,18 @@ func (f *FirebaseCloudMessaging) sendTopicNotificationWithErrorHandling(ctx cont
 		// Check if this is a permanent error that shouldn't be retried
 		if isPermanentFCMError(err) {
 			log.Log.Warnf("Permanent FCM error for topic message %d: %v, marking as permanently failed", fcmTopicMessageId, err)
-			return f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailedPermanent, retryCount)
+			return f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusFailedPermanent, retryCount)
 		}
 
 		// Temporary error - retry
 		log.Log.Warnf("Temporary error sending topic notification %d (attempt %d): %v", fcmTopicMessageId, retryCount+1, err)
 		retryCount++
-		return f.updateTopicMessageStatus(fcmTopicMessageId, StatusFailed, retryCount)
+		return f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusFailed, retryCount)
 	}
 
 	// Success
 	log.Log.Infof("Successfully sent topic notification: %d", fcmTopicMessageId)
-	return f.updateTopicMessageStatus(fcmTopicMessageId, StatusSent, retryCount)
+	return f.updateTopicMessageStatus(ctx, fcmTopicMessageId, StatusSent, retryCount)
 }
 
 func (f *FirebaseCloudMessaging) sendTopicNotification(ctx context.Context, client *messaging.Client, topic string, msgTitle string, msgBody string, msgData map[string]string) error {
@@ -1211,13 +1211,13 @@ func isTokenRelatedPermanentError(err error) bool {
 	return false
 }
 
-func (f *FirebaseCloudMessaging) deleteUserTokenByFCMToken(fcmToken string) {
+func (f *FirebaseCloudMessaging) deleteUserTokenByFCMToken(ctx context.Context, fcmToken string) {
 	if err := f.Database.EnsureConnection(); err != nil {
 		log.Log.Warnf("Failed to ensure connection for token cleanup: %v", err)
 		return
 	}
 
-	dtx, err := f.Database.TransactionBegin(sql.LevelReadCommitted)
+	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
 	if err != nil {
 		log.Log.Warnf("Failed to begin transaction for token cleanup: %v", err)
 		return
@@ -1237,7 +1237,7 @@ func (f *FirebaseCloudMessaging) deleteUserTokenByFCMToken(fcmToken string) {
 	}
 }
 
-func (f *FirebaseCloudMessaging) updateMessageStatus(messageId int64, status string, retryCount int64) (err error) {
+func (f *FirebaseCloudMessaging) updateMessageStatus(ctx context.Context, messageId int64, status string, retryCount int64) (err error) {
 	p := utils.JSON{
 		"status": status,
 	}
@@ -1246,13 +1246,13 @@ func (f *FirebaseCloudMessaging) updateMessageStatus(messageId int64, status str
 		p["retry_count"] = retryCount
 		p["next_retry_time"] = nextRetryTime
 	}
-	_, err = f.FCMMessage.UpdateSimple(p, utils.JSON{
+	_, err = f.FCMMessage.UpdateSimple(ctx, p, utils.JSON{
 		"id": messageId,
 	})
 	return err
 }
 
-func (f *FirebaseCloudMessaging) updateTopicMessageStatus(messageId int64, status string, retryCount int64) (err error) {
+func (f *FirebaseCloudMessaging) updateTopicMessageStatus(ctx context.Context, messageId int64, status string, retryCount int64) (err error) {
 	p := utils.JSON{
 		"status": status,
 	}
@@ -1261,7 +1261,7 @@ func (f *FirebaseCloudMessaging) updateTopicMessageStatus(messageId int64, statu
 		p["retry_count"] = retryCount
 		p["next_retry_time"] = nextRetryTime
 	}
-	_, err = f.FCMTopicMessage.UpdateSimple(p, utils.JSON{
+	_, err = f.FCMTopicMessage.UpdateSimple(ctx, p, utils.JSON{
 		"id": messageId,
 	})
 	return err

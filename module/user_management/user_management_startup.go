@@ -1,6 +1,7 @@
 package user_management
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlibLog.DXLog) (err error) {
-	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(l, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(context.Background(), l, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
 		_, userSuperAdmin, err := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"loginid": "superadmin",
@@ -40,7 +41,7 @@ func (um *DxmUserManagement) AutoCreateUserSuperAdminPasswordIfNotExist(l *dxlib
 		}
 
 		// if define in vault, use it
-		s := app.App.InitVault.GetStringOrDefault("SUPERADMIN_INITIAL_PASSWORD", "")
+		s := app.App.InitVault.GetStringOrDefault(context.Background(), "SUPERADMIN_INITIAL_PASSWORD", "")
 		if s != "" {
 			err = um.TxUserPasswordCreate(tx, userSuperAdminId, s)
 			if err != nil {

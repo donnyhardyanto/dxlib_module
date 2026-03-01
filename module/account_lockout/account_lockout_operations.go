@@ -1,6 +1,7 @@
 package account_lockout
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -71,12 +72,12 @@ func (al *DXMAccountLockout) RecordFailedAttempt(
 			AttemptUserAgent:    attemptUserAgent,
 			AttemptAuthSource:   attemptAuthSource,
 		}
-		al.writeAuditLog(event)
+		al.writeAuditLog(aepr.Context, event)
 	}
 
 	// Check if threshold reached - lock account
 	if count >= int64(al.Config.MaxFailedAttempts) {
-		err := al.lockAccount(userID, userUID, userLoginID, organizationID, organizationUID, count, "EXCEEDED_FAILED_ATTEMPTS")
+		err := al.lockAccount(aepr.Context, userID, userUID, userLoginID, organizationID, organizationUID, count, "EXCEEDED_FAILED_ATTEMPTS")
 		if err != nil {
 			log.Log.Errorf(err, "Failed to lock account for user %d", userID)
 		}
@@ -86,7 +87,7 @@ func (al *DXMAccountLockout) RecordFailedAttempt(
 }
 
 // RecordSuccessfulLogin records successful login and resets counters
-func (al *DXMAccountLockout) RecordSuccessfulLogin(userID int64, userUID string, userLoginID string) error {
+func (al *DXMAccountLockout) RecordSuccessfulLogin(ctx context.Context, userID int64, userUID string, userLoginID string) error {
 	if !al.Config.Enabled {
 		return nil
 	}
@@ -110,7 +111,7 @@ func (al *DXMAccountLockout) RecordSuccessfulLogin(userID int64, userUID string,
 			UserUID:        userUID,
 			UserLoginID:    userLoginID,
 		}
-		al.writeAuditLog(event)
+		al.writeAuditLog(ctx, event)
 	}
 
 	return nil
@@ -118,6 +119,7 @@ func (al *DXMAccountLockout) RecordSuccessfulLogin(userID int64, userUID string,
 
 // UnlockAccount manually unlocks an account (admin action)
 func (al *DXMAccountLockout) UnlockAccount(
+	ctx context.Context,
 	userID int64,
 	userUID string,
 	userLoginID string,
@@ -146,7 +148,7 @@ func (al *DXMAccountLockout) UnlockAccount(
 		UnlockedByUserUID: unlockedByUserUID,
 		UnlockReason:      reason,
 	}
-	al.writeAuditLog(event)
+	al.writeAuditLog(ctx, event)
 
 	log.Log.Infof("Account manually unlocked: user_id=%d, unlocked_by=%d, reason=%s",
 		userID, unlockedByUserID, reason)
@@ -156,6 +158,7 @@ func (al *DXMAccountLockout) UnlockAccount(
 
 // lockAccount locks the account (internal helper)
 func (al *DXMAccountLockout) lockAccount(
+	ctx context.Context,
 	userID int64,
 	userUID string,
 	userLoginID string,
@@ -188,7 +191,7 @@ func (al *DXMAccountLockout) lockAccount(
 		LockedAt:               now.Format(time.RFC3339),
 		UnlockAt:               unlockAt.Format(time.RFC3339),
 	}
-	al.writeAuditLog(event)
+	al.writeAuditLog(ctx, event)
 
 	log.Log.Warnf("ACCOUNT LOCKED: user_id=%d, loginid=%s, failed_attempts=%d, duration=%d min",
 		userID, userLoginID, failedCount, al.Config.LockoutDurationMinutes)

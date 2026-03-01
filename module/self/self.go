@@ -333,13 +333,13 @@ func isMenuItemExists(menu []utils.JSON, aMenuItem utils.JSON) bool {
 	return false
 }
 
-func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *log.DXLog, menuitem utils.JSON, menu *[]utils.JSON) error {
+func (s *DxmSelf) menuItemCheckParentMenuRecursively(ctx context.Context, l *log.DXLog, menuitem utils.JSON, menu *[]utils.JSON) error {
 	if menuitem == nil {
 		return nil
 	}
 	parentId := menuitem["parent_id"]
 	if parentId != nil {
-		_, parentMenuItem, err := user_management.ModuleUserManagement.MenuItem.SelectOne(context.Background(), l, nil, utils.JSON{
+		_, parentMenuItem, err := user_management.ModuleUserManagement.MenuItem.SelectOne(ctx, l, nil, utils.JSON{
 			"id": parentId,
 		}, nil, db.DXDatabaseTableFieldsOrderBy{"id": "ASC"})
 		if err != nil {
@@ -348,7 +348,7 @@ func (s *DxmSelf) menuItemCheckParentMenuRecursively(l *log.DXLog, menuitem util
 		if parentMenuItem != nil {
 			isMenuItemExists := isMenuItemExists(*menu, parentMenuItem)
 			if !isMenuItemExists {
-				err = s.menuItemCheckParentMenuRecursively(l, parentMenuItem, menu)
+				err = s.menuItemCheckParentMenuRecursively(ctx, l, parentMenuItem, menu)
 				if err != nil {
 					return err
 				}
@@ -398,10 +398,10 @@ func pruneMenuItems(menuItem *utils.JSON) {
 	}
 }
 
-func (s *DxmSelf) fetchMenuTree(l *log.DXLog, userEffectivePrivilegeIds map[string]int64) ([]*utils.JSON, error) {
+func (s *DxmSelf) fetchMenuTree(ctx context.Context, l *log.DXLog, userEffectivePrivilegeIds map[string]int64) ([]*utils.JSON, error) {
 	// select all menu items available
 	allMenuItems := map[int64]utils.JSON{}
-	_, menuItems, err := user_management.ModuleUserManagement.MenuItem.Select(context.Background(), l, nil, nil, nil, db.DXDatabaseTableFieldsOrderBy{"id": "ASC"}, nil, nil)
+	_, menuItems, err := user_management.ModuleUserManagement.MenuItem.Select(ctx, l, nil, nil, nil, db.DXDatabaseTableFieldsOrderBy{"id": "ASC"}, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -662,7 +662,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 
-		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPassword)
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(aepr.Context, &aepr.Log, userId, userPassword)
 		if err != nil {
 			return err
 		}
@@ -843,7 +843,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 
-		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPassword)
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(aepr.Context, &aepr.Log, userId, userPassword)
 		if err != nil {
 			return err
 		}
@@ -1031,7 +1031,7 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 
-		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPassword)
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(aepr.Context, &aepr.Log, userId, userPassword)
 		if err != nil {
 			return err
 		}
@@ -1143,7 +1143,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 		}
 	}
 
-	menuTreeRoot, err := s.fetchMenuTree(&aepr.Log, userEffectivePrivilegeIds)
+	menuTreeRoot, err := s.fetchMenuTree(aepr.Context, &aepr.Log, userEffectivePrivilegeIds)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1333,7 +1333,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 
-		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPassword)
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(aepr.Context, &aepr.Log, userId, userPassword)
 		if err != nil {
 			return err
 		}
@@ -1564,7 +1564,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 
-		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPassword)
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(aepr.Context, &aepr.Log, userId, userPassword)
 		if err != nil {
 			return err
 		}
@@ -2054,7 +2054,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	}
 	var verificationResult bool
 
-	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
+	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"id": userId,
@@ -2066,7 +2066,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
 		}
 
-		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(aepr.Context, &aepr.Log, userId, userPasswordOld)
 		if err != nil {
 			return err
 		}
@@ -2081,7 +2081,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 		aepr.Log.Infof("User password changed")
 
-		_, err = user_management.ModuleUserManagement.User.UpdateSimple(utils.JSON{
+		_, err = user_management.ModuleUserManagement.User.UpdateSimple(aepr.Context, utils.JSON{
 			"must_change_password": false,
 		}, utils.JSON{
 			"id": userId,
@@ -2119,7 +2119,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 	}
 	var verificationResult bool
 
-	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(&aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
+	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
 
 		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"id": userId,
@@ -2131,7 +2131,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
 		}
 
-		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(&aepr.Log, userId, userPasswordOld)
+		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(aepr.Context, &aepr.Log, userId, userPasswordOld)
 		if err != nil {
 			return err
 		}
@@ -2146,7 +2146,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 		}
 		aepr.Log.Infof("User password changed")
 
-		_, err = user_management.ModuleUserManagement.User.UpdateSimple(utils.JSON{
+		_, err = user_management.ModuleUserManagement.User.UpdateSimple(aepr.Context, utils.JSON{
 			"must_change_password": false,
 		}, utils.JSON{
 			"id": userId,
@@ -2380,7 +2380,7 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest)
 	if err != nil {
 		return err
 	}
-	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(utils.JSON{
+	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(aepr.Context, utils.JSON{
 		"is_read": true,
 	}, utils.JSON{
 		"id":      userMessageId,
@@ -2411,7 +2411,7 @@ func (s *DxmSelf) SelfUserMessageIsReadSetToTrueByUid(aepr *api.DXAPIEndPointReq
 		return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "",
 			"USER_MESSAGE_NOT_FOUND_OR_NOT_OWNED")
 	}
-	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(utils.JSON{
+	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(aepr.Context, utils.JSON{
 		"is_read": true,
 	}, utils.JSON{
 		"uid":     userMessageUid,
@@ -2428,7 +2428,7 @@ func (s *DxmSelf) SelfUserMessageAllIsReadSetToTrue(aepr *api.DXAPIEndPointReque
 	if err != nil {
 		return err
 	}
-	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(utils.JSON{
+	_, err = user_management.ModuleUserManagement.UserMessage.UpdateSimple(aepr.Context, utils.JSON{
 		"is_read": true,
 	}, utils.JSON{
 		"user_id": userId,
@@ -2439,8 +2439,8 @@ func (s *DxmSelf) SelfUserMessageAllIsReadSetToTrue(aepr *api.DXAPIEndPointReque
 	return nil
 }
 
-func (s *DxmSelf) SystemModeIsMaintenance() (isMaintenance bool) {
-	globalStoreSystemValue, err := s.GlobalStoreRedis.Get(context.Background(), s.KeyGlobalStoreSystem)
+func (s *DxmSelf) SystemModeIsMaintenance(ctx context.Context) (isMaintenance bool) {
+	globalStoreSystemValue, err := s.GlobalStoreRedis.Get(ctx, s.KeyGlobalStoreSystem)
 	if err != nil {
 		return false
 	}
@@ -2463,7 +2463,7 @@ func (s *DxmSelf) SystemModeIsMaintenance() (isMaintenance bool) {
 }
 
 func (s *DxmSelf) SelfSystemModeIsMaintenance(aepr *api.DXAPIEndPointRequest) (err error) {
-	isModeMaintenance := s.SystemModeIsMaintenance()
+	isModeMaintenance := s.SystemModeIsMaintenance(aepr.Context)
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{
 		"value": isModeMaintenance,
 	})

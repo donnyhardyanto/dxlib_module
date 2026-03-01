@@ -99,6 +99,7 @@ func (al *DXMAccountLockout) UnlockByUserUid(aepr *api.DXAPIEndPointRequest, use
 
 	// Unlock account
 	err = al.UnlockAccount(
+		aepr.Context,
 		userId,
 		userUid,
 		userLoginId,
@@ -159,7 +160,7 @@ func (al *DXMAccountLockout) GetHistoryByUserUid(aepr *api.DXAPIEndPointRequest,
 	}
 
 	// Get lockout history
-	events, err := al.GetLockoutHistory(userId, int(limit))
+	events, err := al.GetLockoutHistory(aepr.Context, userId, int(limit))
 	if err != nil {
 		aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_LOCKOUT_HISTORY", err)
 		return err

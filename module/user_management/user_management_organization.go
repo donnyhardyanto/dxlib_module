@@ -103,7 +103,7 @@ func (um *DxmUserManagement) parseAndCreateOrganizationsFromCSV(buf *bytes.Buffe
 		}
 
 		// Create organization
-		_, err = um.doOrganizationCreate(&aepr.Log, organizationData)
+		_, err = um.doOrganizationCreate(aepr.Context, &aepr.Log, organizationData)
 		if err != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "",
 				"FAILED_TO_CREATE_ORGANIZATION_LINE_%d: %s", lineNum, err.Error())
@@ -175,7 +175,7 @@ func (um *DxmUserManagement) parseAndCreateOrganizationsFromXLSX(buf *bytes.Buff
 				continue
 			}
 
-			if _, err = um.doOrganizationCreate(&aepr.Log, organizationData); err != nil {
+			if _, err = um.doOrganizationCreate(aepr.Context, &aepr.Log, organizationData); err != nil {
 				// Check for specific PostgreSQL errors
 				if strings.Contains(err.Error(), "invalid input syntax for type double precision") {
 					return aepr.WriteResponseAndNewErrorf(
@@ -210,7 +210,7 @@ func (um *DxmUserManagement) isNumericOrganizationColumn(header string) bool {
 }
 
 // Helper function to create organization with proper validation
-func (um *DxmUserManagement) doOrganizationCreate(log *dxlibLog.DXLog, organizationData map[string]interface{}) (int64, error) {
+func (um *DxmUserManagement) doOrganizationCreate(ctx context.Context, log *dxlibLog.DXLog, organizationData map[string]interface{}) (int64, error) {
 	// Validate required fields
 	code, ok := organizationData["code"].(string)
 	if !ok || code == "" {
@@ -276,7 +276,7 @@ func (um *DxmUserManagement) doOrganizationCreate(log *dxlibLog.DXLog, organizat
 	}
 
 	// Create the organization using the existing method - create a dummy aepr for this
-	id, err := um.Organization.InsertReturningId(context.Background(), log, o)
+	id, err := um.Organization.InsertReturningId(ctx, log, o)
 	return id, err
 }
 

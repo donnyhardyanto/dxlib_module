@@ -49,7 +49,7 @@ func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err err
 
 	var newUid string
 
-	txErr := t.Database.Tx(&aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+	txErr := t.Database.Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		err := t.TxCheckValidationUniqueFieldNameGroupsForInsert(dtx, p)
 		if err != nil {
 			return err
