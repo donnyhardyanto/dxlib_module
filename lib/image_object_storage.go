@@ -30,33 +30,29 @@ type ProcessedImageObjectStorage struct {
 }
 
 type ImageObjectStorage struct {
-	ObjectStorageSourceNameId string
-	MaxRequestSize            int64
-	MaxPixelWidth             int64
-	MaxPixelHeight            int64
-	MaxBytesPerPixel          int64
-	MaxPixels                 int64
-	ProcessedImages           map[string]ProcessedImageObjectStorage
+	ObjectStorageSourceNameId     string
+	MaxRequestSize                int64
+	MaxPixelWidth                 int64
+	MaxPixelHeight                int64
+	MaxBytesPerPixel              int64
+	MaxPixels                     int64
+	MaxImageProcessLimitInSeconds int64
+	ProcessedImages               map[string]ProcessedImageObjectStorage
 }
-
-const MaxRequestSize = 100 * 1024 * 1024 // 100MB
-const MaxPixelWidth = 4096
-const MaxPixelHeight = 4096
-const MaxBytesPerPixel = 10
-const MaxPixels = 40000000                // ~40MP
-const ImageProcessLimit = 5 * time.Second // Timeout for image processing
 
 func NewImageObjectStorage(objectStorageSourceNameId string,
 	maxRequestSize int64, maxPixelWidth int64, maxPixelHeight int64, maxBytesPerPixel int64, maxPixels int64,
+	imageProcessLimitInSeconds int64,
 	processedImages map[string]ProcessedImageObjectStorage) *ImageObjectStorage {
 	return &ImageObjectStorage{
-		ObjectStorageSourceNameId: objectStorageSourceNameId,
-		MaxRequestSize:            maxRequestSize,
-		MaxPixelWidth:             maxPixelWidth,
-		MaxPixelHeight:            maxPixelHeight,
-		MaxBytesPerPixel:          maxBytesPerPixel,
-		MaxPixels:                 maxPixels,
-		ProcessedImages:           processedImages,
+		ObjectStorageSourceNameId:     objectStorageSourceNameId,
+		MaxRequestSize:                maxRequestSize,
+		MaxPixelWidth:                 maxPixelWidth,
+		MaxPixelHeight:                maxPixelHeight,
+		MaxBytesPerPixel:              maxBytesPerPixel,
+		MaxPixels:                     maxPixels,
+		MaxImageProcessLimitInSeconds: imageProcessLimitInSeconds,
+		ProcessedImages:               processedImages,
 	}
 }
 
@@ -68,7 +64,7 @@ func calculateAspectRatioHeight(originalWidth, originalHeight, targetWidth int) 
 // ValidateImageDimensions checks for pixel flood attacks by validating image dimensions
 func (ios *ImageObjectStorage) ValidateImageDimensions(data []byte) error {
 	// Create a context with timeout for image processing
-	ctx, cancel := context.WithTimeout(context.Background(), ImageProcessLimit)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ios.MaxImageProcessLimitInSeconds)*time.Second)
 	defer cancel()
 
 	resultCh := make(chan struct {
@@ -138,7 +134,7 @@ func (ios *ImageObjectStorage) ValidateImageDimensions(data []byte) error {
 // DecodeImageWithTimeout decodes an image with a timeout to prevent DoS attacks
 func (ios *ImageObjectStorage) DecodeImageWithTimeout(data []byte) (image.Image, string, error) {
 	// Create a context with timeout for image processing
-	ctx, cancel := context.WithTimeout(context.Background(), ImageProcessLimit)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ios.MaxImageProcessLimitInSeconds)*time.Second)
 	defer cancel()
 
 	resultCh := make(chan struct {
@@ -254,7 +250,7 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		}
 
 		// Create a context with timeout for image scaling
-		ctx, cancel := context.WithTimeout(context.Background(), ImageProcessLimit)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ios.MaxImageProcessLimitInSeconds)*time.Second)
 		resizedImg := image.NewRGBA(image.Rect(0, 0, processedImage.Width, targetHeight))
 
 		// Use a goroutine to scale the image with a timeout
