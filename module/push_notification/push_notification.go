@@ -28,6 +28,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -1073,7 +1074,18 @@ func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *m
 		return errors.Errorf("UNKNOWN_DEVICE_TYPE: %s", deviceType)
 	}
 
+	ctx, span := otel.Tracer("pgn.fcm").Start(ctx, "fcm.Send",
+		trace.WithSpanKind(trace.SpanKindClient),
+		trace.WithAttributes(
+			attribute.String("peer.service", "google-fcm"),
+			attribute.String("fcm.device_type", deviceType),
+		),
+	)
 	_, err := client.Send(ctx, message)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+	span.End()
 	return err
 }
 
@@ -1109,7 +1121,18 @@ func (f *FirebaseCloudMessaging) sendTopicNotification(ctx context.Context, clie
 		Data:  msgData,
 	}
 
+	ctx, span := otel.Tracer("pgn.fcm").Start(ctx, "fcm.SendTopic",
+		trace.WithSpanKind(trace.SpanKindClient),
+		trace.WithAttributes(
+			attribute.String("peer.service", "google-fcm"),
+			attribute.String("fcm.topic", topic),
+		),
+	)
 	_, err := client.Send(ctx, message)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+	span.End()
 	return err
 }
 
