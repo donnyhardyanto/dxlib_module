@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/databases"
@@ -29,7 +30,25 @@ func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err err
 	if err != nil {
 		return err
 	}
+
+	_, parentRoleUid, err := aepr.GetParameterValueAsString("parent_uid")
+	if err != nil {
+		return err
+	}
+
+	t := um.Role
+
+	_, parentRole, err := t.ShouldGetByUid(aepr.Context, &aepr.Log, parentRoleUid)
+	if err != nil {
+		return err
+	}
+	parentId, err := utils.GetInt64FromKV(parentRole, "id")
+	if err != nil {
+		return err
+	}
+
 	p := utils.JSON{
+		"parent_id":   parentId,
 		"nameid":      nameid,
 		"name":        name,
 		"description": description,
@@ -39,7 +58,6 @@ func (um *DxmUserManagement) RoleCreate(aepr *api.DXAPIEndPointRequest) (err err
 		p["organization_types"] = organizationTypes
 	}
 
-	t := um.Role
 	t.SetInsertAuditFields(aepr, p)
 
 	err = t.EnsureDatabase()
@@ -167,6 +185,33 @@ func (um *DxmUserManagement) RoleEditByUid(aepr *api.DXAPIEndPointRequest) (err 
 		}
 		jsonString := string(jsonBytes)
 		p["organization_types"] = jsonString
+	}
+
+	parentRoleUid, ok := newFieldValues["parent_uid"].(string)
+	if ok && parentRoleUid != "" {
+		utag, _ := utils.GetStringFromKV(row, "utag")
+		if utag == "SUPER-ADMINISTRATOR" {
+			return aepr.WriteResponseAndNewErrorf(http.StatusForbidden,
+				"CANNOT_REPARENT_SUPERADMIN", "Cannot change parent of superadmin role")
+		}
+
+		_, parentRole, err := t.ShouldGetByUid(aepr.Context, &aepr.Log, parentRoleUid)
+		if err != nil {
+			return err
+		}
+
+		parentAbsPath, _ := utils.GetStringFromKV(parentRole, "absolute_path")
+		roleUid, _ := utils.GetStringFromKV(row, "uid")
+		if strings.Contains(parentAbsPath, "/"+roleUid) {
+			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest,
+				"CIRCULAR_REFERENCE", "Cannot set parent: would create circular reference")
+		}
+
+		parentId, err := utils.GetInt64FromKV(parentRole, "id")
+		if err != nil {
+			return err
+		}
+		p["parent_id"] = parentId
 	}
 
 	err = t.DoEdit(aepr, id, p)

@@ -96,13 +96,13 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[]string{"id", "uid", "user_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Role = tables.NewDXTableSimple(databaseNameId,
-		"user_management.role", "user_management.role", "user_management.role",
+		"user_management.role", "user_management.role", "user_management.v_role",
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}, {"name"}},
 		[]string{"nameid", "name", "description"},
-		[]string{"name", "nameid", "description", "organization_types", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
-		[]string{"id", "uid", "nameid", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"name", "nameid", "description", "organization_types", "parent_id", "absolute_path", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
+		[]string{"id", "uid", "parent_id", "absolute_path", "nameid", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Role.FieldNameForRowUtag = "utag"
 	um.Role.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
@@ -197,7 +197,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[]string{"title", "body", "user_message_channel_type_nameid", "user_message_channel_type_name", "user_message_category_nameid", "user_message_category_name"},
 		[]string{"title", "body", "id", "user_id", "user_message_channel_type_id", "user_message_category_id", "is_read", "sent_at", "arrive_at", "read_at", "created_at", "last_modified_at", "id", "uid"},
-		[]string{"id", "uid", "user_id", "title", "body", "user_message_channel_type_id", "user_message_category_id", "fcm_message_id", "fcm_application_id", "is_read", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"id", "uid", "user_id", "title", "body", "user_message_channel_type_id", "user_message_category_id", "is_read", "created_at", "last_modified_at", "is_deleted"},
 	)
 }
 
@@ -217,24 +217,20 @@ func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(ctx context.Cont
 	if err != nil {
 		return err
 	}
-	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(ctx, l, userId, msgTitle, msgBody, attachedData,
-		func(dtx *databases.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err2 error) {
-			_, _, err2 = um.UserMessage.TxInsert(dtx, utils.JSON{
-				"user_message_channel_type_id": base.UserMessageChannelTypeIdFCM,
-				"user_message_category_id":     userMessageCategoryId,
-				"fcm_message_id":               fcmMessageId,
-				"fcm_application_id":           fcmApplicationId,
-				"user_id":                      userId,
-				"title":                        msgTitle,
-				"body":                         msgBody,
-				"data":                         attachedDataAsJSONString,
-			}, nil)
-			if err2 != nil {
-				return err2
-			}
-			return nil
-		})
 
+	userMessageId, err := um.UserMessage.InsertReturningId(ctx, l, utils.JSON{
+		"user_message_channel_type_id": base.UserMessageChannelTypeIdFCM,
+		"user_message_category_id":     userMessageCategoryId,
+		"user_id":                      userId,
+		"title":                        msgTitle,
+		"body":                         msgBody,
+		"data":                         attachedDataAsJSONString,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = push_notification.ModulePushNotification.FCM.AllApplicationSendToUser(ctx, l, userId, msgTitle, msgBody, attachedData, userMessageId)
 	if err != nil {
 		return err
 	}

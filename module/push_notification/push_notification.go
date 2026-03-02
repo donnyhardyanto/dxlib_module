@@ -71,7 +71,6 @@ type DxmPushNotification struct {
 	Whatapp WhatappMessaging
 }
 
-type FCMMessageFunc func(dtx *databases.DXDatabaseTx, l *log.DXLog, fcmMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
 type FCMTopicMessageFunc func(dtx *databases.DXDatabaseTx, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
 
 type FirebaseCloudMessaging struct {
@@ -130,9 +129,9 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		// SearchTextFieldNames — string fields only, no id/uid/*_id/*_uid
 		[]string{"status", "title", "body", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid"},
 		// OrderByFieldNames — all fields returned to client, uid last
-		[]string{"id", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "next_retry_time", "retry_count", "is_read", "is_deleted", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
+		[]string{"id", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "user_message_id", "next_retry_time", "retry_count", "is_read", "is_deleted", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
 		// FilterableFieldNames — superset of OrderByFieldNames
-		[]string{"id", "uid", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "next_retry_time", "is_read", "is_deleted", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
+		[]string{"id", "uid", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "user_message_id", "next_retry_time", "is_read", "is_deleted", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
 	)
 	f.FCMMessage.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
 		"data": types.APIParameterTypeMapStringString,
@@ -323,7 +322,7 @@ func (f *FirebaseCloudMessaging) SendTopic(ctx context.Context, l *log.DXLog, ap
 	return dtx.Commit()
 }
 
-func (f *FirebaseCloudMessaging) SendToDevice(ctx context.Context, l *log.DXLog, applicationNameId string, userId int64, token string, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
+func (f *FirebaseCloudMessaging) SendToDevice(ctx context.Context, l *log.DXLog, applicationNameId string, userId int64, token string, msgTitle string, msgBody string, msgData map[string]string, userMessageId int64) (err error) {
 	if err = f.Database.EnsureConnection(); err != nil {
 		return err
 	}
@@ -378,7 +377,7 @@ func (f *FirebaseCloudMessaging) SendToDevice(ctx context.Context, l *log.DXLog,
 		return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
 	}
 
-	fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
+	_, err = f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
 		"fcm_user_token_id":      userTokenId,
 		"user_id":                userId,
 		"fcm_application_id":     fcmApplicationId,
@@ -391,22 +390,16 @@ func (f *FirebaseCloudMessaging) SendToDevice(ctx context.Context, l *log.DXLog,
 		"title":                  msgTitle,
 		"body":                   msgBody,
 		"data":                   msgDataAsString,
+		"user_message_id":        userMessageId,
 	})
 	if err != nil {
 		return err
 	}
 
-	if onFCMMessage != nil {
-		err = onFCMMessage(dtx, l, fcmMessageId, fcmApplicationId, applicationNameId)
-		if err != nil {
-			return err
-		}
-	}
-
 	return dtx.Commit()
 }
 
-func (f *FirebaseCloudMessaging) SendToUser(ctx context.Context, l *log.DXLog, applicationNameId string, userId int64, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
+func (f *FirebaseCloudMessaging) SendToUser(ctx context.Context, l *log.DXLog, applicationNameId string, userId int64, msgTitle string, msgBody string, msgData map[string]string, userMessageId int64) (err error) {
 	if err = f.Database.EnsureConnection(); err != nil {
 		return err
 	}
@@ -440,7 +433,6 @@ func (f *FirebaseCloudMessaging) SendToUser(ctx context.Context, l *log.DXLog, a
 		return err
 	}
 
-	var fcmMessageIds []int64
 	for _, userToken := range userTokens {
 		tokenFcmToken, err := utils.GetStringFromKV(userToken, "fcm_token")
 		if err != nil {
@@ -459,7 +451,7 @@ func (f *FirebaseCloudMessaging) SendToUser(ctx context.Context, l *log.DXLog, a
 			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
 		}
 
-		fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
+		_, err = f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
 			"fcm_user_token_id":      userToken["id"],
 			"user_id":                userId,
 			"fcm_application_id":     fcmApplicationId,
@@ -472,17 +464,10 @@ func (f *FirebaseCloudMessaging) SendToUser(ctx context.Context, l *log.DXLog, a
 			"title":                  msgTitle,
 			"body":                   msgBody,
 			"data":                   msgDataAsBytes,
+			"user_message_id":        userMessageId,
 		})
 		if err != nil {
 			return err
-		}
-		fcmMessageIds = append(fcmMessageIds, fcmMessageId)
-
-		if onFCMMessage != nil {
-			err = onFCMMessage(dtx, l, fcmMessageId, fcmApplicationId, applicationNameId)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -520,7 +505,7 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 		return err
 	}
 
-	err = f.SendToUser(aepr.Context, &aepr.Log, applicationNameId, userId, msgTitle, msgBody, msgData, nil)
+	err = f.SendToUser(aepr.Context, &aepr.Log, applicationNameId, userId, msgTitle, msgBody, msgData, 0)
 	if err != nil {
 		return errors.Errorf("failed to send test message: %+v", err)
 	}
@@ -529,7 +514,7 @@ func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIE
 
 }
 
-func (f *FirebaseCloudMessaging) AllApplicationSendToUser(ctx context.Context, l *log.DXLog, userId int64, msgTitle string, msgBody string, msgData map[string]string, onFCMMessage FCMMessageFunc) (err error) {
+func (f *FirebaseCloudMessaging) AllApplicationSendToUser(ctx context.Context, l *log.DXLog, userId int64, msgTitle string, msgBody string, msgData map[string]string, userMessageId int64) (err error) {
 	ctx, span := otel.Tracer("push_notification").Start(ctx, "FCM.AllApplicationSendToUser")
 	defer span.End()
 	span.SetAttributes(
@@ -546,7 +531,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(ctx context.Context, l
 	}
 	defer dtx.Rollback()
 
-	_, fcmApplications, err := f.FCMApplication.SelectAll(ctx, l)
+	_, fcmApplications, err := f.FCMApplication.TxSelect(dtx, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "SELECT_ALL_APPLICATIONS_FAILED")
@@ -577,7 +562,6 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(ctx context.Context, l
 			return err
 		}
 
-		var fcmMessageIds []int64
 		for _, userToken := range userTokens {
 			tokenFcmToken, err := utils.GetStringFromKV(userToken, "fcm_token")
 			if err != nil {
@@ -596,7 +580,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(ctx context.Context, l
 				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
 			}
 
-			fcmMessageId, err := f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
+			_, err = f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
 				"fcm_user_token_id":      userToken["id"],
 				"user_id":                userId,
 				"fcm_application_id":     fcmApplicationId,
@@ -609,17 +593,10 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(ctx context.Context, l
 				"title":                  msgTitle,
 				"body":                   msgBody,
 				"data":                   msgDataAsBytes,
+				"user_message_id":        userMessageId,
 			})
 			if err != nil {
 				return err
-			}
-			fcmMessageIds = append(fcmMessageIds, fcmMessageId)
-
-			if onFCMMessage != nil {
-				err = onFCMMessage(dtx, l, fcmMessageId, fcmApplicationId, fcmApplicationNameId)
-				if err != nil {
-					return err
-				}
 			}
 		}
 	}
@@ -643,7 +620,7 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(ctx context.Context, l 
 	}
 	defer dtx.Rollback()
 
-	_, fcmApplications, err := f.FCMApplication.SelectAll(ctx, l)
+	_, fcmApplications, err := f.FCMApplication.TxSelect(dtx, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "SELECT_ALL_APPLICATIONS_FAILED")
@@ -867,6 +844,19 @@ func (f *FirebaseCloudMessaging) processMessages(ctx context.Context, applicatio
 			log.Log.Errorf(err, "SHOULD_NOT_HAPPEN:FCM_MESSAGE_DATA_TYPE_ASSERTION_FAILED:%d", fcmMessageId)
 			_ = f.updateMessageStatus(ctx, fcmMessageId, StatusFailedPermanent, retryCount)
 			continue
+		}
+
+		// Inject fcm_user_message_uid and user_message_uid into msgData for the mobile app
+		if msgData == nil {
+			msgData = make(map[string]string)
+		}
+		fcmMessageUid, uidErr := utils.GetStringFromKV(fcmMessage, "uid")
+		if uidErr == nil && fcmMessageUid != "" {
+			msgData["fcm_user_message_uid"] = fcmMessageUid
+		}
+		userMessageUid, umUidErr := utils.GetStringFromKV(fcmMessage, "user_message_uid")
+		if umUidErr == nil && userMessageUid != "" {
+			msgData["user_message_uid"] = userMessageUid
 		}
 
 		MsgNextRetryTime, err := utils.GetTimeFromKV(fcmMessage, "next_retry_time")
