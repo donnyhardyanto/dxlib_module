@@ -10,3 +10,8 @@ const (
 	GlobalStoreSystemModeNormal      = "NORMAL"
 	PrivilegeNameIdSetMaintenance    = "GLOBAL.SET_MAINTENANCE_MODE"
 )
+
+var (
+	FCMPingTitle = "FCM Ping"
+	FCMPingBody  = "FCM Ping Test Notification"
+)
