@@ -2055,18 +2055,16 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	var verificationResult bool
 
 	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
-
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
+		// Lock user row with FOR UPDATE — use tx, not aepr.Context
+		_, _, err = user_management.ModuleUserManagement.User.TxShouldSelectOne(tx, nil, utils.JSON{
 			"id": userId,
-		}, nil, nil)
+		}, nil, nil, "FOR UPDATE")
 		if err != nil {
 			return err
 		}
-		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
-		}
 
-		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(aepr.Context, &aepr.Log, userId, userPasswordOld)
+		// Verify old password using tx
+		verificationResult, err = user_management.ModuleUserManagement.TxUserPasswordVerify(tx, userId, userPasswordOld)
 		if err != nil {
 			return err
 		}
@@ -2081,7 +2079,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 		aepr.Log.Infof("User password changed")
 
-		_, err = user_management.ModuleUserManagement.User.UpdateSimple(aepr.Context, utils.JSON{
+		_, err = user_management.ModuleUserManagement.User.TxUpdateSimple(tx, utils.JSON{
 			"must_change_password": false,
 		}, utils.JSON{
 			"id": userId,
@@ -2120,18 +2118,16 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 	var verificationResult bool
 
 	err = databases.Manager.GetOrCreate(user_management.ModuleUserManagement.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
-
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
+		// Lock user row with FOR UPDATE — use tx, not aepr.Context
+		_, _, err = user_management.ModuleUserManagement.User.TxShouldSelectOne(tx, nil, utils.JSON{
 			"id": userId,
-		}, nil, nil)
+		}, nil, nil, "FOR UPDATE")
 		if err != nil {
 			return err
 		}
-		if user == nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, "ALERT_POSSIBLE_HACKING:USER_NOT_FOUND")
-		}
 
-		verificationResult, err = user_management.ModuleUserManagement.UserPasswordVerify(aepr.Context, &aepr.Log, userId, userPasswordOld)
+		// Verify old password using tx
+		verificationResult, err = user_management.ModuleUserManagement.TxUserPasswordVerify(tx, userId, userPasswordOld)
 		if err != nil {
 			return err
 		}
@@ -2146,7 +2142,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 		}
 		aepr.Log.Infof("User password changed")
 
-		_, err = user_management.ModuleUserManagement.User.UpdateSimple(aepr.Context, utils.JSON{
+		_, err = user_management.ModuleUserManagement.User.TxUpdateSimple(tx, utils.JSON{
 			"must_change_password": false,
 		}, utils.JSON{
 			"id": userId,

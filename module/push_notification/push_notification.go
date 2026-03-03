@@ -186,85 +186,79 @@ func (f *FirebaseCloudMessaging) ApplicationCreate(aepr *api.DXAPIEndPointReques
 
 func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, deviceType string, userId int64, token string) (err error) {
 	deviceType = strings.ToUpper(deviceType)
-	if err = f.Database.EnsureConnection(); err != nil {
-		return err
-	}
-
-	dtx, err := f.Database.TransactionBegin(aepr.Context, sql.LevelReadCommitted)
-	if err != nil {
-		return err
-	}
-	defer dtx.Rollback()
-
-	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
-	if err != nil {
-		return err
-	}
-	fcmApplicationId, ok := fcmApplication["id"].(int64)
-	if !ok {
-		return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
-	}
-
-	_, existingUserTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
-		"fcm_application_id": fcmApplicationId,
-		"fcm_token":          token,
-	}, nil, nil, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	for _, existingUserToken := range existingUserTokens {
-		existingUserId, ok := existingUserToken["user_id"].(int64)
-		if !ok {
-			continue
-		}
-		if existingUserId != userId {
-			existingUserTokenId, ok := existingUserToken["id"].(int64)
-			if !ok {
-				continue
-			}
-			_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{
-				"id": existingUserTokenId,
-			})
-			if err != nil {
-				return err
-			}
-		}
-	}
 
 	var userTokenId int64
 
-	_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, nil, utils.JSON{
-		"fcm_application_id": fcmApplicationId,
-		"user_id":            userId,
-		"fcm_token":          token,
-		"device_type":        deviceType,
-	}, nil, nil, nil)
-	if err != nil {
-		return err
-	}
-	if userToken == nil {
-		_, returningValues, err := f.FCMUserToken.TxInsert(dtx, utils.JSON{
+	err = f.Database.Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+		_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
+		if err != nil {
+			return err
+		}
+		fcmApplicationId, ok := fcmApplication["id"].(int64)
+		if !ok {
+			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+		}
+
+		_, existingUserTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
+			"fcm_application_id": fcmApplicationId,
+			"fcm_token":          token,
+		}, nil, nil, nil, nil)
+		if err != nil {
+			return err
+		}
+
+		for _, existingUserToken := range existingUserTokens {
+			existingUserId, ok := existingUserToken["user_id"].(int64)
+			if !ok {
+				continue
+			}
+			if existingUserId != userId {
+				existingUserTokenId, ok := existingUserToken["id"].(int64)
+				if !ok {
+					continue
+				}
+				_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{
+					"id": existingUserTokenId,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, nil, utils.JSON{
 			"fcm_application_id": fcmApplicationId,
 			"user_id":            userId,
 			"fcm_token":          token,
 			"device_type":        deviceType,
-		}, []string{"id"})
+		}, nil, nil, nil)
 		if err != nil {
 			return err
 		}
-		userTokenId, ok = returningValues["id"].(int64)
-		if !ok {
-			return errors.New("RETURNING_USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
+		if userToken == nil {
+			_, returningValues, err := f.FCMUserToken.TxInsert(dtx, utils.JSON{
+				"fcm_application_id": fcmApplicationId,
+				"user_id":            userId,
+				"fcm_token":          token,
+				"device_type":        deviceType,
+			}, []string{"id"})
+			if err != nil {
+				return err
+			}
+			userTokenId, ok = returningValues["id"].(int64)
+			if !ok {
+				return errors.New("RETURNING_USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
+			}
+		} else {
+			userTokenId, ok = userToken["id"].(int64)
+			if !ok {
+				return errors.New("USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
+			}
 		}
-	} else {
-		userTokenId, ok = userToken["id"].(int64)
-		if !ok {
-			return errors.New("USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
-		}
-	}
 
-	if err = dtx.Commit(); err != nil {
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 
@@ -276,202 +270,178 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 }
 
 func (f *FirebaseCloudMessaging) SendTopic(ctx context.Context, l *log.DXLog, applicationNameId string, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
-	if err = f.Database.EnsureConnection(); err != nil {
-		return err
-	}
-
-	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
-	if err != nil {
-		return err
-	}
-	defer dtx.Rollback()
-
-	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
-	if err != nil {
-		return err
-	}
-	fcmApplicationId, ok := fcmApplication["id"].(int64)
-	if !ok {
-		return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
-	}
-
-	msgDataAsString, err := json.Marshal(msgData)
-	if err != nil {
-		return err
-	}
-
-	fcmTopicMessageId, err := f.FCMTopicMessage.TxInsertReturningId(dtx, utils.JSON{
-		"fcm_application_id": fcmApplicationId,
-		"status":             StatusPending,
-		"topic":              topic,
-		"title":              msgTitle,
-		"body":               msgBody,
-		"data":               msgDataAsString,
-	})
-	if err != nil {
-		return err
-	}
-
-	if onFCMTopicMessage != nil {
-		err = onFCMTopicMessage(dtx, l, fcmTopicMessageId, fcmApplicationId, applicationNameId)
+	return f.Database.Tx(ctx, l, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+		_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
 		if err != nil {
 			return err
 		}
-	}
+		fcmApplicationId, ok := fcmApplication["id"].(int64)
+		if !ok {
+			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+		}
 
-	return dtx.Commit()
+		msgDataAsString, err := json.Marshal(msgData)
+		if err != nil {
+			return err
+		}
+
+		fcmTopicMessageId, err := f.FCMTopicMessage.TxInsertReturningId(dtx, utils.JSON{
+			"fcm_application_id": fcmApplicationId,
+			"status":             StatusPending,
+			"topic":              topic,
+			"title":              msgTitle,
+			"body":               msgBody,
+			"data":               msgDataAsString,
+		})
+		if err != nil {
+			return err
+		}
+
+		if onFCMTopicMessage != nil {
+			err = onFCMTopicMessage(dtx, l, fcmTopicMessageId, fcmApplicationId, applicationNameId)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (f *FirebaseCloudMessaging) SendToDevice(ctx context.Context, l *log.DXLog, applicationNameId string, userId int64, token string, msgTitle string, msgBody string, msgData map[string]string, userMessageId int64) (err error) {
-	if err = f.Database.EnsureConnection(); err != nil {
-		return err
-	}
-
-	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
-	if err != nil {
-		return err
-	}
-	defer dtx.Rollback()
-
-	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
-	if err != nil {
-		return err
-	}
-	fcmApplicationId, ok := fcmApplication["id"].(int64)
-	if !ok {
-		return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
-	}
-
-	_, userToken, err := f.FCMUserToken.TxShouldSelectOne(dtx, nil, utils.JSON{
-		"fcm_application_id": fcmApplicationId,
-		"user_id":            userId,
-		"fcm_token":          token,
-	}, nil, nil, nil)
-	if err != nil {
-		return err
-	}
-	userTokenId, ok := userToken["id"].(int64)
-	if !ok {
-		return errors.New("USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
-	}
-
-	msgDataAsString, err := json.Marshal(msgData)
-	if err != nil {
-		return err
-	}
-
-	userLoginId, err := utils.GetStringFromKV(userToken, "user_loginid")
-	if err != nil {
-		return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_LOGINID_INVALID")
-	}
-	userFullName, err := utils.GetStringFromKV(userToken, "user_fullname")
-	if err != nil {
-		return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
-	}
-	fcmApplicationNameId, err := utils.GetStringFromKV(userToken, "fcm_application_nameid")
-	if err != nil {
-		return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_FCM_APPLICATION_NAMEID_INVALID")
-	}
-	deviceType, err := utils.GetStringFromKV(userToken, "device_type")
-	if err != nil {
-		return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
-	}
-
-	_, err = f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
-		"fcm_user_token_id":      userTokenId,
-		"user_id":                userId,
-		"fcm_application_id":     fcmApplicationId,
-		"fcm_token":              token,
-		"device_type":            deviceType,
-		"user_loginid":           userLoginId,
-		"user_fullname":          userFullName,
-		"fcm_application_nameid": fcmApplicationNameId,
-		"status":                 StatusPending,
-		"title":                  msgTitle,
-		"body":                   msgBody,
-		"data":                   msgDataAsString,
-		"user_message_id":        userMessageId,
-	})
-	if err != nil {
-		return err
-	}
-
-	return dtx.Commit()
-}
-
-func (f *FirebaseCloudMessaging) SendToUser(ctx context.Context, l *log.DXLog, applicationNameId string, userId int64, msgTitle string, msgBody string, msgData map[string]string, userMessageId int64) (err error) {
-	if err = f.Database.EnsureConnection(); err != nil {
-		return err
-	}
-
-	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
-	if err != nil {
-		return err
-	}
-	defer dtx.Rollback()
-
-	_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
-	if err != nil {
-		return err
-	}
-
-	fcmApplicationId, ok := fcmApplication["id"].(int64)
-	if !ok {
-		return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
-	}
-
-	_, userTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
-		"fcm_application_id": fcmApplicationId,
-		"user_id":            userId,
-	}, nil, nil, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	msgDataAsBytes, err := json.Marshal(msgData)
-	if err != nil {
-		return err
-	}
-
-	for _, userToken := range userTokens {
-		tokenFcmToken, err := utils.GetStringFromKV(userToken, "fcm_token")
+	return f.Database.Tx(ctx, l, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+		_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
 		if err != nil {
-			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_FCM_TOKEN_INVALID")
+			return err
 		}
-		tokenDeviceType, err := utils.GetStringFromKV(userToken, "device_type")
+		fcmApplicationId, ok := fcmApplication["id"].(int64)
+		if !ok {
+			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+		}
+
+		_, userToken, err := f.FCMUserToken.TxShouldSelectOne(dtx, nil, utils.JSON{
+			"fcm_application_id": fcmApplicationId,
+			"user_id":            userId,
+			"fcm_token":          token,
+		}, nil, nil, nil)
 		if err != nil {
-			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
+			return err
 		}
-		tokenUserLoginId, err := utils.GetStringFromKV(userToken, "user_loginid")
+		userTokenId, ok := userToken["id"].(int64)
+		if !ok {
+			return errors.New("USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
+		}
+
+		msgDataAsString, err := json.Marshal(msgData)
+		if err != nil {
+			return err
+		}
+
+		userLoginId, err := utils.GetStringFromKV(userToken, "user_loginid")
 		if err != nil {
 			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_LOGINID_INVALID")
 		}
-		tokenUserFullName, err := utils.GetStringFromKV(userToken, "user_fullname")
+		userFullName, err := utils.GetStringFromKV(userToken, "user_fullname")
 		if err != nil {
 			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
 		}
+		fcmApplicationNameId, err := utils.GetStringFromKV(userToken, "fcm_application_nameid")
+		if err != nil {
+			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_FCM_APPLICATION_NAMEID_INVALID")
+		}
+		deviceType, err := utils.GetStringFromKV(userToken, "device_type")
+		if err != nil {
+			return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
+		}
 
 		_, err = f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
-			"fcm_user_token_id":      userToken["id"],
+			"fcm_user_token_id":      userTokenId,
 			"user_id":                userId,
 			"fcm_application_id":     fcmApplicationId,
-			"fcm_token":              tokenFcmToken,
-			"device_type":            tokenDeviceType,
-			"user_loginid":           tokenUserLoginId,
-			"user_fullname":          tokenUserFullName,
-			"fcm_application_nameid": applicationNameId,
+			"fcm_token":              token,
+			"device_type":            deviceType,
+			"user_loginid":           userLoginId,
+			"user_fullname":          userFullName,
+			"fcm_application_nameid": fcmApplicationNameId,
 			"status":                 StatusPending,
 			"title":                  msgTitle,
 			"body":                   msgBody,
-			"data":                   msgDataAsBytes,
+			"data":                   msgDataAsString,
 			"user_message_id":        userMessageId,
 		})
 		if err != nil {
 			return err
 		}
-	}
 
-	return dtx.Commit()
+		return nil
+	})
+}
+
+func (f *FirebaseCloudMessaging) SendToUser(ctx context.Context, l *log.DXLog, applicationNameId string, userId int64, msgTitle string, msgBody string, msgData map[string]string, userMessageId int64) (err error) {
+	return f.Database.Tx(ctx, l, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+		_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
+		if err != nil {
+			return err
+		}
+
+		fcmApplicationId, ok := fcmApplication["id"].(int64)
+		if !ok {
+			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+		}
+
+		_, userTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
+			"fcm_application_id": fcmApplicationId,
+			"user_id":            userId,
+		}, nil, nil, nil, nil)
+		if err != nil {
+			return err
+		}
+
+		msgDataAsBytes, err := json.Marshal(msgData)
+		if err != nil {
+			return err
+		}
+
+		for _, userToken := range userTokens {
+			tokenFcmToken, err := utils.GetStringFromKV(userToken, "fcm_token")
+			if err != nil {
+				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_FCM_TOKEN_INVALID")
+			}
+			tokenDeviceType, err := utils.GetStringFromKV(userToken, "device_type")
+			if err != nil {
+				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
+			}
+			tokenUserLoginId, err := utils.GetStringFromKV(userToken, "user_loginid")
+			if err != nil {
+				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_LOGINID_INVALID")
+			}
+			tokenUserFullName, err := utils.GetStringFromKV(userToken, "user_fullname")
+			if err != nil {
+				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
+			}
+
+			_, err = f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
+				"fcm_user_token_id":      userToken["id"],
+				"user_id":                userId,
+				"fcm_application_id":     fcmApplicationId,
+				"fcm_token":              tokenFcmToken,
+				"device_type":            tokenDeviceType,
+				"user_loginid":           tokenUserLoginId,
+				"user_fullname":          tokenUserFullName,
+				"fcm_application_nameid": applicationNameId,
+				"status":                 StatusPending,
+				"title":                  msgTitle,
+				"body":                   msgBody,
+				"data":                   msgDataAsBytes,
+				"user_message_id":        userMessageId,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (f *FirebaseCloudMessaging) RequestCreateTestMessageToUser(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -521,87 +491,80 @@ func (f *FirebaseCloudMessaging) AllApplicationSendToUser(ctx context.Context, l
 		attribute.Int64("fcm.user_id", userId),
 		attribute.String("fcm.msg_title", msgTitle),
 	)
-	if err = f.Database.EnsureConnection(); err != nil {
-		return err
-	}
 
-	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
-	if err != nil {
-		return err
-	}
-	defer dtx.Rollback()
-
-	_, fcmApplications, err := f.FCMApplication.TxSelect(dtx, nil, nil, nil, nil, nil, nil)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "SELECT_ALL_APPLICATIONS_FAILED")
-		return err
-	}
-
-	msgDataAsBytes, err := json.Marshal(msgData)
-	if err != nil {
-		return errors.Wrap(err, "FAILED_TO_MARSHAL_MSG_DATA")
-	}
-
-	for _, fcmApplication := range fcmApplications {
-
-		fcmApplicationId, ok := fcmApplication["id"].(int64)
-		if !ok {
-			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
-		}
-		fcmApplicationNameId, ok := fcmApplication["nameid"].(string)
-		if !ok {
-			return errors.New("FCM_APPLICATION_NAMEID_TYPE_ASSERTION_FAILED")
-		}
-
-		_, userTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
-			"fcm_application_id": fcmApplicationId,
-			"user_id":            userId,
-		}, nil, nil, nil, nil)
+	return f.Database.Tx(ctx, l, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+		_, fcmApplications, err := f.FCMApplication.TxSelect(dtx, nil, nil, nil, nil, nil, nil)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "SELECT_ALL_APPLICATIONS_FAILED")
 			return err
 		}
 
-		for _, userToken := range userTokens {
-			tokenFcmToken, err := utils.GetStringFromKV(userToken, "fcm_token")
-			if err != nil {
-				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_FCM_TOKEN_INVALID")
+		msgDataAsBytes, err := json.Marshal(msgData)
+		if err != nil {
+			return errors.Wrap(err, "FAILED_TO_MARSHAL_MSG_DATA")
+		}
+
+		for _, fcmApplication := range fcmApplications {
+
+			fcmApplicationId, ok := fcmApplication["id"].(int64)
+			if !ok {
+				return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
 			}
-			tokenDeviceType, err := utils.GetStringFromKV(userToken, "device_type")
-			if err != nil {
-				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
-			}
-			tokenUserLoginId, err := utils.GetStringFromKV(userToken, "user_loginid")
-			if err != nil {
-				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_LOGINID_INVALID")
-			}
-			tokenUserFullName, err := utils.GetStringFromKV(userToken, "user_fullname")
-			if err != nil {
-				return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
+			fcmApplicationNameId, ok := fcmApplication["nameid"].(string)
+			if !ok {
+				return errors.New("FCM_APPLICATION_NAMEID_TYPE_ASSERTION_FAILED")
 			}
 
-			_, err = f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
-				"fcm_user_token_id":      userToken["id"],
-				"user_id":                userId,
-				"fcm_application_id":     fcmApplicationId,
-				"fcm_token":              tokenFcmToken,
-				"device_type":            tokenDeviceType,
-				"user_loginid":           tokenUserLoginId,
-				"user_fullname":          tokenUserFullName,
-				"fcm_application_nameid": fcmApplicationNameId,
-				"status":                 StatusPending,
-				"title":                  msgTitle,
-				"body":                   msgBody,
-				"data":                   msgDataAsBytes,
-				"user_message_id":        userMessageId,
-			})
+			_, userTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
+				"fcm_application_id": fcmApplicationId,
+				"user_id":            userId,
+			}, nil, nil, nil, nil)
 			if err != nil {
 				return err
 			}
-		}
-	}
 
-	return dtx.Commit()
+			for _, userToken := range userTokens {
+				tokenFcmToken, err := utils.GetStringFromKV(userToken, "fcm_token")
+				if err != nil {
+					return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_FCM_TOKEN_INVALID")
+				}
+				tokenDeviceType, err := utils.GetStringFromKV(userToken, "device_type")
+				if err != nil {
+					return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_DEVICE_TYPE_INVALID")
+				}
+				tokenUserLoginId, err := utils.GetStringFromKV(userToken, "user_loginid")
+				if err != nil {
+					return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_LOGINID_INVALID")
+				}
+				tokenUserFullName, err := utils.GetStringFromKV(userToken, "user_fullname")
+				if err != nil {
+					return errors.Wrapf(err, "SHOULD_NOT_HAPPEN:FCM_USER_TOKEN_USER_FULLNAME_INVALID")
+				}
+
+				_, err = f.FCMMessage.TxInsertReturningId(dtx, utils.JSON{
+					"fcm_user_token_id":      userToken["id"],
+					"user_id":                userId,
+					"fcm_application_id":     fcmApplicationId,
+					"fcm_token":              tokenFcmToken,
+					"device_type":            tokenDeviceType,
+					"user_loginid":           tokenUserLoginId,
+					"user_fullname":          tokenUserFullName,
+					"fcm_application_nameid": fcmApplicationNameId,
+					"status":                 StatusPending,
+					"title":                  msgTitle,
+					"body":                   msgBody,
+					"data":                   msgDataAsBytes,
+					"user_message_id":        userMessageId,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }
 func (f *FirebaseCloudMessaging) AllApplicationSendTopic(ctx context.Context, l *log.DXLog, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
 	ctx, span := otel.Tracer("push_notification").Start(ctx, "FCM.AllApplicationSendTopic")
@@ -610,61 +573,54 @@ func (f *FirebaseCloudMessaging) AllApplicationSendTopic(ctx context.Context, l 
 		attribute.String("fcm.topic", topic),
 		attribute.String("fcm.msg_title", msgTitle),
 	)
-	if err = f.Database.EnsureConnection(); err != nil {
-		return err
-	}
 
-	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
-	if err != nil {
-		return err
-	}
-	defer dtx.Rollback()
-
-	_, fcmApplications, err := f.FCMApplication.TxSelect(dtx, nil, nil, nil, nil, nil, nil)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "SELECT_ALL_APPLICATIONS_FAILED")
-		return err
-	}
-
-	msgDataAsBytes, err := json.Marshal(msgData)
-	if err != nil {
-		return errors.Wrap(err, "FAILED_TO_MARSHAL_MSG_DATA")
-	}
-
-	for _, fcmApplication := range fcmApplications {
-
-		fcmApplicationId, ok := fcmApplication["id"].(int64)
-		if !ok {
-			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
-		}
-		fcmApplicationNameId, ok := fcmApplication["nameid"].(string)
-		if !ok {
-			return errors.New("FCM_APPLICATION_NAMEID_TYPE_ASSERTION_FAILED")
-		}
-
-		fcmTopicMessageId, err := f.FCMTopicMessage.TxInsertReturningId(dtx, utils.JSON{
-			"fcm_application_id": fcmApplicationId,
-			"status":             StatusPending,
-			"topic":              topic,
-			"title":              msgTitle,
-			"body":               msgBody,
-			"data":               msgDataAsBytes,
-		})
+	return f.Database.Tx(ctx, l, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+		_, fcmApplications, err := f.FCMApplication.TxSelect(dtx, nil, nil, nil, nil, nil, nil)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "SELECT_ALL_APPLICATIONS_FAILED")
 			return err
 		}
 
-		if onFCMTopicMessage != nil {
-			err = onFCMTopicMessage(dtx, l, fcmTopicMessageId, fcmApplicationId, fcmApplicationNameId)
+		msgDataAsBytes, err := json.Marshal(msgData)
+		if err != nil {
+			return errors.Wrap(err, "FAILED_TO_MARSHAL_MSG_DATA")
+		}
+
+		for _, fcmApplication := range fcmApplications {
+
+			fcmApplicationId, ok := fcmApplication["id"].(int64)
+			if !ok {
+				return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+			}
+			fcmApplicationNameId, ok := fcmApplication["nameid"].(string)
+			if !ok {
+				return errors.New("FCM_APPLICATION_NAMEID_TYPE_ASSERTION_FAILED")
+			}
+
+			fcmTopicMessageId, err := f.FCMTopicMessage.TxInsertReturningId(dtx, utils.JSON{
+				"fcm_application_id": fcmApplicationId,
+				"status":             StatusPending,
+				"topic":              topic,
+				"title":              msgTitle,
+				"body":               msgBody,
+				"data":               msgDataAsBytes,
+			})
 			if err != nil {
 				return err
 			}
+
+			if onFCMTopicMessage != nil {
+				err = onFCMTopicMessage(dtx, l, fcmTopicMessageId, fcmApplicationId, fcmApplicationNameId)
+				if err != nil {
+					return err
+				}
+			}
+
 		}
 
-	}
-
-	return dtx.Commit()
+		return nil
+	})
 }
 
 func GetFCMApplicationServiceAccountData(fcmApplication utils.JSON) (dataAsJSON utils.JSON, err error) {
@@ -1202,26 +1158,12 @@ func isTokenRelatedPermanentError(err error) bool {
 }
 
 func (f *FirebaseCloudMessaging) deleteUserTokenByFCMToken(ctx context.Context, fcmToken string) {
-	if err := f.Database.EnsureConnection(); err != nil {
-		log.Log.Warnf("Failed to ensure connection for token cleanup: %v", err)
-		return
-	}
-
-	dtx, err := f.Database.TransactionBegin(ctx, sql.LevelReadCommitted)
-	if err != nil {
-		log.Log.Warnf("Failed to begin transaction for token cleanup: %v", err)
-		return
-	}
-	defer dtx.Rollback()
-
-	_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{"fcm_token": fcmToken})
-	if err != nil {
-		log.Log.Warnf("Failed to delete invalid FCM user token [%s]: %v", fcmToken, err)
-		return
-	}
-
-	if err = dtx.Commit(); err != nil {
-		log.Log.Warnf("Failed to commit token cleanup for [%s]: %v", fcmToken, err)
+	txErr := f.Database.Tx(ctx, &log.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+		_, err := f.FCMUserToken.TxHardDelete(dtx, utils.JSON{"fcm_token": fcmToken})
+		return err
+	})
+	if txErr != nil {
+		log.Log.Warnf("Failed to delete invalid FCM user token [%s]: %v", fcmToken, txErr)
 	} else {
 		log.Log.Infof("Deleted invalid FCM user token [%s]", fcmToken)
 	}

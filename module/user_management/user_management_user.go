@@ -1335,6 +1335,27 @@ func (um *DxmUserManagement) UserPasswordVerify(ctx context.Context, l *dxlibLog
 	return verificationResult, nil
 }
 
+func (um *DxmUserManagement) TxUserPasswordVerify(tx *databases.DXDatabaseTx, userId int64, tryPassword string) (verificationResult bool, err error) {
+	_, userPasswordRow, err := um.UserPassword.TxSelectOneAuto(tx, []string{"id", "user_id", "value"}, utils.JSON{
+		"user_id": userId,
+	}, nil, db.DXDatabaseTableFieldsOrderBy{"id": "DESC"}, nil)
+	if err != nil {
+		return false, err
+	}
+	if userPasswordRow == nil {
+		return false, errors.New("userPasswordVerify:USER_PASSWORD_NOT_FOUND")
+	}
+	userPasswordValue, err := utils.GetStringFromKV(userPasswordRow, "value")
+	if err != nil {
+		return false, err
+	}
+	verificationResult, err = um.passwordHashVerify(tryPassword, userPasswordValue)
+	if err != nil {
+		return false, err
+	}
+	return verificationResult, nil
+}
+
 func (um *DxmUserManagement) PreKeyUnpack(ctx context.Context, preKeyIndex string, datablockAsString string) (lvPayloadElements []*lv.LV, sharedKey2AsBytes []byte, edB0PrivateKeyAsBytes []byte, err error) {
 	if preKeyIndex == "" || datablockAsString == "" {
 		return nil, nil, nil, errors.New("PARAMETER_IS_EMPTY")
@@ -1467,19 +1488,14 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 		return err
 	}
 
-	_, user, err := um.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
-		"id": userId,
-	}, nil, nil)
-	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.New("USER_NOT_FOUND")
-	}
-
 	userPasswordNew := generateRandomString(10)
 
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) (err error) {
+		// Lock user row with FOR UPDATE to prevent concurrent modifications
+		_, user, err := um.User.TxShouldSelectOne(tx, nil, utils.JSON{"id": userId}, nil, nil, "FOR UPDATE")
+		if err != nil {
+			return err
+		}
 
 		err = um.TxUserPasswordCreate(tx, userId, userPasswordNew)
 		if err != nil {
@@ -1506,5 +1522,5 @@ func (um *DxmUserManagement) UserResetPassword(aepr *api.DXAPIEndPointRequest) (
 		return nil
 	})
 
-	return nil
+	return err
 }

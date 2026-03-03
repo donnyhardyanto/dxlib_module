@@ -23,18 +23,31 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 		return err
 	}
 
-	_, _, err = um.OrganizationRoles.ShouldSelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
-		"organization_id": organizationId,
-		"role_id":         roleId,
-	}, nil, nil)
-	if err != nil {
-		return err
-	}
-
 	var userRoleMembershipId int64
 	var userRoleMembershipUid string
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
-		var err2 error
+		// Validate organization-role combination inside tx
+		_, _, err2 := um.OrganizationRoles.TxShouldSelectOne(dtx, nil, utils.JSON{
+			"organization_id": organizationId,
+			"role_id":         roleId,
+		}, nil, nil, nil)
+		if err2 != nil {
+			return err2
+		}
+
+		// Check for duplicate membership inside tx
+		_, existingMembership, err2 := um.UserRoleMembership.TxSelectOne(dtx, []string{"id"}, utils.JSON{
+			"user_id":         userId,
+			"organization_id": organizationId,
+			"role_id":         roleId,
+		}, nil, nil, nil)
+		if err2 != nil {
+			return err2
+		}
+		if existingMembership != nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusConflict, "USER_ROLE_MEMBERSHIP_ALREADY_EXISTS", "DUPLICATE_USER_ROLE_MEMBERSHIP")
+		}
+
 		userRoleMembershipId, err2 = um.UserRoleMembership.TxInsertReturningId(dtx, map[string]any{
 			"user_id":         userId,
 			"organization_id": organizationId,
