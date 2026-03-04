@@ -47,10 +47,10 @@ func (al *DXMAccountLockout) CheckLockStatusRedis(userID int64) (isLocked bool, 
 	// Circuit breaker check
 	if al.Config.CircuitBreakerEnabled && !al.CircuitBreaker.CanExecute() {
 		log.Log.Warnf("Account lockout circuit breaker open, applying fail mode: %s", al.Config.RedisFailMode)
-		if al.Config.RedisFailMode == RedisFailModeFailClosed {
-			return true, 0, fmt.Errorf("circuit breaker open - fail closed")
+		if al.Config.RedisFailMode == RedisFailModeFailThenLock {
+			return true, 0, fmt.Errorf("circuit breaker open - redis fail then lock")
 		}
-		return false, 0, nil // FAIL_OPEN
+		return false, 0, nil // REDIS_FAIL_KEEP_UNLOCK
 	}
 
 	key := al.redisKeyLockedForUser(userID)
@@ -62,10 +62,10 @@ func (al *DXMAccountLockout) CheckLockStatusRedis(userID int64) (isLocked bool, 
 		log.Log.Errorf(err, "Redis error checking lock status for user %d", userID)
 
 		// Apply fail mode
-		if al.Config.RedisFailMode == RedisFailModeFailClosed {
+		if al.Config.RedisFailMode == RedisFailModeFailThenLock {
 			return true, 0, err
 		}
-		return false, 0, nil // FAIL_OPEN - allow login
+		return false, 0, nil // REDIS_FAIL_KEEP_UNLOCK - allow login
 	}
 
 	al.CircuitBreaker.RecordSuccess()

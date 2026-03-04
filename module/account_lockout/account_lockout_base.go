@@ -25,8 +25,8 @@ const (
 	AttemptTypePassword = "password"
 	AttemptTypeLDAP     = "ldap"
 
-	RedisFailModeFailOpen   = "FAIL_OPEN"
-	RedisFailModeFailClosed = "FAIL_CLOSED"
+	RedisFailModeFailThenLock = "REDIS_FAIL_THEN_LOCK"
+	RedisFailModeKeepUnlock  = "REDIS_FAIL_KEEP_UNLOCK"
 )
 
 type DXMAccountLockout struct {

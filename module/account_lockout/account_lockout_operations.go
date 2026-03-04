@@ -49,8 +49,10 @@ func (al *DXMAccountLockout) RecordFailedAttempt(
 	count, err := al.IncrementFailedAttemptCounterRedis(userID, attemptIP, attemptType)
 	if err != nil {
 		log.Log.Errorf(err, "Failed to increment counter for user %d", userID)
-		// Don't fail the authentication on counter error
-		return nil
+		if al.Config.RedisFailMode == RedisFailModeFailThenLock {
+			return fmt.Errorf("failed to record attempt (fail-closed): %w", err)
+		}
+		return nil // REDIS_FAIL_KEEP_UNLOCK: don't fail auth
 	}
 
 	log.Log.Infof("Failed login attempt recorded: user_id=%d, count=%d/%d, type=%s, ip=%s",

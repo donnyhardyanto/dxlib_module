@@ -96,7 +96,7 @@ func (al *DXMAccountLockout) validateConfig(cfg *AccountLockoutConfig) error {
 	}
 
 	// Validate fail mode
-	validModes := []string{RedisFailModeFailOpen, RedisFailModeFailClosed}
+	validModes := []string{RedisFailModeFailThenLock, RedisFailModeKeepUnlock}
 	if !contains(validModes, cfg.RedisFailMode) {
 		return fmt.Errorf("invalid redis_fail_mode: %s", cfg.RedisFailMode)
 	}
