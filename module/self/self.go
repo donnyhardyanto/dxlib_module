@@ -1166,6 +1166,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 		"user_role_memberships":         userRoleMemberships,
 		"user_effective_privilege_ids":  userEffectivePrivilegeIds,
 		"menu_tree_root":                menuTreeRoot,
+		"privilege_version":             user_management.ModuleUserManagement.GetUserPrivilegeVersion(aepr.Context, userId),
 	}
 
 	if len(aepr.EndPoint.Privileges) > 0 {
@@ -1870,6 +1871,43 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 	if sessionObject == nil {
 		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:SESSION_EXPIRED")
 		return nil
+	}
+
+	// Check privilege version — refresh session if stale
+	var sessionPrivilegeVersion int64
+	if v, ok := sessionObject["privilege_version"]; ok {
+		switch vt := v.(type) {
+		case float64:
+			sessionPrivilegeVersion = int64(vt)
+		case int64:
+			sessionPrivilegeVersion = vt
+		}
+	}
+	userId, _ := aepr.LocalData["user_id"].(int64)
+	currentPrivilegeVersion := user_management.ModuleUserManagement.GetUserPrivilegeVersion(aepr.Context, userId)
+	if sessionPrivilegeVersion != currentPrivilegeVersion {
+		user, _ := aepr.LocalData["user"].(utils.JSON)
+		organizationId, _ := aepr.LocalData["organization_id"].(int64)
+		organizationUid, _ := aepr.LocalData["organization_uid"].(string)
+		organization, _ := aepr.LocalData["organization"].(utils.JSON)
+		userOrganizationMemberships, _ := aepr.LocalData["user_organization_memberships"].([]interface{})
+
+		newSessionObject, _, regenerateErr := s.RegenerateSessionObject(aepr, userId, sessionKey, user, organizationId, organizationUid, organization, userOrganizationMemberships)
+		if regenerateErr == nil && newSessionObject != nil {
+			newSessionObject["privilege_version"] = currentPrivilegeVersion
+			configSystem := *configuration.Manager.Configurations["system"].Data
+			if configSystemSession, ok := configSystem["sessions"].(utils.JSON); ok {
+				if sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int); ok {
+					sessionKeyTTLAsDuration := time.Duration(sessionKeyTTLAsInt) * time.Second
+					_ = user_management.ModuleUserManagement.SessionRedis.Set(aepr.Context, sessionKey, newSessionObject, sessionKeyTTLAsDuration)
+				}
+			}
+			sessionObject = newSessionObject
+			aepr.LocalData["session_object"] = sessionObject
+			aepr.Log.Infof("Privilege version stale for user %d (session=%d, current=%d), session refreshed", userId, sessionPrivilegeVersion, currentPrivilegeVersion)
+		} else if regenerateErr != nil {
+			aepr.Log.Warnf("Failed to regenerate session for privilege refresh: %v", regenerateErr)
+		}
 	}
 
 	userEffectivePrivilegeIds, err := utils.GetVFromKV[utils.JSON](sessionObject, "user_effective_privilege_ids")
