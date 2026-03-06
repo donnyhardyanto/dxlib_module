@@ -74,10 +74,10 @@ type DxmPushNotification struct {
 type FCMTopicMessageFunc func(dtx *databases.DXDatabaseTx, l *log.DXLog, fcmTopicMessageId int64, fcmApplicationId int64, fcmApplicationNameId string) (err error)
 
 type FirebaseCloudMessaging struct {
-	FCMApplication  *tables.DXTable
+	FCMApplication  *tables.DXRawTable
 	FCMUserToken    *tables.DXRawTable
-	FCMMessage      *tables.DXTable
-	FCMTopicMessage *tables.DXTable
+	FCMMessage      *tables.DXRawTable
+	FCMTopicMessage *tables.DXRawTable
 	DatabaseNameId  string
 	Database        *databases.DXDatabase
 }
@@ -100,14 +100,14 @@ type WhatappMessaging struct {
 func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 	f.DatabaseNameId = databaseNameId
 	f.Database = databases.Manager.GetOrCreate(databaseNameId)
-	f.FCMApplication = tables.NewDXTableSimple(f.DatabaseNameId,
+	f.FCMApplication = tables.NewDXRawTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_application", "push_notification.fcm_application", "push_notification.fcm_application",
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}},
 		[]string{"nameid", "service_account_source", "id", "uid"},
 		[]string{"id", "nameid", "created_at", "uid"},
-		[]string{"id", "uid", "nameid", "service_account_source", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"id", "uid", "nameid", "service_account_source", "created_at", "last_modified_at"},
 	)
 	f.FCMUserToken = tables.NewDXRawTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_user_token", "push_notification.fcm_user_token", "push_notification.v_fcm_user_token",
@@ -121,7 +121,7 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		// FilterableFieldNames — superset of OrderByFieldNames
 		[]string{"id", "uid", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
 	)
-	f.FCMMessage = tables.NewDXTableSimple(f.DatabaseNameId,
+	f.FCMMessage = tables.NewDXRawTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_message", "push_notification.fcm_message", "push_notification.v_fcm_message",
 		"id", "uid", "", "data",
 		nil,
@@ -129,21 +129,21 @@ func (f *FirebaseCloudMessaging) Init(databaseNameId string) {
 		// SearchTextFieldNames — string fields only, no id/uid/*_id/*_uid
 		[]string{"status", "title", "body", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid"},
 		// OrderByFieldNames — all fields returned to client, uid last
-		[]string{"id", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "user_message_id", "next_retry_time", "retry_count", "is_read", "is_deleted", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
+		[]string{"id", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "user_message_id", "next_retry_time", "retry_count", "is_read", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid", "uid"},
 		// FilterableFieldNames — superset of OrderByFieldNames
-		[]string{"id", "uid", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "user_message_id", "next_retry_time", "is_read", "is_deleted", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
+		[]string{"id", "uid", "fcm_user_token_id", "user_id", "fcm_application_id", "fcm_token", "device_type", "user_loginid", "user_fullname", "fcm_application_nameid", "status", "title", "body", "data", "user_message_id", "next_retry_time", "is_read", "created_at", "created_by_user_id", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_id", "last_modified_by_user_nameid"},
 	)
 	f.FCMMessage.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
 		"data": types.APIParameterTypeMapStringString,
 	}
-	f.FCMTopicMessage = tables.NewDXTableSimple(f.DatabaseNameId,
+	f.FCMTopicMessage = tables.NewDXRawTableSimple(f.DatabaseNameId,
 		"push_notification.fcm_topic_message", "push_notification.fcm_topic_message", "push_notification.fcm_topic_message",
 		"id", "uid", "", "data",
 		nil,
 		nil,
 		[]string{"fcm_application_id", "topic", "status", "title", "body", "id", "uid"},
-		[]string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at", "is_deleted", "uid"},
-		[]string{"id", "uid", "fcm_application_id", "topic", "status", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"id", "fcm_application_id", "topic", "status", "retry_count", "created_at", "uid"},
+		[]string{"id", "uid", "fcm_application_id", "topic", "status", "created_at", "last_modified_at"},
 	)
 	f.FCMTopicMessage.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
 		"data": types.APIParameterTypeMapStringString,
