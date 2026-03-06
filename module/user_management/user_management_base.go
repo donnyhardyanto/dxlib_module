@@ -14,6 +14,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/tables"
 	"github.com/donnyhardyanto/dxlib/types"
 	"github.com/donnyhardyanto/dxlib/utils"
+	"github.com/donnyhardyanto/dxlib/utils/string_template"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
 	"github.com/repoareta/pgn-partner-common/infrastructure/base"
 )
@@ -203,10 +204,15 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 
 func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(ctx context.Context, l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
 	for key, value := range templateData {
-		placeholder := fmt.Sprintf("<%s>", key)
-		aValue := fmt.Sprintf("%v", value)
-		templateBody = strings.ReplaceAll(templateBody, placeholder, aValue)
-		templateTitle = strings.ReplaceAll(templateTitle, placeholder, aValue)
+		if nestedMap, ok := value.(map[string]any); ok {
+			templateBody = string_template.ReplaceTagWithValue(templateBody, key, nestedMap)
+			templateTitle = string_template.ReplaceTagWithValue(templateTitle, key, nestedMap)
+		} else {
+			placeholder := fmt.Sprintf("<%s>", key)
+			aValue := fmt.Sprintf("%v", value)
+			templateBody = strings.ReplaceAll(templateBody, placeholder, aValue)
+			templateTitle = strings.ReplaceAll(templateTitle, placeholder, aValue)
+		}
 	}
 
 	msgBody := templateBody
