@@ -23,7 +23,6 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils/lv"
 	security "github.com/donnyhardyanto/dxlib/utils/security"
 	"github.com/tealeg/xlsx"
-	"github.com/teris-io/shortid"
 )
 
 func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err error) {
@@ -1216,18 +1215,18 @@ func (um *DxmUserManagement) TxUserPasswordCreate(tx *databases.DXDatabaseTx, us
 }
 
 func hashBlock(saltValue []byte, saltMethod byte, data []byte) ([]byte, error) {
-	passwordBlock := append(saltValue, saltMethod)
-	passwordBlock = append(passwordBlock, data...)
-
 	var hashPasswordBlock []byte
 	switch saltMethod {
 	case 1:
 		hashPasswordBlock = security.HashSHA512(data)
 	case 2:
-		hashPasswordBlock, err := security.HashBcrypt(data)
+		var err error
+		hashPasswordBlock, err = security.HashBcrypt(data)
 		if err != nil {
 			return hashPasswordBlock, err
 		}
+	case 3:
+		hashPasswordBlock = security.HashArgon2id(data, saltValue)
 	default:
 		return hashPasswordBlock, errors.New(fmt.Sprintf("Unknown salt method %d", saltMethod))
 	}
@@ -1235,16 +1234,15 @@ func hashBlock(saltValue []byte, saltMethod byte, data []byte) ([]byte, error) {
 }
 
 func (um *DxmUserManagement) passwordHashCreate(password string) (hashedString string, err error) {
-	salt := shortid.MustGenerate()[:8]
+	saltBytes := rand.RandomData(16)
 	passwordAsBytes := []byte(password)
 
-	lvSalt, err := lv.NewLV([]byte(salt))
+	lvSalt, err := lv.NewLV(saltBytes)
 	if err != nil {
 		return "", err
 	}
 
-	var saltMethod byte
-	saltMethod = 1 // 1: sha512
+	saltMethod := um.CurrentPasswordHashMethod
 	saltMethodAsByte := []byte{saltMethod}
 
 	lvSaltMethod, err := lv.NewLV(saltMethodAsByte)
@@ -1305,13 +1303,44 @@ func (um *DxmUserManagement) passwordHashVerify(tryPassword string, hashedPasswo
 
 	tryPasswordAsBytes := []byte(tryPassword)
 
-	tryHashPasswordBlock, err := hashBlock(lvSalt.Value, saltMethod, tryPasswordAsBytes)
-	if err != nil {
-		return false, err
+	switch saltMethod {
+	case 1:
+		tryHashPasswordBlock, err := hashBlock(lvSalt.Value, saltMethod, tryPasswordAsBytes)
+		if err != nil {
+			return false, err
+		}
+		verificationResult = bytes.Equal(tryHashPasswordBlock, lvHashedUserPasswordBlock.Value)
+	case 2:
+		err = security.HashBcryptVerify(lvHashedUserPasswordBlock.Value, tryPasswordAsBytes)
+		verificationResult = err == nil
+		err = nil
+	case 3:
+		verificationResult = security.HashArgon2idVerify(tryPasswordAsBytes, lvSalt.Value, lvHashedUserPasswordBlock.Value)
+	default:
+		return false, errors.New(fmt.Sprintf("Unknown salt method %d", saltMethod))
 	}
 
-	verificationResult = bytes.Equal(tryHashPasswordBlock, lvHashedUserPasswordBlock.Value)
 	return verificationResult, nil
+}
+
+func (um *DxmUserManagement) extractSaltMethodFromHash(hexHash string) (byte, error) {
+	hashedBytes, err := hex.DecodeString(hexHash)
+	if err != nil {
+		return 0, err
+	}
+	lvHashed := lv.LV{}
+	err = lvHashed.UnmarshalBinary(hashedBytes)
+	if err != nil {
+		return 0, err
+	}
+	elements, err := lvHashed.Expand()
+	if err != nil {
+		return 0, err
+	}
+	if len(elements) < 3 {
+		return 0, errors.New("extractSaltMethodFromHash:INVALID_HASH_FORMAT")
+	}
+	return elements[1].Value[0], nil
 }
 
 func (um *DxmUserManagement) UserPasswordVerify(ctx context.Context, l *dxlibLog.DXLog, userId int64, tryPassword string) (verificationResult bool, err error) {
@@ -1332,6 +1361,18 @@ func (um *DxmUserManagement) UserPasswordVerify(ctx context.Context, l *dxlibLog
 	if err != nil {
 		return false, err
 	}
+
+	if verificationResult {
+		storedMethod, extractErr := um.extractSaltMethodFromHash(userPasswordValue)
+		if extractErr == nil && storedMethod != um.CurrentPasswordHashMethod {
+			newHash, hashErr := um.passwordHashCreate(tryPassword)
+			if hashErr == nil {
+				_, _, _ = um.UserPassword.Update(ctx, l, utils.JSON{"value": newHash},
+					utils.JSON{"user_id": userId}, nil)
+			}
+		}
+	}
+
 	return verificationResult, nil
 }
 
@@ -1353,6 +1394,18 @@ func (um *DxmUserManagement) TxUserPasswordVerify(tx *databases.DXDatabaseTx, us
 	if err != nil {
 		return false, err
 	}
+
+	if verificationResult {
+		storedMethod, extractErr := um.extractSaltMethodFromHash(userPasswordValue)
+		if extractErr == nil && storedMethod != um.CurrentPasswordHashMethod {
+			newHash, hashErr := um.passwordHashCreate(tryPassword)
+			if hashErr == nil {
+				_, _, _ = um.UserPassword.TxUpdate(tx, utils.JSON{"value": newHash},
+					utils.JSON{"user_id": userId}, nil)
+			}
+		}
+	}
+
 	return verificationResult, nil
 }
 

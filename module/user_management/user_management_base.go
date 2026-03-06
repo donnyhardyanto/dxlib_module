@@ -44,9 +44,12 @@ var (
 	DXMUserLoginIdSyncToEnumSetAll = []any{DXMUserLoginIdSyncToNone, DXMUserLoginIdSyncToEmail, DXMUserLoginIdSyncToPhoneNumber}
 )
 
+const MinPasswordHashMethod byte = 2 // bcrypt — hardcoded floor
+
 type OnUserPasswordValidationDef func(password string) (err error)
 type DxmUserManagement struct {
 	dxlibModule.DXModule
+	CurrentPasswordHashMethod            byte
 	UserPasswordEncryptionKeyDef         *databases.EncryptionKeyDef
 	UserOrganizationMembershipType       UserOrganizationMembershipType
 	SessionRedis                         *redis.DXRedis
@@ -72,9 +75,17 @@ type DxmUserManagement struct {
 	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
 }
 
+func (um *DxmUserManagement) SetPasswordHashMethod(method byte) {
+	if method < MinPasswordHashMethod {
+		method = MinPasswordHashMethod
+	}
+	um.CurrentPasswordHashMethod = method
+}
+
 func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionKeyDef *databases.EncryptionKeyDef) {
 	um.DatabaseNameId = databaseNameId
 	um.UserPasswordEncryptionKeyDef = userPasswordEncryptionKeyDef
+	um.CurrentPasswordHashMethod = MinPasswordHashMethod
 	um.User = tables.NewDXTableSimple(databaseNameId,
 		"user_management.user", "user_management.user", "user_management.v_user",
 		"id", "uid", "loginid", "data",
