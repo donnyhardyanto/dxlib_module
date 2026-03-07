@@ -2398,6 +2398,22 @@ func (s *DxmSelf) SelfUserMessagePagingListAll(aepr *api.DXAPIEndPointRequest) (
 	return nil
 }
 
+func (s *DxmSelf) SelfUserMessageSearchPagingList(aepr *api.DXAPIEndPointRequest) (err error) {
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
+	qb := user_management.ModuleUserManagement.UserMessage.NewTableSelectQueryBuilder()
+	qb.Eq("user_id", userId)
+	qb.Eq("user_message_channel_type_id", 1)
+	qb.OrderByDesc("id")
+	err = user_management.ModuleUserManagement.UserMessage.DoRequestSearchPagingList(aepr, qb, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *DxmSelf) SelfUserMessageIsReadSetToTrue(aepr *api.DXAPIEndPointRequest) (err error) {
 	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
 	if err != nil {
