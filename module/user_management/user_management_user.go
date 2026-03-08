@@ -1367,8 +1367,11 @@ func (um *DxmUserManagement) UserPasswordVerify(ctx context.Context, l *dxlibLog
 		if extractErr == nil && storedMethod != um.CurrentPasswordHashMethod {
 			newHash, hashErr := um.passwordHashCreate(tryPassword)
 			if hashErr == nil {
-				_, _, _ = um.UserPassword.Update(ctx, l, utils.JSON{"value": newHash},
+				_, _, rehashErr := um.UserPassword.UpdateAuto(ctx, l, utils.JSON{"value": newHash},
 					utils.JSON{"user_id": userId}, nil)
+				if rehashErr != nil {
+					l.Warnf("UserPasswordVerify: failed to rehash password for user_id=%d: %v", userId, rehashErr)
+				}
 			}
 		}
 	}
@@ -1400,8 +1403,11 @@ func (um *DxmUserManagement) TxUserPasswordVerify(tx *databases.DXDatabaseTx, us
 		if extractErr == nil && storedMethod != um.CurrentPasswordHashMethod {
 			newHash, hashErr := um.passwordHashCreate(tryPassword)
 			if hashErr == nil {
-				_, _, _ = um.UserPassword.TxUpdate(tx, utils.JSON{"value": newHash},
+				_, _, rehashErr := um.UserPassword.TxUpdateAuto(tx, utils.JSON{"value": newHash},
 					utils.JSON{"user_id": userId}, nil)
+				if rehashErr != nil {
+					dxlibLog.Log.Warnf("TxUserPasswordVerify: failed to rehash password for user_id=%d: %v", userId, rehashErr)
+				}
 			}
 		}
 	}

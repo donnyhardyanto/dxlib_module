@@ -120,6 +120,9 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSource(aepr *api.DXAPIEndPointRe
 
 	err = g.AnnouncementPicture.DownloadSource(aepr, filename)
 	if err != nil {
+		if aepr.ResponseHeaderSent {
+			return nil
+		}
 		return err
 	}
 
@@ -148,6 +151,9 @@ func (g *DxmGeneral) AnnouncementPictureDownloadSourceByUid(aepr *api.DXAPIEndPo
 
 	err = g.AnnouncementPicture.DownloadSource(aepr, filename)
 	if err != nil {
+		if aepr.ResponseHeaderSent {
+			return nil
+		}
 		return err
 	}
 
@@ -175,6 +181,9 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByUidByProcessedNameId(aepr *api
 	filename := idAsString + ".webp"
 	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, processedImageNameId, filename)
 	if err != nil {
+		if aepr.ResponseHeaderSent {
+			return nil
+		}
 		return err
 	}
 	return nil
@@ -208,6 +217,9 @@ func (g *DxmGeneral) AnnouncementPictureDownloadByProcessedNameId(aepr *api.DXAP
 	filename := idAsString + ".webp"
 	err = g.AnnouncementPicture.DownloadProcessedImage(aepr, processedImageNameId, filename)
 	if err != nil {
+		if aepr.ResponseHeaderSent {
+			return nil
+		}
 		return err
 	}
 	return nil
