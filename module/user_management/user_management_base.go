@@ -93,7 +93,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[][]string{{"loginid"}, {"identity_number"}},
 		[]string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type"},
 		[]string{"fullname", "email", "membership_number", "organization_name", "status", "phonenumber", "loginid", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "attribute", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
-		[]string{"id", "uid", "loginid", "status", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "membership_number", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"id", "uid", "loginid", "status", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "membership_number", "created_at", "last_modified_at", "is_deleted", "organization_ids"},
 	)
 	um.UserPassword = tables.NewDXTableWithEncryption(databaseNameId,
 		"user_management.user_password", "user_management.user_password", "user_management.v_user_password",
