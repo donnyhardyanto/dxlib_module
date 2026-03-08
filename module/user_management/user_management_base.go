@@ -211,6 +211,9 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[]string{"title", "body", "data", "id", "user_id", "user_message_channel_type_id", "user_message_category_id", "is_read", "sent_at", "arrive_at", "read_at", "created_at", "last_modified_at", "id", "uid"},
 		[]string{"id", "uid", "user_id", "title", "body", "data", "user_message_channel_type_id", "user_message_category_id", "is_read", "created_at", "last_modified_at", "is_deleted"},
 	)
+	um.UserMessage.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
+		"data": types.APIParameterTypeMapStringString,
+	}
 }
 
 func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(ctx context.Context, l *log.DXLog, userId int64, userMessageCategoryId int64, templateTitle, templateBody string, templateData utils.JSON, attachedData map[string]string) (err error) {
