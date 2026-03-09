@@ -1166,7 +1166,7 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 		"user_role_memberships":         userRoleMemberships,
 		"user_effective_privilege_ids":  userEffectivePrivilegeIds,
 		"menu_tree_root":                menuTreeRoot,
-		"privilege_version":             user_management.ModuleUserManagement.GetUserPrivilegeVersion(aepr.Context, userId),
+		"privilege_version":             user_management.ModuleUserManagement.GetOrInitUserPrivilegeVersion(aepr.Context, userId),
 	}
 
 	if len(aepr.EndPoint.Privileges) > 0 {
@@ -1884,7 +1884,7 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 		}
 	}
 	userId, _ := aepr.LocalData["user_id"].(int64)
-	currentPrivilegeVersion := user_management.ModuleUserManagement.GetUserPrivilegeVersion(aepr.Context, userId)
+	currentPrivilegeVersion := user_management.ModuleUserManagement.GetOrInitUserPrivilegeVersion(aepr.Context, userId)
 	if sessionPrivilegeVersion != currentPrivilegeVersion {
 		user, _ := aepr.LocalData["user"].(utils.JSON)
 		organizationId, _ := aepr.LocalData["organization_id"].(int64)

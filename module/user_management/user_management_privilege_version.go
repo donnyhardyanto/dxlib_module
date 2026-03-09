@@ -13,12 +13,25 @@ func privilegeVersionKey(userId int64) string {
 	return fmt.Sprintf("privilege_version:%d", userId)
 }
 
-// GetUserPrivilegeVersion reads privilege_version:{userId} from SessionRedis. Returns 0 if key missing or on error.
-func (um *DxmUserManagement) GetUserPrivilegeVersion(ctx context.Context, userId int64) int64 {
+// GetOrInitUserPrivilegeVersion reads privilege_version:{userId} from SessionRedis.
+// If the key does not exist, it initializes it to 1 and returns 1.
+// This prevents the 0==0 blind spot where both a stale session and a missing key default to 0,
+// causing the middleware to skip session regeneration after privilege changes.
+func (um *DxmUserManagement) GetOrInitUserPrivilegeVersion(ctx context.Context, userId int64) int64 {
 	key := privilegeVersionKey(userId)
 	val, err := um.SessionRedis.Connection.Get(ctx, key).Int64()
 	if err != nil {
-		return 0
+		// Key missing or error — initialize to 1 so any session with privilege_version=0 will mismatch and refresh
+		initErr := um.SessionRedis.Connection.SetNX(ctx, key, 1, 0).Err()
+		if initErr != nil {
+			slog.Warn("Failed to initialize privilege version for user", "user_id", userId, "error", initErr)
+		}
+		// Re-read in case another process set it between our Get and SetNX
+		val, err = um.SessionRedis.Connection.Get(ctx, key).Int64()
+		if err != nil {
+			return 1
+		}
+		return val
 	}
 	return val
 }
