@@ -696,6 +696,8 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
 	}
 
+	_, ldapLoginId, _ := aepr.GetParameterValueAsString("ldap_loginid", "")
+
 	p := utils.JSON{
 		"loginid":              loginId,
 		"email":                email,
@@ -707,6 +709,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		"is_avatar_exist":      false,
 		"is_organic":           isOrganic,
 		"loginid_sync_to":      loginIdSyncTo,
+		"ldap_loginid":         ldapLoginId,
 	}
 
 	identityNumber, ok := aepr.ParameterValues["identity_number"].Value.(string)
