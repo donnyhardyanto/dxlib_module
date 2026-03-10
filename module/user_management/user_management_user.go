@@ -684,6 +684,8 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	}
 	status := UserStatusActive
 
+	_, ldapLoginId, _ := aepr.GetParameterValueAsString("ldap_loginid", "")
+
 	loginidSyncToAsEnum := DXMUserLoginIdSyncTo(loginIdSyncTo)
 	switch loginidSyncToAsEnum {
 	case DXMUserLoginIdSyncToNone:
@@ -692,11 +694,11 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		loginId = email
 	case DXMUserLoginIdSyncToPhoneNumber:
 		loginId = phonenumber
+	case DXMUserLoginIdSyncToLdapLoginId:
+		loginId = ldapLoginId
 	default:
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
 	}
-
-	_, ldapLoginId, _ := aepr.GetParameterValueAsString("ldap_loginid", "")
 
 	p := utils.JSON{
 		"loginid":              loginId,
@@ -921,6 +923,12 @@ func (um *DxmUserManagement) DoUserEdit(aepr *api.DXAPIEndPointRequest, userId i
 						return err2
 					}
 					newKeyValues["loginid"] = phonenumber
+				case DXMUserLoginIdSyncToLdapLoginId:
+					ldapLoginId, err2 := utils.GetStringFromKV(user, "ldap_loginid")
+					if err2 != nil {
+						return err2
+					}
+					newKeyValues["loginid"] = ldapLoginId
 				default:
 					return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
 				}

@@ -35,13 +35,14 @@ const (
 type DXMUserLoginIdSyncTo string
 
 const (
-	DXMUserLoginIdSyncToNone        DXMUserLoginIdSyncTo = ""
+	DXMUserLoginIdSyncToNone        DXMUserLoginIdSyncTo = "NONE"
 	DXMUserLoginIdSyncToEmail       DXMUserLoginIdSyncTo = "EMAIL"
 	DXMUserLoginIdSyncToPhoneNumber DXMUserLoginIdSyncTo = "PHONE_NUMBER"
+	DXMUserLoginIdSyncToLdapLoginId DXMUserLoginIdSyncTo = "LDAP_LOGINID"
 )
 
 var (
-	DXMUserLoginIdSyncToEnumSetAll = []any{DXMUserLoginIdSyncToNone, DXMUserLoginIdSyncToEmail, DXMUserLoginIdSyncToPhoneNumber}
+	DXMUserLoginIdSyncToEnumSetAll = []any{DXMUserLoginIdSyncToNone, DXMUserLoginIdSyncToEmail, DXMUserLoginIdSyncToPhoneNumber, DXMUserLoginIdSyncToLdapLoginId}
 )
 
 const MinPasswordHashMethod byte = 2 // bcrypt — hardcoded floor
