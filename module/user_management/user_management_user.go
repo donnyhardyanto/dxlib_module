@@ -677,6 +677,9 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	if err != nil {
 		return err
 	}
+	if loginIdSyncTo == "" {
+		loginIdSyncTo = string(DXMUserLoginIdSyncToNone)
+	}
 
 	_, membershipNumber, err := aepr.GetParameterValueAsString("membership_number", "")
 	if err != nil {
