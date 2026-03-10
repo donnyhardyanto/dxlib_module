@@ -695,6 +695,9 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	case DXMUserLoginIdSyncToPhoneNumber:
 		loginId = phonenumber
 	case DXMUserLoginIdSyncToLdapLoginId:
+		if ldapLoginId == "" {
+			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "EMPTY_LDAP_LOGINID_FOR_SYNC", "EMPTY_LDAP_LOGINID_FOR_SYNC:ldap_loginid must not be empty when loginid_sync_to is LDAP_LOGINID")
+		}
 		loginId = ldapLoginId
 	default:
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
@@ -908,6 +911,8 @@ func (um *DxmUserManagement) DoUserEdit(aepr *api.DXAPIEndPointRequest, userId i
 					return err
 				}
 				loginidSyncToAsEnum := DXMUserLoginIdSyncTo(loginIdSyncTo)
+				var syncedLoginId string
+				shouldSyncLoginId := false
 				switch loginidSyncToAsEnum {
 				case DXMUserLoginIdSyncToNone:
 					break
@@ -916,21 +921,37 @@ func (um *DxmUserManagement) DoUserEdit(aepr *api.DXAPIEndPointRequest, userId i
 					if err2 != nil {
 						return err2
 					}
-					newKeyValues["loginid"] = email
+					syncedLoginId = email
+					shouldSyncLoginId = true
 				case DXMUserLoginIdSyncToPhoneNumber:
 					phonenumber, err2 := utils.GetStringFromKV(user, "phonenumber")
 					if err2 != nil {
 						return err2
 					}
-					newKeyValues["loginid"] = phonenumber
+					syncedLoginId = phonenumber
+					shouldSyncLoginId = true
 				case DXMUserLoginIdSyncToLdapLoginId:
 					ldapLoginId, err2 := utils.GetStringFromKV(user, "ldap_loginid")
 					if err2 != nil {
 						return err2
 					}
-					newKeyValues["loginid"] = ldapLoginId
+					if ldapLoginId == "" {
+						return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "EMPTY_LDAP_LOGINID_FOR_SYNC", "EMPTY_LDAP_LOGINID_FOR_SYNC:ldap_loginid must not be empty when loginid_sync_to is LDAP_LOGINID")
+					}
+					syncedLoginId = ldapLoginId
+					shouldSyncLoginId = true
 				default:
 					return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
+				}
+				if shouldSyncLoginId {
+					_, err2 = um.User.TxUpdateSimple(dtx, utils.JSON{
+						"loginid": syncedLoginId,
+					}, utils.JSON{
+						t.FieldNameForRowId: userId,
+					})
+					if err2 != nil {
+						return err2
+					}
 				}
 			}
 		}
