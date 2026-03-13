@@ -691,6 +691,21 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
+	// Block login during maintenance mode for users without GLOBAL.SET_MAINTENANCE_MODE privilege
+	if s.SystemModeIsMaintenance(aepr.Context) {
+		userEffectivePrivilegeIds, ok := sessionObject["user_effective_privilege_ids"].(map[string]int64)
+		if ok {
+			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
+			if !hasMaintenancePrivilege {
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				return nil
+			}
+		} else {
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			return nil
+		}
+	}
+
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
@@ -870,6 +885,21 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	if !allowed {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
+	}
+
+	// Block login during maintenance mode for users without GLOBAL.SET_MAINTENANCE_MODE privilege
+	if s.SystemModeIsMaintenance(aepr.Context) {
+		userEffectivePrivilegeIds, ok := sessionObject["user_effective_privilege_ids"].(map[string]int64)
+		if ok {
+			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
+			if !hasMaintenancePrivilege {
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				return nil
+			}
+		} else {
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			return nil
+		}
 	}
 
 	configSystem := *configuration.Manager.Configurations["system"].Data
@@ -1058,6 +1088,21 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 
 	if !allowed {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
+	}
+
+	// Block login during maintenance mode for users without GLOBAL.SET_MAINTENANCE_MODE privilege
+	if s.SystemModeIsMaintenance(aepr.Context) {
+		userEffectivePrivilegeIds, ok := sessionObject["user_effective_privilege_ids"].(map[string]int64)
+		if ok {
+			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
+			if !hasMaintenancePrivilege {
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				return nil
+			}
+		} else {
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			return nil
+		}
 	}
 
 	configSystem := *configuration.Manager.Configurations["system"].Data
@@ -1363,6 +1408,21 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
+	// Block login during maintenance mode for users without GLOBAL.SET_MAINTENANCE_MODE privilege
+	if s.SystemModeIsMaintenance(aepr.Context) {
+		userEffectivePrivilegeIds, ok := sessionObject["user_effective_privilege_ids"].(map[string]int64)
+		if ok {
+			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
+			if !hasMaintenancePrivilege {
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				return nil
+			}
+		} else {
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			return nil
+		}
+	}
+
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
@@ -1594,6 +1654,21 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
 	}
 
+	// Block login during maintenance mode for users without GLOBAL.SET_MAINTENANCE_MODE privilege
+	if s.SystemModeIsMaintenance(aepr.Context) {
+		userEffectivePrivilegeIds, ok := sessionObject["user_effective_privilege_ids"].(map[string]int64)
+		if ok {
+			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
+			if !hasMaintenancePrivilege {
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				return nil
+			}
+		} else {
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			return nil
+		}
+	}
+
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
@@ -1680,6 +1755,21 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 
 	if !allowed {
 		return aepr.WriteResponseAndLogAsErrorf(http.StatusForbidden, "USER_ROLE_PRIVILEGE_FORBIDDEN", "NOT_ERROR:USER_ROLE_PRIVILEGE_FORBIDDEN")
+	}
+
+	// Block login during maintenance mode for users without GLOBAL.SET_MAINTENANCE_MODE privilege
+	if s.SystemModeIsMaintenance(aepr.Context) {
+		userEffectivePrivilegeIds, ok := sessionObject["user_effective_privilege_ids"].(map[string]int64)
+		if ok {
+			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
+			if !hasMaintenancePrivilege {
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				return nil
+			}
+		} else {
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			return nil
+		}
 	}
 
 	configSystem := *configuration.Manager.Configurations["system"].Data
