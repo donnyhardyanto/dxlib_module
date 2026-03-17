@@ -421,30 +421,30 @@ func (um *DxmUserManagement) UserSearchPaging(aepr *api.DXAPIEndPointRequest) (e
 func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err error) {
 	organizationId, ok := aepr.ParameterValues["organization_id"].Value.(int64)
 	if !ok {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
 	}
 	_, _, err = um.Organization.ShouldGetById(aepr.Context, &aepr.Log, organizationId)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
 	}
 
 	roleId, ok := aepr.ParameterValues["role_id"].Value.(int64)
 	if !ok {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING", "")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_ID_MISSING", "")
 	}
 	_, _, err = um.Role.ShouldGetById(aepr.Context, &aepr.Log, roleId)
 	if err != nil {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
 	}
 
 	passwordI, ok := aepr.ParameterValues["password_i"].Value.(string)
 	if !ok {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "PASSWORD_PREKEY_INDEX_MISSING", "")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PASSWORD_PREKEY_INDEX_MISSING", "")
 	}
 
 	passwordD, ok := aepr.ParameterValues["password_d"].Value.(string)
 	if !ok {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "PASSWORD_DATA_BLOCK_MISSING", "")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PASSWORD_DATA_BLOCK_MISSING", "")
 	}
 
 	lvPayloadElements, _, _, err := um.PreKeyUnpack(aepr.Context, passwordI, passwordD)
@@ -458,7 +458,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	if um.OnUserFormatPasswordValidation != nil {
 		err = um.OnUserFormatPasswordValidation(userPassword)
 		if err != nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
 		}
 	}
 
@@ -535,7 +535,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			return err2
 		}
 		if user != nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
+			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
 		}
 		_, userReturning, err2 := um.User.TxInsert(tx, p, []string{"id", "uid"})
 		if err2 != nil {
@@ -621,31 +621,31 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	if paramValue, exists := aepr.ParameterValues["organization_id"]; exists && paramValue != nil {
 		organizationId, ok = paramValue.Value.(int64)
 		if !ok {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
+			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_ID_MISSING", "")
 		}
 		_, _, err = um.Organization.ShouldGetById(aepr.Context, &aepr.Log, organizationId)
 		if err != nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
+			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ORGANIZATION_NOT_FOUND", "")
 		}
 
 		if paramValueRole, existsRole := aepr.ParameterValues["role_id"]; existsRole && paramValueRole != nil {
 			roleId, ok = paramValueRole.Value.(int64)
 			if !ok {
-				return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING", "")
+				return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_ID_MISSING", "")
 			}
 		} else {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_ID_MISSING_WHEN_ORGANIZATION_ID_PROVIDED", "")
+			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_ID_MISSING_WHEN_ORGANIZATION_ID_PROVIDED", "")
 		}
 		_, _, err = um.Role.ShouldGetById(aepr.Context, &aepr.Log, roleId)
 		if err != nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
+			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "ROLE_NOT_FOUND", "")
 		}
 		hasOrganizationRole = true
 	}
 
 	userPassword, ok := aepr.ParameterValues["password"].Value.(string)
 	if !ok {
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "PASSWORD_MISSING", "")
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PASSWORD_MISSING", "")
 	}
 
 	attribute, ok := aepr.ParameterValues["attribute"].Value.(string)
@@ -699,11 +699,11 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		loginId = phonenumber
 	case DXMUserLoginIdSyncToLdapLoginId:
 		if ldapLoginId == "" {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "EMPTY_LDAP_LOGINID_FOR_SYNC", "EMPTY_LDAP_LOGINID_FOR_SYNC:ldap_loginid must not be empty when loginid_sync_to is LDAP_LOGINID")
+			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "EMPTY_LDAP_LOGINID_FOR_SYNC", "EMPTY_LDAP_LOGINID_FOR_SYNC:ldap_loginid must not be empty when loginid_sync_to is LDAP_LOGINID")
 		}
 		loginId = ldapLoginId
 	default:
-		return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
+		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
 	}
 
 	p := utils.JSON{
@@ -743,7 +743,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	if um.OnUserFormatPasswordValidation != nil {
 		err = um.OnUserFormatPasswordValidation(userPassword)
 		if err != nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
 		}
 	}
 
@@ -761,7 +761,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 			return err2
 		}
 		if user != nil {
-			return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
+			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
 		}
 
 		if identityNumber != "" {
@@ -772,7 +772,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 				return err2
 			}
 			if existingUserByIdentity != nil {
-				return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "IDENTITY_NUMBER_ALREADY_EXISTS", "IDENTITY_NUMBER_ALREADY_EXISTS:%v", identityNumber)
+				return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "IDENTITY_NUMBER_ALREADY_EXISTS", "IDENTITY_NUMBER_ALREADY_EXISTS:%v", identityNumber)
 			}
 		}
 
@@ -939,12 +939,12 @@ func (um *DxmUserManagement) DoUserEdit(aepr *api.DXAPIEndPointRequest, userId i
 						return err2
 					}
 					if ldapLoginId == "" {
-						return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "EMPTY_LDAP_LOGINID_FOR_SYNC", "EMPTY_LDAP_LOGINID_FOR_SYNC:ldap_loginid must not be empty when loginid_sync_to is LDAP_LOGINID")
+						return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "EMPTY_LDAP_LOGINID_FOR_SYNC", "EMPTY_LDAP_LOGINID_FOR_SYNC:ldap_loginid must not be empty when loginid_sync_to is LDAP_LOGINID")
 					}
 					syncedLoginId = ldapLoginId
 					shouldSyncLoginId = true
 				default:
-					return aepr.WriteResponseAndLogAsErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
+					return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "INVALID_LOGINID_SYNC_TO", "INVALID_LOGINID_SYNC_TO:%s", loginIdSyncTo)
 				}
 				if shouldSyncLoginId {
 					_, err2 = um.User.TxUpdateSimple(dtx, utils.JSON{
