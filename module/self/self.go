@@ -41,6 +41,11 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
+const (
+	ErrorConfigSystemSessionsNotFound = "SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND"
+	ErrorSystemUnderMaintenance       = "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE"
+)
+
 type DxmSelf struct {
 	dxlibModule.DXModule
 	UserOrganizationMembershipType        user_management.UserOrganizationMembershipType
@@ -152,7 +157,7 @@ func (s *DxmSelf) SelfPrelogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	preKeyTTLAsInt, ok := configSystemSession["prekey_ttl_in_seconds"].(int)
 	if !ok {
@@ -263,7 +268,7 @@ func (s *DxmSelf) SelfPreloginCaptcha(aepr *api.DXAPIEndPointRequest) (err error
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	preKeyTTLAsInt, ok := configSystemSession["prekey_ttl_captcha_in_seconds"].(int)
 	if !ok {
@@ -697,11 +702,11 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		if ok {
 			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 			if !hasMaintenancePrivilege {
-				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 				return nil
 			}
 		} else {
-			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 			return nil
 		}
 	}
@@ -709,7 +714,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
@@ -893,11 +898,11 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 		if ok {
 			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 			if !hasMaintenancePrivilege {
-				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 				return nil
 			}
 		} else {
-			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 			return nil
 		}
 	}
@@ -905,7 +910,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
@@ -1096,11 +1101,11 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 		if ok {
 			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 			if !hasMaintenancePrivilege {
-				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 				return nil
 			}
 		} else {
-			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 			return nil
 		}
 	}
@@ -1108,7 +1113,7 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
@@ -1414,11 +1419,11 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		if ok {
 			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 			if !hasMaintenancePrivilege {
-				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 				return nil
 			}
 		} else {
-			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 			return nil
 		}
 	}
@@ -1426,7 +1431,7 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
@@ -1660,11 +1665,11 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 		if ok {
 			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 			if !hasMaintenancePrivilege {
-				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 				return nil
 			}
 		} else {
-			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 			return nil
 		}
 	}
@@ -1672,7 +1677,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
@@ -1763,11 +1768,11 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 		if ok {
 			_, hasMaintenancePrivilege := userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 			if !hasMaintenancePrivilege {
-				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 				return nil
 			}
 		} else {
-			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 			return nil
 		}
 	}
@@ -1775,7 +1780,7 @@ func (s *DxmSelf) SelfLoginToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
@@ -1800,7 +1805,7 @@ func SessionKeyToSessionObject(aepr *api.DXAPIEndPointRequest, sessionKey string
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return nil, errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return nil, errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
@@ -1929,7 +1934,7 @@ func (s *DxmSelf) CheckMaintenanceMode(aepr *api.DXAPIEndPointRequest, userEffec
 	// The system now in maintenance mode
 	_, ok = userEffectivePrivilegeIds[base.PrivilegeNameIdSetMaintenance]
 	if !ok {
-		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", "NOT_ERROR:SYSTEM_UNDER_MAINTENANCE")
+		aepr.WriteResponseAsErrorMessageNotLogged(http.StatusServiceUnavailable, "SYSTEM_UNDER_MAINTENANCE", ErrorSystemUnderMaintenance)
 		// If the user has no PrivilegeNameIdSetMaintenance then false
 		return nil
 	}
@@ -1971,6 +1976,8 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 			sessionPrivilegeVersion = int64(vt)
 		case int64:
 			sessionPrivilegeVersion = vt
+		default:
+			sessionPrivilegeVersion = 0
 		}
 	}
 	userId, _ := aepr.LocalData["user_id"].(int64)
@@ -2110,7 +2117,7 @@ func (s *DxmSelf) SelfUpdateLanguage(aepr *api.DXAPIEndPointRequest) (err error)
 	configSystem := *configuration.Manager.Configurations["system"].Data
 	configSystemSession, ok := configSystem["sessions"].(utils.JSON)
 	if !ok {
-		return errors.New("SHOULD_NOT_HAPPEN:CONFIG_SYSTEM_SESSIONS_NOT_FOUND")
+		return errors.New(ErrorConfigSystemSessionsNotFound)
 	}
 	sessionKeyTTLAsInt, ok := configSystemSession["session_ttl_in_seconds"].(int)
 	if !ok {
