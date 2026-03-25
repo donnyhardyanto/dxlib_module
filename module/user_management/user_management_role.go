@@ -133,7 +133,7 @@ func (um *DxmUserManagement) RoleEdit(aepr *api.DXAPIEndPointRequest) (err error
 		p["organization_types"] = jsonString
 	}
 
-	err = t.DoEdit(aepr, id, p)
+	err = t.DoUpdateWithValidation(aepr, id, p)
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (um *DxmUserManagement) RoleEditByUid(aepr *api.DXAPIEndPointRequest) (err 
 		p["parent_id"] = parentId
 	}
 
-	err = t.DoEdit(aepr, id, p)
+	err = t.DoUpdateWithValidation(aepr, id, p)
 	if err != nil {
 		return err
 	}
