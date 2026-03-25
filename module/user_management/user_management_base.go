@@ -113,8 +113,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		"id", "uid", "nameid", "data",
 		nil,
 		[][]string{{"nameid"}, {"name"}},
-		[]string{"nameid", "name", "description"},
-		[]string{"name", "nameid", "description", "organization_types", "parent_id", "parent_uid", "absolute_path", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
+		[]string{"nameid", "name", "description", "created_by_user_nameid", "last_modified_by_user_nameid", "organization_types_text"},
+		[]string{"name", "nameid", "description", "organization_types", "organization_types_text", "parent_id", "parent_uid", "absolute_path", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "parent_id", "parent_uid", "absolute_path", "nameid", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Role.FieldNameForRowUtag = "utag"
@@ -126,7 +126,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		"id", "uid", "code", "data",
 		nil,
 		[][]string{{"code"}, {"name"}},
-		[]string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status"},
+		[]string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status", "auth_source1", "auth_source2", "created_by_user_nameid", "last_modified_by_user_nameid"},
 		[]string{"code", "name", "tags", "status", "parent_id", "parent_uid", "parent_name", "parent_code", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "parent_id", "parent_uid", "parent_name", "parent_code", "code", "type", "status", "created_at", "last_modified_at", "is_deleted"},
 	)
