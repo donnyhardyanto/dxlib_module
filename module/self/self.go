@@ -1983,13 +1983,25 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 	userId, _ := aepr.LocalData["user_id"].(int64)
 	currentPrivilegeVersion := user_management.ModuleUserManagement.GetOrInitUserPrivilegeVersion(aepr.Context, userId)
 	if sessionPrivilegeVersion != currentPrivilegeVersion {
-		user, _ := aepr.LocalData["user"].(utils.JSON)
+		_, freshUser, fetchErr := user_management.ModuleUserManagement.User.GetById(aepr.Context, &aepr.Log, userId)
+		if fetchErr != nil || freshUser == nil {
+			_ = user_management.ModuleUserManagement.SessionRedis.Delete(aepr.Context, sessionKey)
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusUnauthorized, "SESSION_EXPIRED", "NOT_ERROR:USER_NOT_FOUND_ON_PRIVILEGE_REFRESH")
+			return nil
+		}
+		freshUserStatus, _ := utils.GetStringFromKV(freshUser, "status")
+		if freshUserStatus != user_management.UserStatusActive {
+			_ = user_management.ModuleUserManagement.SessionRedis.Delete(aepr.Context, sessionKey)
+			aepr.WriteResponseAsErrorMessageNotLogged(http.StatusForbidden, "USER_SUSPENDED", "USER_IS_NOT_ACTIVE")
+			return nil
+		}
+
 		organizationId, _ := aepr.LocalData["organization_id"].(int64)
 		organizationUid, _ := aepr.LocalData["organization_uid"].(string)
 		organization, _ := aepr.LocalData["organization"].(utils.JSON)
 		userOrganizationMemberships, _ := aepr.LocalData["user_organization_memberships"].([]interface{})
 
-		newSessionObject, _, regenerateErr := s.RegenerateSessionObject(aepr, userId, sessionKey, user, organizationId, organizationUid, organization, userOrganizationMemberships)
+		newSessionObject, _, regenerateErr := s.RegenerateSessionObject(aepr, userId, sessionKey, freshUser, organizationId, organizationUid, organization, userOrganizationMemberships)
 		if regenerateErr == nil && newSessionObject != nil {
 			newSessionObject["privilege_version"] = currentPrivilegeVersion
 			configSystem := *configuration.Manager.Configurations["system"].Data
@@ -2001,6 +2013,7 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 			}
 			sessionObject = newSessionObject
 			aepr.LocalData["session_object"] = sessionObject
+			aepr.LocalData["user"] = freshUser
 			aepr.Log.Infof("Privilege version stale for user %d (session=%d, current=%d), session refreshed", userId, sessionPrivilegeVersion, currentPrivilegeVersion)
 		} else if regenerateErr != nil {
 			aepr.Log.Warnf("Failed to regenerate session for privilege refresh: %v", regenerateErr)
