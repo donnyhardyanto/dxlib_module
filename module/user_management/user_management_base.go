@@ -92,8 +92,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		"id", "uid", "loginid", "data",
 		nil,
 		[][]string{{"loginid"}, {"identity_number"}},
-		[]string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type", "ldap_loginid"},
-		[]string{"fullname", "email", "membership_number", "organization_name", "status", "phonenumber", "loginid", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "attribute", "ldap_loginid", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
+		[]string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type", "ldap_loginid", "attribute", "role_names_text"},
+		[]string{"fullname", "email", "membership_number", "organization_name", "status", "phonenumber", "loginid", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "attribute", "ldap_loginid", "role_names_text", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "loginid", "status", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "membership_number", "ldap_loginid", "created_at", "last_modified_at", "is_deleted", "organization_ids"},
 	)
 	um.UserPassword = tables.NewDXTableWithEncryption(databaseNameId,
@@ -127,8 +127,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		"id", "uid", "code", "data",
 		nil,
 		[][]string{{"code"}, {"name"}},
-		[]string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status", "auth_source1", "auth_source2", "created_by_user_nameid", "last_modified_by_user_nameid"},
-		[]string{"code", "name", "tags", "status", "parent_id", "parent_uid", "parent_name", "parent_code", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
+		[]string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status", "auth_source1", "auth_source2", "created_by_user_nameid", "last_modified_by_user_nameid", "tags", "role_names_text"},
+		[]string{"code", "name", "tags", "status", "parent_id", "parent_uid", "parent_name", "parent_code", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "role_names_text", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "parent_id", "parent_uid", "parent_name", "parent_code", "code", "type", "status", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Organization.FieldNameForRowUtag = "utag"
