@@ -2001,6 +2001,23 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 		organization, _ := aepr.LocalData["organization"].(utils.JSON)
 		userOrganizationMemberships, _ := aepr.LocalData["user_organization_memberships"].([]interface{})
 
+		if organizationId > 0 {
+			_, freshOrganization, orgErr := user_management.ModuleUserManagement.Organization.GetById(aepr.Context, &aepr.Log, organizationId)
+			if orgErr != nil || freshOrganization == nil {
+				_ = user_management.ModuleUserManagement.SessionRedis.Delete(aepr.Context, sessionKey)
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusForbidden, "ORGANIZATION_NOT_FOUND", "ORGANIZATION_NOT_FOUND_ON_PRIVILEGE_REFRESH")
+				return nil
+			}
+			freshOrgIsDeleted, _ := freshOrganization["is_deleted"].(bool)
+			freshOrgStatus, _ := utils.GetStringFromKV(freshOrganization, "status")
+			if freshOrgIsDeleted || freshOrgStatus == user_management.OrganizationStatusDeleted {
+				_ = user_management.ModuleUserManagement.SessionRedis.Delete(aepr.Context, sessionKey)
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusForbidden, "ORGANIZATION_DELETED", "ORGANIZATION_IS_DELETED")
+				return nil
+			}
+			organization = freshOrganization
+		}
+
 		newSessionObject, _, regenerateErr := s.RegenerateSessionObject(aepr, userId, sessionKey, freshUser, organizationId, organizationUid, organization, userOrganizationMemberships)
 		if regenerateErr == nil && newSessionObject != nil {
 			newSessionObject["privilege_version"] = currentPrivilegeVersion
@@ -2017,6 +2034,28 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 			aepr.Log.Infof("Privilege version stale for user %d (session=%d, current=%d), session refreshed", userId, sessionPrivilegeVersion, currentPrivilegeVersion)
 		} else if regenerateErr != nil {
 			aepr.Log.Warnf("Failed to regenerate session for privilege refresh: %v", regenerateErr)
+		}
+	}
+
+	// Enforce read-only for SUSPENDED organizations
+	if sessionOrganization, ok := sessionObject["organization"].(utils.JSON); ok {
+		sessionOrgStatus, _ := utils.GetStringFromKV(sessionOrganization, "status")
+		if sessionOrgStatus == user_management.OrganizationStatusSuspend {
+			isReadOnly := false
+			for _, priv := range aepr.EndPoint.Privileges {
+				action := priv
+				if idx := strings.LastIndex(priv, "."); idx >= 0 {
+					action = priv[idx+1:]
+				}
+				if strings.HasSuffix(action, "LIST") || strings.HasSuffix(action, "READ") || strings.HasPrefix(action, "READ_BY_") || strings.HasSuffix(action, "DOWNLOAD") {
+					isReadOnly = true
+					break
+				}
+			}
+			if len(aepr.EndPoint.Privileges) > 0 && !isReadOnly {
+				aepr.WriteResponseAsErrorMessageNotLogged(http.StatusForbidden, "ORGANIZATION_SUSPENDED", "ORGANIZATION_IS_SUSPENDED_READ_ONLY")
+				return nil
+			}
 		}
 	}
 

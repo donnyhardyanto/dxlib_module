@@ -63,3 +63,24 @@ func (um *DxmUserManagement) IncrementPrivilegeVersionForRole(ctx context.Contex
 		um.IncrementUserPrivilegeVersion(ctx, userId)
 	}
 }
+
+// IncrementPrivilegeVersionForOrganization queries active UserOrganizationMembership for organizationId,
+// then increments privilege version for each affected user. This forces session refresh for all members
+// when organization status changes (e.g., activate, suspend, delete).
+func (um *DxmUserManagement) IncrementPrivilegeVersionForOrganization(ctx context.Context, l *dxlibLog.DXLog, organizationId int64) {
+	_, memberships, err := um.UserOrganizationMembership.Select(ctx, l, nil, utils.JSON{
+		"organization_id": organizationId,
+	}, nil, nil, nil, nil)
+	if err != nil {
+		l.Warnf("Failed to query organization memberships for organization %d: %v", organizationId, err)
+		return
+	}
+	for _, m := range memberships {
+		userId, err := utils.GetInt64FromKV(m, "user_id")
+		if err != nil {
+			l.Warnf("Failed to get user_id from organization membership: %v", err)
+			continue
+		}
+		um.IncrementUserPrivilegeVersion(ctx, userId)
+	}
+}

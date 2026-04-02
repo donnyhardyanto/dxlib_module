@@ -500,6 +500,10 @@ func (um *DxmUserManagement) OrganizationEditByUidHandler(aepr *api.DXAPIEndPoin
 		return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PARAMETER_NEW_REQUIRED", "Parameter new is required")
 	}
 
+	// Prevent status and is_deleted bypass — use dedicated activate/suspend/delete APIs
+	delete(newData, "status")
+	delete(newData, "is_deleted")
+
 	// Convert parent_uid to parent_id
 	if parentUid, exists := newData["parent_uid"]; exists {
 		if parentUid != nil && parentUid != "" {

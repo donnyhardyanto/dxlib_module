@@ -25,6 +25,12 @@ const (
 	UserStatusDeleted = "DELETED"
 )
 
+const (
+	OrganizationStatusActive  = "ACTIVE"
+	OrganizationStatusSuspend = "SUSPEND"
+	OrganizationStatusDeleted = "DELETED"
+)
+
 type UserOrganizationMembershipType string
 
 const (
