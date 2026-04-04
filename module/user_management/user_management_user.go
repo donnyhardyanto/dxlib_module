@@ -1022,6 +1022,14 @@ func (um *DxmUserManagement) DoUserDelete(aepr *api.DXAPIEndPointRequest, userId
 		}
 		uid = user["uid"]
 
+		// Guard: check if user can be deleted (e.g. no ongoing sub_tasks)
+		if um.OnUserBeforeDelete != nil {
+			err2 = um.OnUserBeforeDelete(aepr, tx, userId)
+			if err2 != nil {
+				return err2
+			}
+		}
+
 		_, err2 = um.User.TxUpdateSimple(tx, utils.JSON{
 			"is_deleted": true,
 			"status":     UserStatusDeleted,
