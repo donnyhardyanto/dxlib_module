@@ -1029,10 +1029,18 @@ func (um *DxmUserManagement) DoUserDelete(aepr *api.DXAPIEndPointRequest, userId
 			"id":         userId,
 			"is_deleted": false,
 		})
-
 		if err2 != nil {
 			return err2
 		}
+
+		// Notify callback for cascade cleanup (partner_management FK children + user_role_membership)
+		if um.OnUserAfterDelete != nil {
+			err2 = um.OnUserAfterDelete(aepr, tx, userId)
+			if err2 != nil {
+				return err2
+			}
+		}
+
 		return nil
 	})
 	if err != nil {

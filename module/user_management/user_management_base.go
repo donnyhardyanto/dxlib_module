@@ -80,6 +80,7 @@ type DxmUserManagement struct {
 	OnUserRoleMembershipAfterCreate      func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userRoleMembership utils.JSON, organizationId int64) (err error)
 	OnUserRoleMembershipBeforeSoftDelete func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
 	OnUserRoleMembershipBeforeHardDelete func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userRoleMembership utils.JSON) (err error)
+	OnUserAfterDelete                    func(aepr *api.DXAPIEndPointRequest, dtx *databases.DXDatabaseTx, userId int64) (err error)
 }
 
 func (um *DxmUserManagement) SetPasswordHashMethod(method byte) {
