@@ -135,8 +135,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		"id", "uid", "code", "data",
 		nil,
 		[][]string{{"code"}, {"name"}},
-		[]string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status", "auth_source1", "auth_source2", "created_by_user_nameid", "last_modified_by_user_nameid", "tags", "role_names_text"},
-		[]string{"code", "name", "tags", "status", "parent_id", "parent_uid", "parent_name", "parent_code", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "role_names_text", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
+		[]string{"code", "name", "type", "address", "npwp", "email", "phonenumber", "status", "auth_source1", "auth_source2", "created_by_user_nameid", "last_modified_by_user_nameid", "tags", "role_names_text", "role_nameid_text"},
+		[]string{"code", "name", "tags", "status", "parent_id", "parent_uid", "parent_name", "parent_code", "type", "email", "phonenumber", "npwp", "address", "auth_source1", "auth_source2", "attribute1", "attribute2", "role_names_text", "role_nameid_text", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "parent_id", "parent_uid", "parent_name", "parent_code", "code", "type", "status", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Organization.FieldNameForRowUtag = "utag"
