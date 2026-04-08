@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	dxlibBase "github.com/donnyhardyanto/dxlib/base"
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/databases"
 	"github.com/donnyhardyanto/dxlib/databases/db"
@@ -104,6 +105,9 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[]string{"fullname", "email", "membership_number", "organization_name", "status", "phonenumber", "loginid", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "attribute", "ldap_loginid", "role_names_text", "role_nameids_text", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
 		[]string{"id", "uid", "loginid", "status", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "membership_number", "ldap_loginid", "created_at", "last_modified_at", "is_deleted", "organization_ids"},
 	)
+	um.User.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
+		"organization_ids": types.APIParameterTypeArrayInt64,
+	}
 	um.UserPassword = tables.NewDXTableWithEncryption(databaseNameId,
 		"user_management.user_password", "user_management.user_password", "user_management.v_user_password",
 		"id", "uid", "", "data",
@@ -140,6 +144,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[]string{"id", "uid", "parent_id", "parent_uid", "parent_name", "parent_code", "code", "type", "status", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Organization.FieldNameForRowUtag = "utag"
+	// Set download columns to match datatable columns
+	um.Organization.DownloadableOrderByFieldNames = []string{"code", "name", "status", "type", "email", "phonenumber", "npwp", "address", "role_names_text", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"}
 	um.OrganizationRoles = tables.NewDXTableSimple(databaseNameId,
 		"user_management.organization_role", "user_management.organization_role", "user_management.v_organization_role",
 		"id", "uid", "", "data",
@@ -167,6 +173,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[]string{"name", "nameid", "description", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid", "menu_name", "parent_menu", "menu_item_id"},
 		[]string{"id", "uid", "nameid", "created_at", "last_modified_at", "is_deleted", "menu_name", "parent_menu", "menu_item_id"},
 	)
+	// Set download columns without menu_name, parent_menu, menu_item_id
+	um.Privilege.DownloadableOrderByFieldNames = []string{"name", "nameid", "description", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"}
 	um.RolePrivilege = tables.NewDXTableSimple(databaseNameId,
 		"user_management.role_privilege", "user_management.role_privilege", "user_management.v_role_privilege",
 		"id", "uid", "", "data",
@@ -223,6 +231,21 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 	)
 	um.UserMessage.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
 		"data": types.APIParameterTypeMapStringString,
+	}
+}
+
+func (um *DxmUserManagement) GetOrganizationIdsFragment(dbType dxlibBase.DXDatabaseType) string {
+	switch dbType {
+	case dxlibBase.DXDatabaseTypePostgreSQL, dxlibBase.DXDatabaseTypePostgresSQLV2:
+		return um.getPostgreSQLOrganizationIdsFragment()
+	case dxlibBase.DXDatabaseTypeSQLServer:
+		return um.getSQLServerOrganizationIdsFragment()
+	case dxlibBase.DXDatabaseTypeOracle:
+		return um.getOracleOrganizationIdsFragment()
+	case dxlibBase.DXDatabaseTypeMariaDB:
+		return um.getMariaDBOrganizationIdsFragment()
+	default:
+		return um.getMariaDBOrganizationIdsFragment()
 	}
 }
 
