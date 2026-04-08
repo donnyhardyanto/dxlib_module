@@ -506,38 +506,30 @@ func (um *DxmUserManagement) OrganizationEditByUidHandler(aepr *api.DXAPIEndPoin
 
 	// Convert parent_uid to parent_id
 	if parentUid, exists := newData["parent_uid"]; exists {
-		if parentUid != nil && parentUid != "" {
-			uid, ok := parentUid.(string)
-			if !ok || uid == "" {
-				// Set to null if invalid
-				delete(newData, "parent_uid")
-				newData["parent_id"] = nil
-			} else {
-				// Get parent organization by UID and convert to ID
-				_, parentOrg, err := um.Organization.GetByUid(aepr.Context, &aepr.Log, uid)
-				if err != nil {
-					aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_PARENT_ORGANIZATION", err)
-					return err
-				}
-				if parentOrg == nil {
-					return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "PARENT_ORGANIZATION_NOT_FOUND", "Parent organization with uid %s not found", uid)
-				}
-
-				parentId, err := utils.GetInt64FromKV(parentOrg, "id")
-				if err != nil {
-					aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_PARENT_ID", err)
-					return err
-				}
-
-				// Replace UID with ID for database update
-				delete(newData, "parent_uid")
-				newData["parent_id"] = parentId
-			}
-		} else {
-			// Set to null if empty
-			delete(newData, "parent_uid")
-			newData["parent_id"] = nil
+		uid, ok := parentUid.(string)
+		if !ok || uid == "" {
+			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "PARENT_UID_REQUIRED", "parent_uid cannot be empty; only the root organization can have no parent")
 		}
+
+		// Get parent organization by UID and convert to ID
+		_, parentOrg, err := um.Organization.GetByUid(aepr.Context, &aepr.Log, uid)
+		if err != nil {
+			aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_PARENT_ORGANIZATION", err)
+			return err
+		}
+		if parentOrg == nil {
+			return aepr.WriteResponseAndNewErrorf(http.StatusNotFound, "PARENT_ORGANIZATION_NOT_FOUND", "Parent organization with uid %s not found", uid)
+		}
+
+		parentId, err := utils.GetInt64FromKV(parentOrg, "id")
+		if err != nil {
+			aepr.WriteResponseAndLogAsError(http.StatusInternalServerError, "FAILED_TO_GET_PARENT_ID", err)
+			return err
+		}
+
+		// Replace UID with ID for database update
+		delete(newData, "parent_uid")
+		newData["parent_id"] = parentId
 	}
 
 	// Update parameter and call standard handler

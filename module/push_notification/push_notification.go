@@ -269,6 +269,85 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 	return nil
 }
 
+func (f *FirebaseCloudMessaging) UnregisterUserToken(aepr *api.DXAPIEndPointRequest, applicationNameId string, userId int64, fcmToken string) (err error) {
+	err = f.Database.Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+		_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)
+		if err != nil {
+			return err
+		}
+		fcmApplicationId, ok := fcmApplication["id"].(int64)
+		if !ok {
+			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+		}
+
+		_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{
+			"fcm_application_id": fcmApplicationId,
+			"user_id":            userId,
+			"fcm_token":          fcmToken,
+		})
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	return nil
+}
+
+func (f *FirebaseCloudMessaging) ReregisterUserToken(aepr *api.DXAPIEndPointRequest, userId int64, oldFcmToken string, newFcmToken string) (err error) {
+	err = f.Database.Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+		// Lock the row to prevent concurrent re-register race (BUG-FIX: RACE)
+		_, existingToken, err := f.FCMUserToken.TxSelectOne(dtx, nil, utils.JSON{
+			"user_id":   userId,
+			"fcm_token": oldFcmToken,
+		}, nil, nil, "FOR UPDATE")
+		if err != nil {
+			return err
+		}
+		if existingToken == nil {
+			return errors.New("FCM_TOKEN_NOT_FOUND")
+		}
+
+		existingTokenId, ok := existingToken["id"].(int64)
+		if !ok {
+			return errors.New("FCM_USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
+		}
+
+		// Remove any other user's record with the same new token before updating (BUG-FIX: token collision)
+		_, existingNewTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
+			"fcm_token": newFcmToken,
+		}, nil, nil, nil, nil)
+		if err != nil {
+			return err
+		}
+		for _, existingNewToken := range existingNewTokens {
+			duplicateId, ok := existingNewToken["id"].(int64)
+			if !ok {
+				continue
+			}
+			if duplicateId == existingTokenId {
+				continue
+			}
+			_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{"id": duplicateId})
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = f.FCMUserToken.TxUpdateById(dtx, existingTokenId, utils.JSON{
+			"fcm_token": newFcmToken,
+		})
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{})
+	return nil
+}
+
 func (f *FirebaseCloudMessaging) SendTopic(ctx context.Context, l *log.DXLog, applicationNameId string, topic string, msgTitle string, msgBody string, msgData map[string]string, onFCMTopicMessage FCMTopicMessageFunc) (err error) {
 	return f.Database.Tx(ctx, l, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		_, fcmApplication, err := f.FCMApplication.TxShouldGetByNameId(dtx, applicationNameId)

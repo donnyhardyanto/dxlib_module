@@ -2532,6 +2532,48 @@ func (s *DxmSelf) RegisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
 	return nil
 }
 
+func (s *DxmSelf) UnregisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, applicationNameId, err := aepr.GetParameterValueAsString("application_nameid")
+	if err != nil {
+		return err
+	}
+	_, fcmToken, err := aepr.GetParameterValueAsString("fcm_token")
+	if err != nil {
+		return err
+	}
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
+	err = push_notification.ModulePushNotification.FCM.UnregisterUserToken(aepr, applicationNameId, userId, fcmToken)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *DxmSelf) ReregisterFCMToken(aepr *api.DXAPIEndPointRequest) (err error) {
+	_, oldFcmToken, err := aepr.GetParameterValueAsString("old_fcm_token")
+	if err != nil {
+		return err
+	}
+	_, newFcmToken, err := aepr.GetParameterValueAsString("new_fcm_token")
+	if err != nil {
+		return err
+	}
+	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
+	if err != nil {
+		return err
+	}
+	err = push_notification.ModulePushNotification.FCM.ReregisterUserToken(aepr, userId, oldFcmToken, newFcmToken)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *DxmSelf) SelfUserMessagePagingListAll(aepr *api.DXAPIEndPointRequest) (err error) {
 	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")
 	if err != nil {
