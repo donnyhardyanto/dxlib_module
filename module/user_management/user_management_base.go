@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	dxlibBase "github.com/donnyhardyanto/dxlib/base"
 	"github.com/donnyhardyanto/dxlib/api"
+	dxlibBase "github.com/donnyhardyanto/dxlib/base"
 	"github.com/donnyhardyanto/dxlib/databases"
 	"github.com/donnyhardyanto/dxlib/databases/db"
 	"github.com/donnyhardyanto/dxlib/log"
@@ -234,18 +234,48 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 	}
 }
 
-func (um *DxmUserManagement) GetOrganizationIdsFragment(dbType dxlibBase.DXDatabaseType) string {
+func OrganizationIdsFragment(dbType dxlibBase.DXDatabaseType, userIdRef string) string {
 	switch dbType {
 	case dxlibBase.DXDatabaseTypePostgreSQL, dxlibBase.DXDatabaseTypePostgresSQLV2:
-		return um.getPostgreSQLOrganizationIdsFragment()
+		return getPostgreSQLOrganizationIdsFragment(userIdRef)
 	case dxlibBase.DXDatabaseTypeSQLServer:
-		return um.getSQLServerOrganizationIdsFragment()
+		return getSQLServerOrganizationIdsFragment(userIdRef)
 	case dxlibBase.DXDatabaseTypeOracle:
-		return um.getOracleOrganizationIdsFragment()
+		return getOracleOrganizationIdsFragment(userIdRef)
 	case dxlibBase.DXDatabaseTypeMariaDB:
-		return um.getMariaDBOrganizationIdsFragment()
+		return getMariaDBOrganizationIdsFragment(userIdRef)
 	default:
-		return um.getMariaDBOrganizationIdsFragment()
+		return getMariaDBOrganizationIdsFragment(userIdRef)
+	}
+}
+
+func RoleNamesTextFragment(dbType dxlibBase.DXDatabaseType, userIdRef string) string {
+	switch dbType {
+	case dxlibBase.DXDatabaseTypePostgreSQL, dxlibBase.DXDatabaseTypePostgresSQLV2:
+		return getPostgreSQLRoleNamesTextFragment(userIdRef)
+	case dxlibBase.DXDatabaseTypeSQLServer:
+		return getSQLServerRoleNamesTextFragment(userIdRef)
+	case dxlibBase.DXDatabaseTypeOracle:
+		return getOracleRoleNamesTextFragment(userIdRef)
+	case dxlibBase.DXDatabaseTypeMariaDB:
+		return getMariaDBRoleNamesTextFragment(userIdRef)
+	default:
+		return getMariaDBRoleNamesTextFragment(userIdRef)
+	}
+}
+
+func RoleNameidsTextFragment(dbType dxlibBase.DXDatabaseType, userIdRef string) string {
+	switch dbType {
+	case dxlibBase.DXDatabaseTypePostgreSQL, dxlibBase.DXDatabaseTypePostgresSQLV2:
+		return getPostgreSQLRoleNameidsTextFragment(userIdRef)
+	case dxlibBase.DXDatabaseTypeSQLServer:
+		return getSQLServerRoleNameidsTextFragment(userIdRef)
+	case dxlibBase.DXDatabaseTypeOracle:
+		return getOracleRoleNameidsTextFragment(userIdRef)
+	case dxlibBase.DXDatabaseTypeMariaDB:
+		return getMariaDBRoleNameidsTextFragment(userIdRef)
+	default:
+		return getMariaDBRoleNameidsTextFragment(userIdRef)
 	}
 }
 
