@@ -2257,7 +2257,7 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", base.MsgInvalidCredential)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		err = user_management.ModuleUserManagement.TxUserPasswordCreate(tx, userId, userPasswordNew)
@@ -2320,7 +2320,7 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 		}
 
 		if !verificationResult {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "", base.MsgInvalidCredential)
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 
 		err = user_management.ModuleUserManagement.TxUserPasswordCreate(tx, userId, userPasswordNew)
