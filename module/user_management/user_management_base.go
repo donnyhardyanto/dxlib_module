@@ -103,7 +103,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[][]string{{"loginid"}, {"identity_number"}},
 		[]string{"loginid", "email", "fullname", "phonenumber", "status", "identity_number", "identity_type", "address_on_identity_card", "membership_number", "organization_name", "organization_type", "ldap_loginid", "attribute", "role_names_text", "role_nameids_text"},
 		[]string{"fullname", "email", "membership_number", "organization_name", "status", "phonenumber", "loginid", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "attribute", "ldap_loginid", "role_names_text", "role_nameids_text", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
-		[]string{"id", "uid", "loginid", "status", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "membership_number", "ldap_loginid", "created_at", "last_modified_at", "is_deleted", "organization_ids"},
+		[]string{"id", "uid", "loginid", "status", "identity_type", "identity_number", "address_on_identity_card", "is_avatar_exist", "membership_number", "ldap_loginid", "role_nameids_text", "created_at", "last_modified_at", "is_deleted", "organization_ids"},
 	)
 	um.User.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
 		"organization_ids": types.APIParameterTypeArrayInt64,
@@ -190,8 +190,8 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		nil,
 		[][]string{{"user_id", "role_id"}},
 		[]string{"role_nameid", "role_name"},
-		[]string{"user_id", "role_nameid", "role_name", "role_id", "organization_id", "created_at", "last_modified_at", "id", "uid"},
-		[]string{"id", "uid", "user_id", "role_id", "organization_id", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"user_id", "role_utag", "role_nameid", "role_name", "role_id", "organization_id", "created_at", "last_modified_at", "id", "uid"},
+		[]string{"id", "uid", "user_id", "role_id", "role_utag", "organization_id", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.MenuItem = tables.NewDXTableSimple(databaseNameId,
 		"user_management.menu_item", "user_management.menu_item", "user_management.v_menu_item",
