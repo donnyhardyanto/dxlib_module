@@ -145,7 +145,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 	)
 	um.Organization.FieldNameForRowUtag = "utag"
 	// Set download columns to match datatable columns
-	um.Organization.DownloadableOrderByFieldNames = []string{"code", "name", "status", "type", "email", "phonenumber", "npwp", "address", "role_names_text", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"}
+	um.Organization.DownloadableOrderByFieldNames = []string{"code", "name", "status", "type", "email", "phonenumber", "npwp", "address", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid"}
 	um.OrganizationRoles = tables.NewDXTableSimple(databaseNameId,
 		"user_management.organization_role", "user_management.organization_role", "user_management.v_organization_role",
 		"id", "uid", "", "data",
