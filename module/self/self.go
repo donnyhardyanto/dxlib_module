@@ -2040,7 +2040,7 @@ func (s *DxmSelf) MiddlewareUserLoggedAndPrivilegeCheck(aepr *api.DXAPIEndPointR
 	// Enforce read-only for SUSPENDED organizations
 	if sessionOrganization, ok := sessionObject["organization"].(utils.JSON); ok {
 		sessionOrgStatus, _ := utils.GetStringFromKV(sessionOrganization, "status")
-		if sessionOrgStatus == user_management.OrganizationStatusSuspend {
+		if sessionOrgStatus == user_management.OrganizationStatusSuspended {
 			isReadOnly := false
 			for _, priv := range aepr.EndPoint.Privileges {
 				action := priv

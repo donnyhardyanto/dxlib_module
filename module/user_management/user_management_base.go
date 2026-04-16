@@ -21,15 +21,15 @@ import (
 )
 
 const (
-	UserStatusActive  = "ACTIVE"
-	UserStatusSuspend = "SUSPEND"
-	UserStatusDeleted = "DELETED"
+	UserStatusActive    = "ACTIVE"
+	UserStatusSuspended = "SUSPENDED"
+	UserStatusDeleted   = "DELETED"
 )
 
 const (
-	OrganizationStatusActive  = "ACTIVE"
-	OrganizationStatusSuspend = "SUSPEND"
-	OrganizationStatusDeleted = "DELETED"
+	OrganizationStatusActive    = "ACTIVE"
+	OrganizationStatusSuspended = "SUSPENDED"
+	OrganizationStatusDeleted   = "DELETED"
 )
 
 type UserOrganizationMembershipType string

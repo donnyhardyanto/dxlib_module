@@ -1149,7 +1149,7 @@ func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err er
 			return errors.New("USER_IS_DELETED")
 		}
 		_, err2 = um.User.TxUpdateSimple(tx, utils.JSON{
-			"status": UserStatusSuspend,
+			"status": UserStatusSuspended,
 		}, utils.JSON{
 			"id":         userId,
 			"is_deleted": false,
