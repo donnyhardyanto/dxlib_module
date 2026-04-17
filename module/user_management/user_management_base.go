@@ -108,6 +108,13 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 	um.User.FieldTypeMapping = db.DXDatabaseTableFieldTypeMapping{
 		"organization_ids": types.APIParameterTypeArrayInt64,
 	}
+
+	um.User.DownloadableOrderByFieldNames = []string{
+		"fullname", "email", "membership_number", "organization_name", "status",
+		"phonenumber", "loginid", "identity_type", "identity_number",
+		"created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid",
+		"id", "uid",
+	}
 	um.UserPassword = tables.NewDXTableWithEncryption(databaseNameId,
 		"user_management.user_password", "user_management.user_password", "user_management.v_user_password",
 		"id", "uid", "", "data",
