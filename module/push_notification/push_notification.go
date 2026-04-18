@@ -199,62 +199,25 @@ func (f *FirebaseCloudMessaging) RegisterUserToken(aepr *api.DXAPIEndPointReques
 			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
 		}
 
-		_, existingUserTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
-			"fcm_application_id": fcmApplicationId,
-			"fcm_token":          token,
-		}, nil, nil, nil, nil)
-		if err != nil {
-			return err
-		}
-
-		for _, existingUserToken := range existingUserTokens {
-			existingUserId, ok := existingUserToken["user_id"].(int64)
-			if !ok {
-				continue
-			}
-			if existingUserId != userId {
-				existingUserTokenId, ok := existingUserToken["id"].(int64)
-				if !ok {
-					continue
-				}
-				_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{
-					"id": existingUserTokenId,
-				})
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		_, userToken, err := f.FCMUserToken.TxSelectOne(dtx, nil, utils.JSON{
-			"fcm_application_id": fcmApplicationId,
-			"user_id":            userId,
-			"fcm_token":          token,
-			"device_type":        deviceType,
-		}, nil, nil, nil)
-		if err != nil {
-			return err
-		}
-		if userToken == nil {
-			_, returningValues, err := f.FCMUserToken.TxInsert(dtx, utils.JSON{
+		// Atomic upsert on UNIQUE (fcm_application_id, fcm_token) — handles
+		// concurrent same-token registration and device-swap (user_id change)
+		// without a TOCTOU window. DB serializes conflicting rows on the
+		// unique index.
+		_, rowId, _, err := f.FCMUserToken.TxUpsert(dtx,
+			utils.JSON{
+				"user_id":          userId,
+				"device_type":      deviceType,
+				"last_modified_at": time.Now().UTC(),
+			},
+			utils.JSON{
 				"fcm_application_id": fcmApplicationId,
-				"user_id":            userId,
 				"fcm_token":          token,
-				"device_type":        deviceType,
-			}, []string{"id"})
-			if err != nil {
-				return err
-			}
-			userTokenId, ok = returningValues["id"].(int64)
-			if !ok {
-				return errors.New("RETURNING_USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
-			}
-		} else {
-			userTokenId, ok = userToken["id"].(int64)
-			if !ok {
-				return errors.New("USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
-			}
+			},
+		)
+		if err != nil {
+			return err
 		}
+		userTokenId = rowId
 
 		return nil
 	})
