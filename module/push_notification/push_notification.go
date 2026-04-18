@@ -260,7 +260,8 @@ func (f *FirebaseCloudMessaging) UnregisterUserToken(aepr *api.DXAPIEndPointRequ
 
 func (f *FirebaseCloudMessaging) ReregisterUserToken(aepr *api.DXAPIEndPointRequest, userId int64, oldFcmToken string, newFcmToken string) (err error) {
 	err = f.Database.Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
-		// Lock the row to prevent concurrent re-register race (BUG-FIX: RACE)
+		// Lock the existing (user, oldToken) row and capture app_id + device_type
+		// so the atomic claim below is app-scoped and preserves device info.
 		_, existingToken, err := f.FCMUserToken.TxSelectOne(dtx, nil, utils.JSON{
 			"user_id":   userId,
 			"fcm_token": oldFcmToken,
@@ -272,34 +273,41 @@ func (f *FirebaseCloudMessaging) ReregisterUserToken(aepr *api.DXAPIEndPointRequ
 			return errors.New("FCM_TOKEN_NOT_FOUND")
 		}
 
-		existingTokenId, ok := existingToken["id"].(int64)
+		fcmApplicationId, ok := existingToken["fcm_application_id"].(int64)
 		if !ok {
-			return errors.New("FCM_USER_TOKEN_ID_TYPE_ASSERTION_FAILED")
+			return errors.New("FCM_APPLICATION_ID_TYPE_ASSERTION_FAILED")
+		}
+		deviceType, ok := existingToken["device_type"].(string)
+		if !ok {
+			return errors.New("FCM_DEVICE_TYPE_TYPE_ASSERTION_FAILED")
 		}
 
-		// Remove any other user's record with the same new token before updating (BUG-FIX: token collision)
-		_, existingNewTokens, err := f.FCMUserToken.TxSelect(dtx, nil, utils.JSON{
-			"fcm_token": newFcmToken,
-		}, nil, nil, nil, nil)
+		// Atomic claim on UNIQUE (fcm_application_id, fcm_token). Serializes
+		// concurrent claims of newFcmToken (different user, device swap, or
+		// concurrent RegisterUserToken) via the unique-index row lock.
+		_, _, _, err = f.FCMUserToken.TxUpsert(dtx,
+			utils.JSON{
+				"user_id":          userId,
+				"device_type":      deviceType,
+				"last_modified_at": time.Now().UTC(),
+			},
+			utils.JSON{
+				"fcm_application_id": fcmApplicationId,
+				"fcm_token":          newFcmToken,
+			},
+		)
 		if err != nil {
 			return err
 		}
-		for _, existingNewToken := range existingNewTokens {
-			duplicateId, ok := existingNewToken["id"].(int64)
-			if !ok {
-				continue
-			}
-			if duplicateId == existingTokenId {
-				continue
-			}
-			_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{"id": duplicateId})
-			if err != nil {
-				return err
-			}
-		}
 
-		_, err = f.FCMUserToken.TxUpdateById(dtx, existingTokenId, utils.JSON{
-			"fcm_token": newFcmToken,
+		// Clean up the old-token row. Skip when old == new (upsert just touched it).
+		if oldFcmToken == newFcmToken {
+			return nil
+		}
+		_, err = f.FCMUserToken.TxHardDelete(dtx, utils.JSON{
+			"user_id":            userId,
+			"fcm_application_id": fcmApplicationId,
+			"fcm_token":          oldFcmToken,
 		})
 		return err
 	})
