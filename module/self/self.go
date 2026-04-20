@@ -1163,6 +1163,13 @@ func (s *DxmSelf) RegenerateSessionObject(aepr *api.DXAPIEndPointRequest, userId
 				return nil, false, err
 			}
 			if privilegeNameId == "EVERYTHING" {
+				// Preserve the EVERYTHING marker in the effective-privilege map so
+				// privilege-based bypass checks (CallerHasEverythingPrivilege) can
+				// detect full-access roles. The inner expansion still feeds every
+				// concrete privilege into the map for endpoint-level authorization.
+				if _, exists := userEffectivePrivilegeIds["EVERYTHING"]; !exists {
+					userEffectivePrivilegeIds["EVERYTHING"] = privilegeId
+				}
 				_, rolePrivileges, err := user_management.ModuleUserManagement.Privilege.Select(aepr.Context, &aepr.Log, nil, nil, nil, nil, nil, nil)
 				if err != nil {
 					return nil, false, err
