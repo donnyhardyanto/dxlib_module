@@ -537,7 +537,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		if user != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusBadRequest, "USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS:%v", loginId)
 		}
-		_, userReturning, err2 := um.User.TxInsert(tx, p, []string{"id", "uid"})
+		_, userReturning, err2 := um.User.TxInsertWithAudit(aepr, tx, p, []string{"id", "uid"})
 		if err2 != nil {
 			return err2
 		}
@@ -546,7 +546,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			userUid = uid
 		}
 
-		_, orgMemberReturning, err2 := um.UserOrganizationMembership.TxInsert(tx, map[string]any{
+		_, orgMemberReturning, err2 := um.UserOrganizationMembership.TxInsertWithAudit(aepr, tx, map[string]any{
 			"user_id":           userId,
 			"organization_id":   organizationId,
 			"membership_number": membershipNumber,
@@ -558,7 +558,7 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 			userOrganizationMembershipUid = uid
 		}
 
-		_, roleMemberReturning, err2 := um.UserRoleMembership.TxInsert(tx, map[string]any{
+		_, roleMemberReturning, err2 := um.UserRoleMembership.TxInsertWithAudit(aepr, tx, map[string]any{
 			"user_id":         userId,
 			"organization_id": organizationId,
 			"role_id":         roleId,
@@ -776,7 +776,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 			}
 		}
 
-		_, userReturning, err2 := um.User.TxInsert(tx, p, []string{"id", "uid"})
+		_, userReturning, err2 := um.User.TxInsertWithAudit(aepr, tx, p, []string{"id", "uid"})
 		if err2 != nil {
 			return err2
 		}
@@ -786,7 +786,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 		}
 
 		if hasOrganizationRole {
-			_, orgMemberReturning, err2 := um.UserOrganizationMembership.TxInsert(tx, map[string]any{
+			_, orgMemberReturning, err2 := um.UserOrganizationMembership.TxInsertWithAudit(aepr, tx, map[string]any{
 				"user_id":           userId,
 				"organization_id":   organizationId,
 				"membership_number": membershipNumber,
@@ -798,7 +798,7 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 				userOrganizationMembershipUid = uid
 			}
 
-			_, roleMemberReturning, err2 := um.UserRoleMembership.TxInsert(tx, map[string]any{
+			_, roleMemberReturning, err2 := um.UserRoleMembership.TxInsertWithAudit(aepr, tx, map[string]any{
 				"user_id":         userId,
 				"organization_id": organizationId,
 				"role_id":         roleId,
