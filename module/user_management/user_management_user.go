@@ -29,7 +29,9 @@ func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err
 	// Get the request body stream
 	bs := aepr.Request.Body
 	if bs == nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "FAILED_TO_GET_BODY_STREAM:%s", "UserCreateBulk")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
+			"FAILED_TO_GET_BODY_STREAM",
+			"FAILED_TO_GET_BODY_STREAM:OPERATION=%s", "UserCreateBulk")
 	}
 	defer func() {
 		_ = bs.Close()
@@ -39,7 +41,9 @@ func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, bs)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "FAILED_TO_READ_REQUEST_BODY", "UserCreateBulk:%+v", err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
+			"FAILED_TO_READ_REQUEST_BODY",
+			"FAILED_TO_READ_REQUEST_BODY:OPERATION=%s,ERROR=%+v", "UserCreateBulk", err.Error())
 	}
 
 	// Determine the file type and parse accordingly
@@ -49,7 +53,9 @@ func (um *DxmUserManagement) UserCreateBulk(aepr *api.DXAPIEndPointRequest) (err
 	} else if strings.Contains(contentType, "excel") || strings.Contains(contentType, "spreadsheetml") {
 		err = um.parseAndCreateUsersFromXLSX(&buf, aepr)
 	} else {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnsupportedMediaType, "UNSUPPORTED_FILE_TYPE:%s", contentType)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnsupportedMediaType,
+			"UNSUPPORTED_FILE_TYPE",
+			"UNSUPPORTED_FILE_TYPE:CONTENT_TYPE=%s", contentType)
 	}
 
 	if err != nil {
@@ -458,7 +464,9 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 	if um.OnUserFormatPasswordValidation != nil {
 		err = um.OnUserFormatPasswordValidation(userPassword)
 		if err != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
+				"INVALID_PASSWORD_FORMAT",
+				"NOT_ERROR:INVALID_PASSWORD_FORMAT:DETAIL=%s", err.Error())
 		}
 	}
 
@@ -743,7 +751,9 @@ func (um *DxmUserManagement) UserCreateV2(aepr *api.DXAPIEndPointRequest) (err e
 	if um.OnUserFormatPasswordValidation != nil {
 		err = um.OnUserFormatPasswordValidation(userPassword)
 		if err != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
+				"INVALID_PASSWORD_FORMAT",
+				"NOT_ERROR:INVALID_PASSWORD_FORMAT:DETAIL=%s", err.Error())
 		}
 	}
 

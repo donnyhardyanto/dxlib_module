@@ -2238,7 +2238,9 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	if user_management.ModuleUserManagement.OnUserFormatPasswordValidation != nil {
 		err = user_management.ModuleUserManagement.OnUserFormatPasswordValidation(userPasswordNew)
 		if err != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
+				"INVALID_PASSWORD_FORMAT",
+				"NOT_ERROR:INVALID_PASSWORD_FORMAT:DETAIL=%s", err.Error())
 		}
 	}
 
@@ -2302,7 +2304,9 @@ func (s *DxmSelf) SelfPasswordChangeV2(aepr *api.DXAPIEndPointRequest) (err erro
 	if user_management.ModuleUserManagement.OnUserFormatPasswordValidation != nil {
 		err = user_management.ModuleUserManagement.OnUserFormatPasswordValidation(userPasswordNew)
 		if err != nil {
-			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PASSWORD_FORMAT:%s", "NOT_ERROR:INVALID_PASSWORD_FORMAT:%s", err.Error())
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
+				"INVALID_PASSWORD_FORMAT",
+				"NOT_ERROR:INVALID_PASSWORD_FORMAT:DETAIL=%s", err.Error())
 		}
 	}
 	userId, err := utils.GetInt64FromKV(aepr.LocalData, "user_id")

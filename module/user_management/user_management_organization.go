@@ -19,7 +19,9 @@ func (um *DxmUserManagement) OrganizationCreateBulk(aepr *api.DXAPIEndPointReque
 	// Get the request body stream
 	bs := aepr.Request.Body
 	if bs == nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "FAILED_TO_GET_BODY_STREAM:%s", "OrganizationCreateBulk")
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
+			"FAILED_TO_GET_BODY_STREAM",
+			"FAILED_TO_GET_BODY_STREAM:OPERATION=%s", "OrganizationCreateBulk")
 	}
 	defer bs.Close()
 
@@ -27,7 +29,9 @@ func (um *DxmUserManagement) OrganizationCreateBulk(aepr *api.DXAPIEndPointReque
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, bs)
 	if err != nil {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "FAILED_TO_READ_REQUEST_BODY:%s=%v", "OrganizationCreateBulk", err.Error())
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity,
+			"FAILED_TO_READ_REQUEST_BODY",
+			"FAILED_TO_READ_REQUEST_BODY:OPERATION=%s,ERROR=%v", "OrganizationCreateBulk", err.Error())
 	}
 
 	// Determine the file type and parse accordingly
@@ -37,7 +41,9 @@ func (um *DxmUserManagement) OrganizationCreateBulk(aepr *api.DXAPIEndPointReque
 	} else if strings.Contains(contentType, "excel") || strings.Contains(contentType, "spreadsheetml") {
 		err = um.parseAndCreateOrganizationsFromXLSX(&buf, aepr)
 	} else {
-		return aepr.WriteResponseAndNewErrorf(http.StatusUnsupportedMediaType, "UNSUPPORTED_FILE_TYPE:%s", contentType)
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnsupportedMediaType,
+			"UNSUPPORTED_FILE_TYPE",
+			"UNSUPPORTED_FILE_TYPE:CONTENT_TYPE=%s", contentType)
 	}
 
 	if err != nil {
