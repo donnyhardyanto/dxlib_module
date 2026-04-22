@@ -134,7 +134,7 @@ func (um *DxmUserManagement) Init(databaseNameId string, userPasswordEncryptionK
 		[][]string{{"nameid"}, {"name"}},
 		[]string{"nameid", "name", "description", "created_by_user_nameid", "last_modified_by_user_nameid", "organization_types_text"},
 		[]string{"name", "nameid", "description", "organization_types", "organization_types_text", "parent_id", "parent_uid", "absolute_path", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"},
-		[]string{"id", "uid", "parent_id", "parent_uid", "absolute_path", "nameid", "created_at", "last_modified_at", "is_deleted"},
+		[]string{"id", "uid", "parent_id", "parent_uid", "absolute_path", "nameid", "name", "description", "organization_types", "organization_types_text", "created_at", "last_modified_at", "is_deleted"},
 	)
 	um.Role.FieldNameForRowUtag = "utag"
 	um.Role.DownloadableOrderByFieldNames = []string{"name", "nameid", "description", "organization_types", "created_at", "created_by_user_nameid", "last_modified_at", "last_modified_by_user_nameid", "id", "uid"}
