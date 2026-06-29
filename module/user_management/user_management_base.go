@@ -17,8 +17,13 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib/utils/string_template"
 	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
-	"github.com/repoareta/pgn-partner-common/infrastructure/base"
 )
+
+// UserMessageChannelTypeIdFCM is the user_message_channel_type_id for FCM (= 1, matching
+// self.go's SelfUserMessageSearchPagingList query). Defined locally to drop the former
+// dependency on github.com/repoareta/pgn-partner-common (PGN-private) — dxlib_module now
+// depends only on dxlib + public libraries.
+const UserMessageChannelTypeIdFCM int64 = 1
 
 const (
 	UserStatusActive    = "ACTIVE"
@@ -309,7 +314,7 @@ func (um *DxmUserManagement) UserMessageCreateFCMAllApplication(ctx context.Cont
 	}
 
 	userMessageId, err := um.UserMessage.InsertReturningId(ctx, l, utils.JSON{
-		"user_message_channel_type_id": base.UserMessageChannelTypeIdFCM,
+		"user_message_channel_type_id": UserMessageChannelTypeIdFCM,
 		"user_message_category_id":     userMessageCategoryId,
 		"user_id":                      userId,
 		"title":                        msgTitle,
