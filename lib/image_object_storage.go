@@ -27,6 +27,28 @@ type ProcessedImageObjectStorage struct {
 	ObjectStorageNameId string
 	Width               int
 	Height              int
+	// PathPrefix (opsional): sub-folder yang disisipkan SEBELUM nama file pada key
+	// processed image, mis. "thumb" → "sk/2026/06/thumb/sk_x.webp". Kosong = perilaku
+	// lama (key sama dengan source). Backward-compatible: pemanggil yang tidak menyetel
+	// field ini tidak berubah perilakunya. Dipakai upload & download agar simetris.
+	PathPrefix string
+}
+
+// injectPathPrefix menyisipkan sub-folder `prefix` sebelum nama file pada `key`,
+// mempertahankan direktori di depannya:
+//
+//	("sk/2026/06/sk_x.webp", "thumb") → "sk/2026/06/thumb/sk_x.webp"
+//	("sk_x.webp", "thumb")            → "thumb/sk_x.webp"
+//	(key, "")                         → key   (tak berubah)
+func injectPathPrefix(key, prefix string) string {
+	prefix = strings.Trim(prefix, "/")
+	if prefix == "" {
+		return key
+	}
+	if i := strings.LastIndex(key, "/"); i >= 0 {
+		return key[:i+1] + prefix + "/" + key[i+1:]
+	}
+	return prefix + "/" + key
 }
 
 type ImageObjectStorage struct {
@@ -288,6 +310,9 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 		} else {
 			processedWebpName = filename + ".webp"
 		}
+		// Sisipkan sub-folder PathPrefix (mis. "thumb") bila diset. Simetris dengan
+		// DownloadProcessedImage agar key upload == key download.
+		processedWebpName = injectPathPrefix(processedWebpName, processedImage.PathPrefix)
 		buf := resizedBuf.Bytes()
 		bufLen := int64(len(buf))
 		uploadInfo, err := objectStorage.UploadStream(aepr.Context, bytes.NewReader(buf), processedWebpName, processedWebpName, "image/webp", false, bufLen)
@@ -311,8 +336,20 @@ func (ios *ImageObjectStorage) DownloadSource(aepr *api.DXAPIEndPointRequest, fi
 }
 
 func (ios *ImageObjectStorage) DownloadProcessedImage(aepr *api.DXAPIEndPointRequest, processedImageNameId string, filename string) (err error) {
+	pi := ios.ProcessedImages[processedImageNameId]
 
-	err = object_storage.Manager.FindObjectStorageAndSendObject(aepr, ios.ProcessedImages[processedImageNameId].ObjectStorageNameId, filename)
+	// Bentuk key HARUS identik dengan yang ditulis saat upload processed image:
+	// (1) ekstensi dinormalkan ke .webp, (2) sisipkan PathPrefix (mis. "thumb").
+	// Tanpa ini, download mencari key yang berbeda dari yang di-upload → 404.
+	key := filename
+	if ext := filepath.Ext(filename); ext != "" {
+		key = strings.TrimSuffix(filename, ext) + ".webp"
+	} else {
+		key = filename + ".webp"
+	}
+	key = injectPathPrefix(key, pi.PathPrefix)
+
+	err = object_storage.Manager.FindObjectStorageAndSendObject(aepr, pi.ObjectStorageNameId, key)
 	if err != nil {
 		return err
 	}
