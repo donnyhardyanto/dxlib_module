@@ -128,6 +128,15 @@ func defineConfigurationNoVault(config *Config) error {
 		envPrefix := GetAdminDatabaseEnvPrefix(configDatabaseType)
 		adminDBNameId := strings.ToLower(adminDBName)
 
+		// On Oracle the connectable admin "database" is the shared service/PDB
+		// (DB_ORACLE_DATABASE_NAME, default FREEPDB1) — "system" is the admin USER
+		// and this entry's nameid, not a database. Every other engine connects to
+		// the admin database by its own name.
+		adminDatabaseName := adminDBName
+		if configDatabaseType == base.DXDatabaseTypeOracle {
+			adminDatabaseName = osUtils.GetEnvDefaultValue(envPrefix+"_DATABASE_NAME", "FREEPDB1")
+		}
+
 		// Read admin credentials from environment variables directly (no Vault).
 		configuration.Manager.NewIfNotExistConfiguration("storage", "storage.json", "json", false, false, map[string]any{
 			adminDBNameId: map[string]any{
@@ -136,7 +145,7 @@ func defineConfigurationNoVault(config *Config) error {
 				"address":             osUtils.GetEnvDefaultValue(envPrefix+"_ADDRESS", ""),
 				"user_name":           osUtils.GetEnvDefaultValue(envPrefix+"_USER_NAME", ""),
 				"user_password":       osUtils.GetEnvDefaultValue(envPrefix+"_USER_PASSWORD", ""),
-				"database_name":       adminDBName,
+				"database_name":       adminDatabaseName,
 				"connection_options":  osUtils.GetEnvDefaultValue(envPrefix+"_CONNECTION_OPTIONS", "sslmode=disable"),
 				"must_connected":      true,
 				"is_connect_at_start": true,

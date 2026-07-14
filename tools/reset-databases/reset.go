@@ -182,6 +182,15 @@ func defineConfiguration(config *Config) error {
 		envPrefix := GetAdminDatabaseEnvPrefix(configDatabaseType)
 		adminDBNameId := strings.ToLower(adminDBName)
 
+		// On Oracle the connectable admin "database" is the shared service/PDB
+		// (DB_ORACLE_DATABASE_NAME, default FREEPDB1) — "system" is the admin USER
+		// and this entry's nameid, not a database. Every other engine connects to
+		// the admin database by its own name.
+		adminDatabaseName := adminDBName
+		if configDatabaseType == base.DXDatabaseTypeOracle {
+			adminDatabaseName = app.App.InitVault.GetStringOrEnvOrDefault(context.Background(), envPrefix+"_DATABASE_NAME", "FREEPDB1")
+		}
+
 		// Create admin database configuration dynamically based on detected database type
 		configuration.Manager.NewIfNotExistConfiguration("storage", "storage.json", "json", false, false, map[string]any{
 			adminDBNameId: map[string]any{
@@ -193,7 +202,7 @@ func defineConfiguration(config *Config) error {
 				"address":             app.App.InitVault.GetStringOrEnvOrDefault(context.Background(), envPrefix+"_ADDRESS", ""),
 				"user_name":           app.App.InitVault.GetStringOrEnvOrDefault(context.Background(), envPrefix+"_USER_NAME", ""),
 				"user_password":       app.App.InitVault.GetStringOrEnvOrDefault(context.Background(), envPrefix+"_USER_PASSWORD", ""),
-				"database_name":       adminDBName,
+				"database_name":       adminDatabaseName,
 				"connection_options":  app.App.InitVault.GetStringOrEnvOrDefault(context.Background(), envPrefix+"_CONNECTION_OPTIONS", "sslmode=disable"),
 				"must_connected":      true,
 				"is_connect_at_start": true,
@@ -263,18 +272,20 @@ func executeReset(config *Config) error {
 	}
 
 	// Drop and create databases if enabled
-	if deleteAndCreateDb {
-		// Get admin database - the name was determined dynamically during configuration
-		var dbAdmin *databases.DXDatabase
-		adminDBFound := false
-		for _, db := range databases.Manager.Databases {
-			// Check if this is the admin database by checking if database_name matches common admin database names
-			if db.DatabaseName == "postgres" || db.DatabaseName == "mysql" || db.DatabaseName == "master" || db.DatabaseName == "system" {
-				dbAdmin = db
-				adminDBFound = true
-				break
-			}
+	if deleteAndCreateDb && len(config.Databases) > 0 {
+		// Get admin database by its config nameid (postgres/mysql/master/system —
+		// set up during configuration). Lookup by nameid, NOT by DatabaseName: on
+		// Oracle the admin entry's database_name is the SERVICE (e.g. FREEPDB1),
+		// not "system" ("system" is the admin USER there).
+		firstDB := databases.Manager.Databases[config.Databases[0].NameId]
+		if firstDB == nil {
+			return errors.New("first project database configuration not found")
 		}
+		adminDBName, err := GetAdminDatabaseName(firstDB.DatabaseType)
+		if err != nil {
+			return err
+		}
+		dbAdmin, adminDBFound := databases.Manager.Databases[strings.ToLower(adminDBName)]
 
 		if !adminDBFound {
 			PrintErrorBanner(
@@ -287,7 +298,7 @@ func executeReset(config *Config) error {
 			return errors.New("admin database configuration not found")
 		}
 
-		err := dbAdmin.Connect()
+		err = dbAdmin.Connect()
 		if err != nil {
 			PrintErrorBanner(
 				"❌ ERROR:",
@@ -299,25 +310,61 @@ func executeReset(config *Config) error {
 			return err
 		}
 
-		// Drop all databases (errors intentionally discarded: DB may not exist on first run)
-		for _, dbConfig := range config.Databases {
-			db := databases.Manager.Databases[dbConfig.NameId]
-			_ = databaseUtils.DropDatabase(dbAdmin.Connection, db.DatabaseName)
-		}
+		if dbAdmin.DatabaseType == base.DXDatabaseTypeOracle {
+			// Oracle has no CREATE DATABASE: each logical database is a schema USER
+			// inside the shared service (PDB). Multiple logical DBs may map to the
+			// SAME user (e.g. the app DB and the audit DB sharing one schema), so
+			// provision each distinct user once — and reject configs where two
+			// logical DBs share a user but disagree on its password (that would
+			// otherwise surface later as a confusing ORA-01017 at connect time).
+			provisionedUserPasswords := map[string]string{}
+			for _, dbConfig := range config.Databases {
+				db := databases.Manager.Databases[dbConfig.NameId]
+				userKey := strings.ToUpper(db.UserName)
+				if prevPassword, done := provisionedUserPasswords[userKey]; done {
+					if prevPassword != db.UserPassword {
+						return fmt.Errorf("oracle: databases %q shares user %q with another database but with a DIFFERENT password", dbConfig.NameId, db.UserName)
+					}
+					continue
+				}
+				provisionedUserPasswords[userKey] = db.UserPassword
 
-		// Create all databases
-		for _, dbConfig := range config.Databases {
-			db := databases.Manager.Databases[dbConfig.NameId]
-			err = databaseUtils.CreateDatabase(dbAdmin.Connection, db.DatabaseName)
-			if err != nil {
-				PrintErrorBanner(
-					"❌ ERROR:",
-					fmt.Sprintf("Database Creation Failed: %s", dbConfig.DisplayName),
-					fmt.Sprintf("Database: %s, Error: %s", db.DatabaseName, err.Error()),
-					"",
-					"Check if database already exists or permission issues",
-				)
-				return err
+				// Drop errors intentionally discarded: the user may not exist on first run
+				_ = databaseUtils.DropOracleUser(dbAdmin.Connection, db.UserName)
+
+				err = databaseUtils.CreateOracleUser(dbAdmin.Connection, db.UserName, db.UserPassword)
+				if err != nil {
+					PrintErrorBanner(
+						"❌ ERROR:",
+						fmt.Sprintf("Oracle User Creation Failed: %s", dbConfig.DisplayName),
+						fmt.Sprintf("User: %s, Error: %s", db.UserName, err.Error()),
+						"",
+						"Check admin (SYSTEM) privileges and the user name",
+					)
+					return err
+				}
+			}
+		} else {
+			// Drop all databases (errors intentionally discarded: DB may not exist on first run)
+			for _, dbConfig := range config.Databases {
+				db := databases.Manager.Databases[dbConfig.NameId]
+				_ = databaseUtils.DropDatabase(dbAdmin.Connection, db.DatabaseName)
+			}
+
+			// Create all databases
+			for _, dbConfig := range config.Databases {
+				db := databases.Manager.Databases[dbConfig.NameId]
+				err = databaseUtils.CreateDatabase(dbAdmin.Connection, db.DatabaseName)
+				if err != nil {
+					PrintErrorBanner(
+						"❌ ERROR:",
+						fmt.Sprintf("Database Creation Failed: %s", dbConfig.DisplayName),
+						fmt.Sprintf("Database: %s, Error: %s", db.DatabaseName, err.Error()),
+						"",
+						"Check if database already exists or permission issues",
+					)
+					return err
+				}
 			}
 		}
 	}
