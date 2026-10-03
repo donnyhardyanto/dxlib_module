@@ -78,6 +78,21 @@ func NewImageObjectStorage(objectStorageSourceNameId string,
 	}
 }
 
+var errRequestTooLarge = errors.New("REQUEST_ENTITY_TOO_LARGE")
+
+// readBodyWithLimit copies r into buf and fails with errRequestTooLarge once
+// more than maxSize bytes arrive, without reading the rest.
+func readBodyWithLimit(buf *bytes.Buffer, r io.Reader, maxSize int64) error {
+	n, err := io.Copy(buf, io.LimitReader(r, maxSize+1))
+	if err != nil {
+		return err
+	}
+	if n > maxSize {
+		return errRequestTooLarge
+	}
+	return nil
+}
+
 func calculateAspectRatioHeight(originalWidth, originalHeight, targetWidth int) int {
 	ratio := float64(originalHeight) / float64(originalWidth)
 	return int(float64(targetWidth) * ratio)
@@ -208,11 +223,16 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_GET_BODY_STREAM:%s", ios.ObjectStorageSourceNameId)
 		}
 
-		// RequestRead the entire request body into a buffer
-		_, err = io.Copy(&buf, bs)
+		// Read the body up to MaxRequestSize. Content-Length is only advisory: a
+		// chunked upload sends none, so the limit has to hold while reading.
+		err = readBodyWithLimit(&buf, bs, ios.MaxRequestSize)
+		if err == errRequestTooLarge {
+			return aepr.WriteResponseAndNewErrorf(http.StatusRequestEntityTooLarge, "", "REQUEST_ENTITY_TOO_LARGE")
+		}
 		if err != nil {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "", "FAILED_TO_READ_REQUEST_BODY:%s=%s", ios.ObjectStorageSourceNameId, err.Error())
 		}
+		bodyLen = int64(buf.Len())
 	} else {
 		// Decode base64 string to bytes
 		decodedBytes, err := base64.StdEncoding.DecodeString(fileContentBase64)
@@ -222,6 +242,9 @@ func (ios *ImageObjectStorage) Update(aepr *api.DXAPIEndPointRequest, filename s
 
 		// Get the total size of the decoded content
 		bodyLen = int64(len(decodedBytes))
+		if bodyLen > ios.MaxRequestSize {
+			return aepr.WriteResponseAndNewErrorf(http.StatusRequestEntityTooLarge, "", "REQUEST_ENTITY_TOO_LARGE")
+		}
 		aepr.Log.Infof("Base64 decoded content length: %d", bodyLen)
 
 		// Write decoded bytes to the buffer
