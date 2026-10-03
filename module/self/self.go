@@ -620,7 +620,7 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, "INTERNAL_ERROR", "SHOULD_NOT_HAPPEN:ORGANIZATION_UID_NOT_STRING")
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
+		_, user, err = user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -816,7 +816,7 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 			return err
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
+		_, user, err = user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -1019,7 +1019,7 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 			return err
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
+		_, user, err = user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
@@ -1590,7 +1590,7 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
 	} else {
-		_, user, err := user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
+		_, user, err = user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
 		}, nil, nil)
 		if err != nil {
