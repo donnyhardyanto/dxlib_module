@@ -9,7 +9,8 @@ Do not change public API signatures without asking.
 
     go build ./... && go vet ./... && go test ./...
 
-Bugs are tracked in GitHub issues only, one per bug, with `Fixes #N` in the fixing commit. Ask before pushing;
+Bugs are tracked in GitHub issues only, one per bug, with `Fixes #N` in the fixing commit. There are no
+`BUG_OUTSTANDING.md` or `BUG_HISTORY.md` files (in any spelling); do not create them. Ask before pushing;
 never force-push.
 
 ## Dependencies: SBOM scan
