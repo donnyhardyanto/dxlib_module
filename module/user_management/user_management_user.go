@@ -458,6 +458,10 @@ func (um *DxmUserManagement) UserCreate(aepr *api.DXAPIEndPointRequest) (err err
 		return err
 	}
 
+	if len(lvPayloadElements) < 1 {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:PAYLOAD_LESS_THAN_1_ELEMENTS")
+	}
+
 	lvPayloadPassword := lvPayloadElements[0]
 	userPassword := string(lvPayloadPassword.Value)
 

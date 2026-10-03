@@ -562,6 +562,10 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
 	}
 
+	if len(lvPayloadElements) < 2 {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:PAYLOAD_LESS_THAN_2_ELEMENTS")
+	}
+
 	lvPayloadLoginId := lvPayloadElements[0]
 	lvPayloadPassword := lvPayloadElements[1]
 
@@ -1308,6 +1312,10 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		return err
 	}
 
+	if len(lvPayloadElements) < 5 {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:PAYLOAD_LESS_THAN_5_ELEMENTS")
+	}
+
 	lvPayloadLoginId := lvPayloadElements[0]
 	lvPayloadPassword := lvPayloadElements[1]
 	lvPayloadOrganizationUId := lvPayloadElements[2]
@@ -1497,6 +1505,10 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 	lvPayloadElements, sharedKey2AsBytes, edB0PrivateKeyAsBytes, preKeyData, err := api.OnE2EEPrekeyUnPack(aepr, preKeyIndex, dataAsHexString)
 	if err != nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "INVALID_PREKEY", "NOT_ERROR:UNPACK_ERROR:%v", err.Error())
+	}
+
+	if len(lvPayloadElements) < 2 {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:PAYLOAD_LESS_THAN_2_ELEMENTS")
 	}
 
 	lvPayloadHeader := lvPayloadElements[0]
@@ -2227,6 +2239,10 @@ func (s *DxmSelf) SelfPasswordChange(aepr *api.DXAPIEndPointRequest) (err error)
 	lvPayloadElements, _, _, err := user_management.ModuleUserManagement.PreKeyUnpack(aepr.Context, preKeyIndex, dataAsHexString)
 	if err != nil {
 		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "UNPACK_ERROR:%s", err.Error())
+	}
+
+	if len(lvPayloadElements) < 2 {
+		return aepr.WriteResponseAndNewErrorf(http.StatusUnprocessableEntity, "DATA_CORRUPT", "DATA_CORRUPT:PAYLOAD_LESS_THAN_2_ELEMENTS")
 	}
 
 	lvPayloadNewPassword := lvPayloadElements[0]
