@@ -1316,6 +1316,9 @@ func (um *DxmUserManagement) passwordHashCreate(password string) (hashedString s
 	}
 
 	hashPasswordBlock, err := hashBlock(lvSalt.Value, lvSaltMethod.Value[0], passwordAsBytes)
+	if err != nil {
+		return "", err
+	}
 
 	lvHashedPasswordBlock, err := lv.NewLV(hashPasswordBlock)
 	if err != nil {
