@@ -62,7 +62,14 @@ const (
 	StatusFailed          = "FAILED"
 	StatusFailedPermanent = "FAILED_PERMANENT"
 	StatusExpired         = "EXPIRED"
+	// StatusSending marks a message one worker has claimed and is sending. Its
+	// next_retry_time holds the end of the claim; past that, another worker may
+	// take the message over (the first one crashed or hung).
+	StatusSending = "SENDING"
 )
+
+// FCMClaimLease is how long a claimed message stays reserved for its worker.
+var FCMClaimLease = 5 * time.Minute
 
 type DxmPushNotification struct {
 	FCM     FirebaseCloudMessaging
@@ -798,7 +805,7 @@ func (f *FirebaseCloudMessaging) processMessages(ctx context.Context, applicatio
 	// Use QueryBuilder for safe parameterized query
 	qb := f.FCMMessage.NewTableSelectQueryBuilder()
 	qb.Eq("fcm_application_id", applicationId)
-	qb.InStrings("status", []string{StatusPending, StatusFailed})
+	qb.InStrings("status", []string{StatusPending, StatusFailed, StatusSending})
 	qb.And("((next_retry_time <= NOW()) or (next_retry_time IS NULL))")
 	qb.Limit(100)
 
@@ -903,6 +910,16 @@ func (f *FirebaseCloudMessaging) processMessages(ctx context.Context, applicatio
 			continue
 		}
 
+		// Claim the message so no other worker sends it too
+		isClaimed, err := claimMessageForSending(ctx, f.FCMMessage, fcmMessageId)
+		if err != nil {
+			log.Log.Warnf("Failed to claim message %d: %v", fcmMessageId, err)
+			continue
+		}
+		if !isClaimed {
+			continue // another worker has it
+		}
+
 		err = f.sendNotificationWithErrorHandling(ctx, firebaseServiceAccount.Client, fcmToken, deviceType, msgTitle, msgBody, msgData, fcmMessageId, retryCount)
 		if err != nil {
 			log.Log.Warnf("ERROR_SEND_NOTIFICATION:%d:%+v", fcmMessageId, err)
@@ -924,7 +941,7 @@ func (f *FirebaseCloudMessaging) processSendTopic(ctx context.Context, applicati
 	// Use QueryBuilder for safe parameterized query
 	qb := f.FCMTopicMessage.NewTableSelectQueryBuilder()
 	qb.Eq("fcm_application_id", applicationId)
-	qb.InStrings("status", []string{StatusPending, StatusFailed})
+	qb.InStrings("status", []string{StatusPending, StatusFailed, StatusSending})
 	qb.And("((next_retry_time <= NOW()) or (next_retry_time IS NULL))")
 	qb.Limit(100)
 
@@ -1010,6 +1027,16 @@ func (f *FirebaseCloudMessaging) processSendTopic(ctx context.Context, applicati
 			continue
 		}
 
+		// Claim the message so no other worker sends it too
+		isClaimed, err := claimMessageForSending(ctx, f.FCMTopicMessage, fcmTopicMessageId)
+		if err != nil {
+			log.Log.Warnf("Failed to claim topic message %d: %v", fcmTopicMessageId, err)
+			continue
+		}
+		if !isClaimed {
+			continue // another worker has it
+		}
+
 		err = f.sendTopicNotificationWithErrorHandling(ctx, firebaseServiceAccount.Client, msgTopic, msgTitle, msgBody, msgData, fcmTopicMessageId, retryCount)
 		if err != nil {
 			log.Log.Warnf("ERROR_SEND_TOPIC_NOTIFICATION:%d:%+v", fcmTopicMessageId, err)
@@ -1019,6 +1046,35 @@ func (f *FirebaseCloudMessaging) processSendTopic(ctx context.Context, applicati
 	}
 
 	return nil
+}
+
+// claimMessageForSending reserves one message row for this worker. The UPDATE
+// only matches while the row is still claimable (PENDING or FAILED and due, or
+// SENDING with an expired claim), so when workers race for the same row exactly
+// one of them gets an affected row back.
+func claimMessageForSending(ctx context.Context, table *tables.DXRawTable, messageId int64) (bool, error) {
+	now := time.Now()
+	tqb := table.NewTableUpdateQueryBuilder()
+	tqb.UpdateQueryBuilder.Set("status", StatusSending)
+	tqb.UpdateQueryBuilder.Set("next_retry_time", now.Add(FCMClaimLease))
+	tqb.UpdateQueryBuilder.Where("id", messageId)
+	tqb.Conditions = append(tqb.Conditions,
+		"((status IN (:claim_pending, :claim_failed) AND (next_retry_time IS NULL OR next_retry_time <= :claim_now)) "+
+			"OR (status = :claim_sending AND next_retry_time <= :claim_now))")
+	tqb.Args["claim_pending"] = StatusPending
+	tqb.Args["claim_failed"] = StatusFailed
+	tqb.Args["claim_sending"] = StatusSending
+	tqb.Args["claim_now"] = now
+
+	result, _, err := table.UpdateWithBuilder(ctx, &log.Log, tqb)
+	if err != nil {
+		return false, err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return affected == 1, nil
 }
 
 // Add this new helper function for sending notifications with proper error handling
