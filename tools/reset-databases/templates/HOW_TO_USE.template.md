@@ -387,11 +387,13 @@ IS_LOCAL=true \
 echo "✅ Database reset complete"
 ```
 
-### Docker Integration
+### Container (Podman)
+
+Containers are built and run with Podman, not Docker.
 
 ```dockerfile
-# Dockerfile.reset
-FROM golang:1.21-alpine AS builder
+# Containerfile.reset
+FROM golang:1.27-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN go build -o {{.ProjectName}} ./src/cmd/{{.ProjectName}}
@@ -402,8 +404,9 @@ ENTRYPOINT ["{{.ProjectName}}"]
 ```
 
 ```bash
-# Run in Docker
-docker run --rm \
+# Build and run with Podman
+podman build -f Containerfile.reset -t {{.ProjectName}}:latest .
+podman run --rm \
   -e IS_LOCAL=true \
   -e VAULT_ADDRESS=http://vault:8200 \
   -e VAULT_TOKEN=your-token \
