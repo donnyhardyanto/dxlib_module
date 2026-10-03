@@ -61,7 +61,7 @@ func (fnm *DxmFormNumberManagement) Generate(ctx context.Context, nameid string,
 	}
 
 	switch fnm.FormNumberCounter.Database.DatabaseType {
-	case base.DXDatabaseTypePostgreSQL:
+	case base.DXDatabaseTypePostgreSQL, base.DXDatabaseTypePostgresSQLV2:
 		query = fnm.getPostgreSQLQuery()
 		args = []interface{}{nameid, year, month}
 
