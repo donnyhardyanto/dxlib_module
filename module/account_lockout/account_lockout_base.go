@@ -13,9 +13,11 @@ import (
 )
 
 const (
-	LockoutTypeAutoUnlock   = "AUTO_UNLOCK"
-	LockoutTypeAdminUnlock  = "ADMIN_UNLOCK"
-	LockoutTypeProgressive  = "PROGRESSIVE"
+	LockoutTypeAutoUnlock = "AUTO_UNLOCK"
+	// ADMIN_UNLOCK and PROGRESSIVE are accepted by validateConfig but not
+	// implemented yet: every lock expires after lockout_duration_minutes.
+	LockoutTypeAdminUnlock = "ADMIN_UNLOCK"
+	LockoutTypeProgressive = "PROGRESSIVE"
 
 	EventTypeFailedAttempt        = "FAILED_ATTEMPT"
 	EventTypeAccountLocked        = "ACCOUNT_LOCKED"

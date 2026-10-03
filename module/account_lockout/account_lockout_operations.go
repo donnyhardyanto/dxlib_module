@@ -175,6 +175,13 @@ func (al *DXMAccountLockout) lockAccount(
 		return fmt.Errorf("failed to lock in Redis: %w", err)
 	}
 
+	// Start counting afresh once the lock ends. The counter lives an hour, so
+	// with a shorter lockout a single wrong password after it expired would
+	// otherwise meet the threshold again and re-lock at once.
+	if err := al.ResetCounterRedis(userID); err != nil {
+		log.Log.Warnf("Failed to reset counter after locking user %d: %v", userID, err)
+	}
+
 	// Write audit log
 	now := time.Now()
 	unlockAt := now.Add(time.Duration(al.Config.LockoutDurationMinutes) * time.Minute)
