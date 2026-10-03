@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/donnyhardyanto/dxlib/api"
@@ -228,6 +229,25 @@ func (um *DxmUserManagement) isNumericUserColumn(header string) bool {
 	return numericColumns[header]
 }
 
+// bulkUserColumnAsInt64 reads a numeric column of a bulk import row. XLSX rows
+// carry numeric columns as float64, CSV rows carry every value as a string.
+func bulkUserColumnAsInt64(userData map[string]interface{}, column string) (value int64, isSet bool, err error) {
+	switch v := userData[column].(type) {
+	case nil:
+		return 0, false, nil
+	case float64:
+		return int64(v), true, nil
+	case string:
+		value, err = strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+		if err != nil {
+			return 0, false, errors.Errorf("%s '%s' is not a number", column, v)
+		}
+		return value, true, nil
+	default:
+		return 0, false, errors.Errorf("%s has unexpected type %T", column, v)
+	}
+}
+
 // Helper function to create a user with proper validation
 func (um *DxmUserManagement) doUserCreate(ctx context.Context, log *dxlibLog.DXLog, userData map[string]interface{}) error {
 	// Validate required fields
@@ -253,8 +273,12 @@ func (um *DxmUserManagement) doUserCreate(ctx context.Context, log *dxlibLog.DXL
 
 	// Get organization ID
 	var organizationId int64
-	if orgId, ok := userData["organization_id"].(float64); ok {
-		organizationId = int64(orgId)
+	orgId, isOrgIdSet, err := bulkUserColumnAsInt64(userData, "organization_id")
+	if err != nil {
+		return err
+	}
+	if isOrgIdSet {
+		organizationId = orgId
 	} else if orgName, ok := userData["organization_name"].(string); ok && orgName != "" {
 		// Look up organization by name
 		_, org, err := um.Organization.SelectOne(ctx, log, nil, utils.JSON{
@@ -276,8 +300,12 @@ func (um *DxmUserManagement) doUserCreate(ctx context.Context, log *dxlibLog.DXL
 
 	// Get role ID (default to a basic role if not specified)
 	var roleId int64 = 1 // Default role ID, you might want to make this configurable
-	if rId, ok := userData["role_id"].(float64); ok {
-		roleId = int64(rId)
+	rId, isRoleIdSet, err := bulkUserColumnAsInt64(userData, "role_id")
+	if err != nil {
+		return err
+	}
+	if isRoleIdSet {
+		roleId = rId
 	}
 
 	// Generate a default password (will be reset later)
@@ -325,7 +353,7 @@ func (um *DxmUserManagement) doUserCreate(ctx context.Context, log *dxlibLog.DXL
 	var userOrganizationMembershipId int64
 	var userRoleMembershipId int64
 
-	err := databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(ctx, log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) error {
+	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(ctx, log, sql.LevelReadCommitted, func(tx *databases.DXDatabaseTx) error {
 		// Check if a user already exists
 		_, existingUser, err := um.User.TxSelectOne(tx, nil, utils.JSON{
 			"loginid": loginid,
