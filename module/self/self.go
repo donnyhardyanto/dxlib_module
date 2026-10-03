@@ -679,6 +679,12 @@ func (s *DxmSelf) SelfLogin(aepr *api.DXAPIEndPointRequest) (err error) {
 		if !verificationResult {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
+
+		// Checked after the password so the status is never disclosed without it
+		userStatus, _ := utils.GetStringFromKV(user, "status")
+		if userStatus != user_management.UserStatusActive {
+			return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "USER_SUSPENDED", "NOT_ERROR:USER_IS_NOT_ACTIVE")
+		}
 	}
 
 	sessionKey, err := GenerateSessionKey()
@@ -874,6 +880,12 @@ func (s *DxmSelf) SelfLoginV2(aepr *api.DXAPIEndPointRequest) (err error) {
 
 		if !verificationResult {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		// Checked after the password so the status is never disclosed without it
+		userStatus, _ := utils.GetStringFromKV(user, "status")
+		if userStatus != user_management.UserStatusActive {
+			return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "USER_SUSPENDED", "NOT_ERROR:USER_IS_NOT_ACTIVE")
 		}
 	}
 
@@ -1077,6 +1089,12 @@ func (s *DxmSelf) SelfLoginCaptchaV3(aepr *api.DXAPIEndPointRequest) (err error)
 
 		if !verificationResult {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		// Checked after the password so the status is never disclosed without it
+		userStatus, _ := utils.GetStringFromKV(user, "status")
+		if userStatus != user_management.UserStatusActive {
+			return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "USER_SUSPENDED", "NOT_ERROR:USER_IS_NOT_ACTIVE")
 		}
 	}
 
@@ -1407,6 +1425,12 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		if !verificationResult {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
+
+		// Checked after the password so the status is never disclosed without it
+		userStatus, _ := utils.GetStringFromKV(user, "status")
+		if userStatus != user_management.UserStatusActive {
+			return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "USER_SUSPENDED", "NOT_ERROR:USER_IS_NOT_ACTIVE")
+		}
 	}
 
 	sessionKey, err := GenerateSessionKey()
@@ -1656,6 +1680,12 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 
 		if !verificationResult {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		// Checked after the password so the status is never disclosed without it
+		userStatus, _ := utils.GetStringFromKV(user, "status")
+		if userStatus != user_management.UserStatusActive {
+			return aepr.WriteResponseAndNewErrorf(http.StatusForbidden, "USER_SUSPENDED", "NOT_ERROR:USER_IS_NOT_ACTIVE")
 		}
 	}
 
