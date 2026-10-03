@@ -66,5 +66,5 @@ List the licences from the repo root (syft reads them from the Go module cache, 
 A blank licence or a `sha256:` value means syft did not recognise the text; read the module's `LICENSE` in
 `$(go env GOMODCACHE)` by hand. Put the result next to the SBOM result in the commit message.
 
-Found by the scan of 2026-10-04 and not yet cleared by the owner: `github.com/golang/freetype`, pulled in
-through `dxlib/captcha`, under the FreeType License (not OSI-approved) or GPL-2.0-or-later.
+Accepted by the owner after the scan of 2026-10-04: `github.com/golang/freetype`, pulled in through
+`dxlib/captcha`, taken under its FreeType License option (dxlib records the credit in its NOTICE).
