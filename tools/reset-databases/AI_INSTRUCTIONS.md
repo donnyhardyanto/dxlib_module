@@ -190,10 +190,10 @@ Run basic tests:
 ./tool-{project-name}-reset --help
 
 # Test in development mode
-IS_LOCAL=true ./tool-{project-name}-reset
+{ENV_VAR_PREFIX}_IS_DEV=true ./tool-{project-name}-reset
 
 # Test production safeguard
-IS_LOCAL=false IS_{ENV_VAR_PREFIX}_RESET_DELETE_AND_CREATE_DB=true ./tool-{project-name}-reset
+{ENV_VAR_PREFIX}_IS_DEV=false {ENV_VAR_PREFIX}_RESET_DELETE_AND_CREATE_DB=true ./tool-{project-name}-reset
 # Expected: Safety violation error
 ```
 
@@ -254,7 +254,7 @@ AI: Generated confirmation keys:
     - HOW_TO_USE.md: Complete usage guide
 
     Run with:
-    IS_LOCAL=true ./tool-myproject-reset
+    MY_PROJECT_IS_DEV=true ./tool-myproject-reset
 ```
 
 ## Template Variables Reference

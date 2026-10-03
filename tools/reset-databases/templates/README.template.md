@@ -23,15 +23,15 @@ This tool manages the following databases:
 
 ## Safety Features
 
-### Production Protection (IS_LOCAL=false)
+### Production Protection ({{.EnvVarPrefix}}_IS_DEV=false)
 - ❌ Database DROP is **HARD BLOCKED** (cannot be overridden)
 - ❌ Confirmation bypass is **HARD BLOCKED** (cannot be overridden)
 - ✅ Attempts to override trigger critical safety violation errors
 - ✅ Manual confirmation required for all operations
 
-### Development Mode (IS_LOCAL=true)
-- ✅ Database DROP allowed (default: enabled, can be disabled)
-- ✅ Confirmation can be bypassed (default: enabled)
+### Development Mode ({{.EnvVarPrefix}}_IS_DEV=true)
+- ✅ Database DROP allowed when {{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=true (off by default)
+- ✅ Confirmation can be bypassed with {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 (off by default)
 - ✅ Full control over reset behavior via environment variables
 
 ## Quick Start
@@ -42,28 +42,28 @@ This tool manages the following databases:
 make app={{.ProjectName}} build-tool
 
 # Run with database DROP and auto-confirmation
-IS_LOCAL=true {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=true {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 ./{{.ProjectName}}
 
 # Run with confirmation prompts
-IS_LOCAL=true {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=0 ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=true {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=0 ./{{.ProjectName}}
 ```
 
 ### Production/Staging Mode
 ```bash
 # Production mode (no DROP, requires confirmation)
-IS_LOCAL=false ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=false ./{{.ProjectName}}
 
 # This will FAIL with safety violation:
-IS_LOCAL=false IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=true ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=false {{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=true ./{{.ProjectName}}
 ```
 
 ## Environment Variables
 
 | Variable | Description | Dev Default | Prod Default |
 |----------|-------------|-------------|--------------|
-| `IS_LOCAL` | Enable development mode | `false` | `false` |
-| `IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB` | Drop and recreate databases | `true` | `false` (blocked) |
-| `{{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION` | Skip confirmation prompts | `1` | `0` (blocked) |
+| `{{.EnvVarPrefix}}_IS_DEV` | Enable development mode | `false` | `false` |
+| `{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB` | Drop and recreate databases | `false` | `false` (blocked) |
+| `{{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION` | Skip confirmation prompts | `0` | `0` (blocked) |
 | `VAULT_ADDRESS` | Vault server address | `http://127.0.0.1:8200/` | (required) |
 | `VAULT_TOKEN` | Vault authentication token | `dev-vault-token` | (required) |
 | `VAULT_PATH` | Vault secret path | `kv/data/...` | (required) |
@@ -95,7 +95,7 @@ go build -o {{.ProjectName}}
 
 ### Scenario 1: Fresh Development Setup
 ```bash
-IS_LOCAL=true {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=true {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 ./{{.ProjectName}}
 ```
 - Drops all databases
 - Creates fresh databases
@@ -104,7 +104,7 @@ IS_LOCAL=true {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 ./{{.ProjectName}}
 
 ### Scenario 2: Schema Update (No DROP)
 ```bash
-IS_LOCAL=true IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=false ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=true {{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=false ./{{.ProjectName}}
 ```
 - Skips database DROP
 - Runs DDL scripts (may fail if tables exist)
@@ -112,7 +112,7 @@ IS_LOCAL=true IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=false ./{{.Project
 
 ### Scenario 3: Production Schema Initialization
 ```bash
-IS_LOCAL=false ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=false ./{{.ProjectName}}
 # Enter confirmation keys when prompted
 ```
 - No database DROP (hard blocked)
@@ -173,7 +173,7 @@ VAULT_ADDRESS=... VAULT_TOKEN=... VAULT_PATH=... ./{{.ProjectName}}
 ### "CRITICAL SAFETY VIOLATION"
 **Cause:** Attempted to DROP databases in production mode
 
-**Fix:** This is intentional. Use `IS_LOCAL=true` for development or remove the `IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB` override.
+**Fix:** This is intentional. Use `{{.EnvVarPrefix}}_IS_DEV=true` for development or remove the `{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB` override.
 
 ## Related Documentation
 

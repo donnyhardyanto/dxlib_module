@@ -61,9 +61,9 @@ go build -o {{.ProjectName}}
 
 ## Understanding Modes
 
-This tool operates in two distinct modes based on the `IS_LOCAL` environment variable.
+This tool operates in two distinct modes based on the `{{.EnvVarPrefix}}_IS_DEV` environment variable.
 
-### Development Mode (IS_LOCAL=true)
+### Development Mode ({{.EnvVarPrefix}}_IS_DEV=true)
 
 **When to use:** Local development, testing, CI/CD pipelines
 
@@ -74,10 +74,10 @@ This tool operates in two distinct modes based on the `IS_LOCAL` environment var
 
 **Example:**
 ```bash
-IS_LOCAL=true ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=true ./{{.ProjectName}}
 ```
 
-### Production Mode (IS_LOCAL=false)
+### Production Mode ({{.EnvVarPrefix}}_IS_DEV=false)
 
 **When to use:** Staging, production, any shared environment
 
@@ -89,7 +89,7 @@ IS_LOCAL=true ./{{.ProjectName}}
 
 **Example:**
 ```bash
-IS_LOCAL=false ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=false ./{{.ProjectName}}
 ```
 
 ## Common Tasks
@@ -100,7 +100,7 @@ IS_LOCAL=false ./{{.ProjectName}}
 
 **Command:**
 ```bash
-IS_LOCAL=true \
+{{.EnvVarPrefix}}_IS_DEV=true \
 {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 \
 ./{{.ProjectName}}
 ```
@@ -126,8 +126,8 @@ IS_LOCAL=true \
 
 **Command:**
 ```bash
-IS_LOCAL=true \
-IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=false \
+{{.EnvVarPrefix}}_IS_DEV=true \
+{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=false \
 {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 \
 ./{{.ProjectName}}
 ```
@@ -152,7 +152,7 @@ IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=false \
 
 **Command:**
 ```bash
-IS_LOCAL=false \
+{{.EnvVarPrefix}}_IS_DEV=false \
 ./{{.ProjectName}}
 ```
 
@@ -198,8 +198,8 @@ Input the input confirmation key 2 to confirm:
 
 **Command:**
 ```bash
-IS_LOCAL=true \
-IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=false \
+{{.EnvVarPrefix}}_IS_DEV=true \
+{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=false \
 {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 \
 ./{{.ProjectName}}
 ```
@@ -216,14 +216,14 @@ IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=false \
 
 ## Safety Features
 
-### 1. IS_LOCAL Protection
+### 1. {{.EnvVarPrefix}}_IS_DEV Protection
 
 ```bash
 # This is SAFE ✅
-IS_LOCAL=true ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=true ./{{.ProjectName}}
 
 # This is BLOCKED ❌
-IS_LOCAL=false IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=true ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=false {{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=true ./{{.ProjectName}}
 # Error: CRITICAL SAFETY VIOLATION
 ```
 
@@ -331,14 +331,14 @@ Or bypass in development:
 **Symptoms:**
 ```
 ⛔ CRITICAL SAFETY VIOLATION: Database DROP Blocked in Production
-Attempted to DROP databases with IS_LOCAL=false
+Attempted to DROP databases with {{.EnvVarPrefix}}_IS_DEV=false
 ```
 
 **Cause:** Attempted to DROP databases in production mode
 
 **Solution:** This is intentional. Options:
-1. Use `IS_LOCAL=true` for development
-2. Remove `IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=true` override
+1. Use `{{.EnvVarPrefix}}_IS_DEV=true` for development
+2. Remove `{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=true` override
 3. Accept that DROP is blocked in production
 
 ---
@@ -356,7 +356,7 @@ Error: table "users" already exists
 **Solution:**
 ```bash
 # Option 1: Drop databases first (development only)
-IS_LOCAL=true IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=true ./{{.ProjectName}}
+{{.EnvVarPrefix}}_IS_DEV=true {{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB=true ./{{.ProjectName}}
 
 # Option 2: Manually drop conflicting tables
 psql -U postgres -d your_database -c "DROP TABLE IF EXISTS users CASCADE;"
@@ -380,7 +380,7 @@ export VAULT_TOKEN=$CI_VAULT_TOKEN
 export VAULT_PATH=$CI_VAULT_PATH
 
 # Run reset with bypass (CI is considered local)
-IS_LOCAL=true \
+{{.EnvVarPrefix}}_IS_DEV=true \
 {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1 \
 ./{{.ProjectName}}
 
@@ -407,7 +407,7 @@ ENTRYPOINT ["{{.ProjectName}}"]
 # Build and run with Podman
 podman build -f Containerfile.reset -t {{.ProjectName}}:latest .
 podman run --rm \
-  -e IS_LOCAL=true \
+  -e {{.EnvVarPrefix}}_IS_DEV=true \
   -e VAULT_ADDRESS=http://vault:8200 \
   -e VAULT_TOKEN=your-token \
   -e VAULT_PATH=kv/data/your-path \
@@ -428,7 +428,7 @@ spec:
       - name: reset
         image: {{.ProjectName}}:latest
         env:
-        - name: IS_LOCAL
+        - name: {{.EnvVarPrefix}}_IS_DEV
           value: "false"  # Production mode
         - name: VAULT_ADDRESS
           valueFrom:
@@ -447,15 +447,15 @@ spec:
 
 ```bash
 # Development
-export IS_LOCAL=true
+export {{.EnvVarPrefix}}_IS_DEV=true
 export {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION=1
 
 # Staging
-export IS_LOCAL=false
+export {{.EnvVarPrefix}}_IS_DEV=false
 # No bypass - requires manual confirmation
 
 # Production
-export IS_LOCAL=false
+export {{.EnvVarPrefix}}_IS_DEV=false
 # No bypass - requires manual confirmation
 # DROP is hard blocked
 ```
@@ -466,8 +466,8 @@ export IS_LOCAL=false
 
 | Variable | Type | Dev Default | Prod Default | Description |
 |----------|------|-------------|--------------|-------------|
-| `IS_LOCAL` | boolean | `false` | `false` | Enable development mode |
-| `IS_{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB` | boolean | `true` | `false` (blocked) | Drop and recreate databases |
+| `{{.EnvVarPrefix}}_IS_DEV` | boolean | `false` | `false` | Enable development mode |
+| `{{.EnvVarPrefix}}_RESET_DELETE_AND_CREATE_DB` | boolean | `true` | `false` (blocked) | Drop and recreate databases |
 | `{{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION` | int | `1` | `0` (blocked) | Skip confirmation prompts |
 
 ### Vault Variables
@@ -496,7 +496,7 @@ export IS_LOCAL=false
 
 ### ✅ Do
 
-- Run with `IS_LOCAL=true` in development
+- Run with `{{.EnvVarPrefix}}_IS_DEV=true` in development
 - Use confirmation bypass in CI/CD pipelines
 - Keep vault credentials secure
 - Review DDL output files in version control
@@ -505,7 +505,7 @@ export IS_LOCAL=false
 
 ### ❌ Don't
 
-- Never run with `IS_LOCAL=true` in production
+- Never run with `{{.EnvVarPrefix}}_IS_DEV=true` in production
 - Never commit vault tokens to version control
 - Never bypass confirmations in production
 - Never run without understanding what it does

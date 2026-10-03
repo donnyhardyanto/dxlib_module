@@ -46,7 +46,7 @@ func main() {
 2. **Build and run:**
 ```bash
 go build -o my-project-reset
-IS_LOCAL=true ./my-project-reset
+MY_PROJECT_IS_DEV=true ./my-project-reset
 ```
 
 ## For AI Agents: Automated Generation
@@ -71,9 +71,9 @@ See **AI_INSTRUCTIONS.md** for complete instructions on:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `IS_LOCAL` | Enable development mode (allows DROP) | `false` |
-| `IS_{PREFIX}_RESET_DELETE_AND_CREATE_DB` | Drop and recreate databases | `true` (dev), `false` (prod) |
-| `{PREFIX}_RESET_BYPASS_CONFIRMATION` | Skip confirmation prompts | `1` (dev), `0` (prod) |
+| `{PREFIX}_IS_DEV` | Enable development mode (allows DROP) | `false` |
+| `{PREFIX}_RESET_DELETE_AND_CREATE_DB` | Drop and recreate databases (dev mode only) | `false` |
+| `{PREFIX}_RESET_BYPASS_CONFIRMATION` | Skip confirmation prompts (dev mode only) | `0` |
 | `DB_{TYPE}_ADDRESS` | Admin database connection address | (from vault) |
 | `DB_{TYPE}_USER_NAME` | Admin database username | (from vault) |
 | `DB_{TYPE}_USER_PASSWORD` | Admin database password | (from vault) |
@@ -83,15 +83,15 @@ Where `{PREFIX}` is your `EnvVarPrefix` and `{TYPE}` is the database type (POSTG
 ## Safety Features
 
 ### Production Protection
-- When `IS_LOCAL=false`:
+- When `{PREFIX}_IS_DEV=false`:
   - Database DROP is **BLOCKED** (cannot be overridden)
   - Confirmation prompts are **REQUIRED** (cannot be bypassed)
   - Attempts to override trigger critical safety violation errors
 
 ### Development Flexibility
-- When `IS_LOCAL=true`:
-  - Database DROP is allowed (default: enabled)
-  - Confirmation can be bypassed (default: enabled)
+- When `{PREFIX}_IS_DEV=true`:
+  - Database DROP is allowed when {PREFIX}_RESET_DELETE_AND_CREATE_DB=true (off by default)
+  - Confirmation can be bypassed with {PREFIX}_RESET_BYPASS_CONFIRMATION=1 (off by default)
   - Full control over reset behavior
 
 ## Configuration Types
