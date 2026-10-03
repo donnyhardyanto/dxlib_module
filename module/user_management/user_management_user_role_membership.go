@@ -67,7 +67,7 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 		}
 
 		if um.OnUserRoleMembershipAfterCreate != nil {
-			err2 = um.OnUserRoleMembershipAfterCreate(aepr, dtx, userRoleMembership, 0)
+			err2 = um.OnUserRoleMembershipAfterCreate(aepr, dtx, userRoleMembership, organizationId)
 			if err2 != nil {
 				return err2
 			}
