@@ -1369,6 +1369,38 @@ func (s *DxmSelf) SelfLoginCaptcha(aepr *api.DXAPIEndPointRequest) (err error) {
 		if !verificationResult {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
 		}
+
+		userId, err := utils.GetInt64FromKV(user, "id")
+		if err != nil {
+			return err
+		}
+
+		us := utils.JSON{
+			"user_id": userId,
+		}
+
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
+		}
+
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		userLoggedOrganizationId, err = utils.GetInt64FromKV(userLoggedOrganization, "id")
+		if err != nil {
+			return err
+		}
+		userLoggedOrganizationUid, err = utils.GetStringFromKV(userLoggedOrganization, "uid")
+		if err != nil {
+			return err
+		}
 	} else {
 		_, user, err = user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
 			"loginid": userLoginId,
@@ -1624,6 +1656,38 @@ func (s *DxmSelf) SelfLoginCaptchaV2(aepr *api.DXAPIEndPointRequest) (err error)
 		}
 		if !verificationResult {
 			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		userId, err := utils.GetInt64FromKV(user, "id")
+		if err != nil {
+			return err
+		}
+
+		us := utils.JSON{
+			"user_id": userId,
+		}
+
+		if organizationUId != "" {
+			us["organization_uid"] = organizationUId
+		}
+
+		_, userOrganizationMemberships, err = user_management.ModuleUserManagement.UserOrganizationMembership.Select(aepr.Context, &aepr.Log, nil, us, nil,
+			db.DXDatabaseTableFieldsOrderBy{"order_index": "asc"}, nil, nil)
+		if err != nil {
+			return err
+		}
+
+		if len(userOrganizationMemberships) == 0 {
+			return aepr.WriteResponseAndNewErrorf(http.StatusUnauthorized, base.MsgInvalidCredential, base.LogMsgNotErrorInvalidCredential)
+		}
+
+		userLoggedOrganizationId, err = utils.GetInt64FromKV(userLoggedOrganization, "id")
+		if err != nil {
+			return err
+		}
+		userLoggedOrganizationUid, err = utils.GetStringFromKV(userLoggedOrganization, "uid")
+		if err != nil {
+			return err
 		}
 	} else {
 		_, user, err = user_management.ModuleUserManagement.User.SelectOne(aepr.Context, &aepr.Log, nil, utils.JSON{
