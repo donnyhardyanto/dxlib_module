@@ -10,7 +10,7 @@ require (
 	github.com/tealeg/xlsx v1.0.5
 	go.opentelemetry.io/otel v1.46.0
 	go.opentelemetry.io/otel/trace v1.46.0
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	golang.org/x/image v0.45.0
 )
 
