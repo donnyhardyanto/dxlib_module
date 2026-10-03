@@ -2,6 +2,7 @@ package audit_log
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/donnyhardyanto/dxlib/app"
@@ -59,16 +60,26 @@ func (al *DxmAudit) DoError(callerLog *log.DXLog, errPrev error, logLevel log.DX
 	}
 	logLevelAsString := log.DXLogLevelAsString[logLevel]
 
-	// Temporarily disable OnError to prevent infinite recursion when logging insert errors
+	// Temporarily disable OnError to prevent infinite recursion when logging insert errors.
+	// The swap is serialized: two errors logged at once would otherwise save each
+	// other's nil and leave OnError disabled for the rest of the process.
+	doErrorMutex.Lock()
+	defer doErrorMutex.Unlock()
 	originalOnError := log.OnError
 	log.OnError = nil
+	defer func() {
+		log.OnError = originalOnError
+	}()
 
 	requestURL := ""
 	if callerLog != nil {
 		requestURL = callerLog.RequestURL
 	}
 
-	_, returningValues, err := ModuleAuditLog.ErrorLog.Insert(context.Background(), &log.Log, utils.JSON{
+	// Bounded, because every other erroring goroutine waits on doErrorMutex meanwhile
+	insertCtx, cancelInsert := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelInsert()
+	_, returningValues, err := ModuleAuditLog.ErrorLog.Insert(insertCtx, &log.Log, utils.JSON{
 		"at":        time.Now(),
 		"prefix":    app.App.NameId + " " + app.App.Version,
 		"log_level": logLevelAsString,
@@ -93,9 +104,6 @@ func (al *DxmAudit) DoError(callerLog *log.DXLog, errPrev error, logLevel log.DX
 		}
 	}
 
-	// Restore OnError only after all error handling is complete
-	log.OnError = originalOnError
-
 	if err != nil {
 		return err
 	}
@@ -103,6 +111,8 @@ func (al *DxmAudit) DoError(callerLog *log.DXLog, errPrev error, logLevel log.DX
 }
 
 var ModuleAuditLog DxmAudit
+
+var doErrorMutex sync.Mutex
 
 func init() {
 	ModuleAuditLog = DxmAudit{}
