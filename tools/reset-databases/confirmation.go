@@ -11,6 +11,18 @@ import (
 // PromptForConfirmation prompts user for two confirmation keys and validates them
 // Returns error if validation fails or stdin I/O error occurs
 func PromptForConfirmation(key1, key2 string) error {
+	// Empty keys would let two presses of Enter confirm a reset
+	if strings.TrimSpace(key1) == "" || strings.TrimSpace(key2) == "" {
+		PrintErrorBanner(
+			"❌ ERROR:",
+			"Confirmation Keys Not Set",
+			"ConfirmationKey1 and ConfirmationKey2 must not be empty",
+			"",
+			"Set both keys in the reset tool's Config",
+		)
+		return errors.New("confirmation keys are not set")
+	}
+
 	reader := bufio.NewReader(stdos.Stdin)
 
 	fmt.Println("Input confirmation key 1?")
