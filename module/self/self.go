@@ -2395,6 +2395,9 @@ func (s *DxmSelf) SelfAvatarUpdate(aepr *api.DXAPIEndPointRequest) (err error) {
 	_, err = user_management.ModuleUserManagement.User.UpdateById(aepr.Context, &aepr.Log, userId, utils.JSON{
 		"is_avatar_exist": true,
 	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -2426,6 +2429,9 @@ func (s *DxmSelf) SelfAvatarUpdateFileContentBase64(aepr *api.DXAPIEndPointReque
 	_, err = user_management.ModuleUserManagement.User.UpdateById(aepr.Context, &aepr.Log, userId, utils.JSON{
 		"is_avatar_exist": true,
 	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -2747,6 +2753,9 @@ func (s *DxmSelf) SelfSystemSetModeToMaintenance(aepr *api.DXAPIEndPointRequest)
 	}
 	if s.OnSystemSetToModeMaintenance != nil {
 		err = s.OnSystemSetToModeMaintenance(aepr.Context, &aepr.Log)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -2760,6 +2769,9 @@ func (s *DxmSelf) SelfSystemSetModeToNormal(aepr *api.DXAPIEndPointRequest) (err
 	}
 	if s.OnSystemSetToModeNormal != nil {
 		err = s.OnSystemSetToModeNormal(aepr.Context, &aepr.Log)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
