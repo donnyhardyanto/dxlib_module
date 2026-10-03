@@ -1138,6 +1138,16 @@ func isPermanentFCMError(err error) bool {
 		return false
 	}
 
+	// Typed checks first: the Firebase SDK knows which error codes are transient
+	if messaging.IsUnavailable(err) || messaging.IsInternal(err) || messaging.IsQuotaExceeded(err) ||
+		messaging.IsMessageRateExceeded(err) || messaging.IsUnknown(err) {
+		return false
+	}
+	if messaging.IsUnregistered(err) || messaging.IsInvalidArgument(err) || messaging.IsSenderIDMismatch(err) ||
+		messaging.IsMismatchedCredential(err) || messaging.IsInvalidAPNSCredentials(err) || messaging.IsThirdPartyAuthError(err) {
+		return true
+	}
+
 	// Check for specific FCM error types that indicate permanent failures
 	errStr := err.Error()
 
@@ -1169,24 +1179,15 @@ func isPermanentFCMError(err error) bool {
 		}
 	}
 
-	// Firebase v4 uses standard error strings, check for HTTP status codes in error message
-	// 400 Bad Request - Invalid arguments
-	// 401 Unauthorized - Authentication issues
-	// 403 Forbidden - Permission denied
-	// 404 Not Found - Token not registered
-	if strings.Contains(errStr, "400") ||
-		strings.Contains(errStr, "401") ||
-		strings.Contains(errStr, "403") ||
-		strings.Contains(errStr, "404") {
-		return true
-	}
-
 	return false
 }
 
 func isTokenRelatedPermanentError(err error) bool {
 	if err == nil {
 		return false
+	}
+	if messaging.IsUnregistered(err) {
+		return true
 	}
 	errStr := strings.ToLower(err.Error())
 	tokenPatterns := []string{
