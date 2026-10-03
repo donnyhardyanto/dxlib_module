@@ -487,11 +487,31 @@ func (um *DxmUserManagement) OrganizationReadByName(aepr *api.DXAPIEndPointReque
 }
 
 func (um *DxmUserManagement) OrganizationEdit(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Organization.RequestEdit(aepr)
+	err = um.Organization.RequestEdit(aepr)
+	if err != nil {
+		return err
+	}
+	um.refreshOrganizationMemberSessions(aepr)
+	return nil
 }
 
 func (um *DxmUserManagement) OrganizationDelete(aepr *api.DXAPIEndPointRequest) (err error) {
-	return um.Organization.RequestSoftDelete(aepr)
+	err = um.Organization.RequestSoftDelete(aepr)
+	if err != nil {
+		return err
+	}
+	um.refreshOrganizationMemberSessions(aepr)
+	return nil
+}
+
+// refreshOrganizationMemberSessions makes the live sessions of the organization
+// in the request's id parameter reload it (status, deletion) on their next request.
+func (um *DxmUserManagement) refreshOrganizationMemberSessions(aepr *api.DXAPIEndPointRequest) {
+	_, organizationId, err := aepr.GetParameterValueAsInt64(um.Organization.FieldNameForRowId)
+	if err != nil {
+		return
+	}
+	um.IncrementPrivilegeVersionForOrganization(aepr.Context, &aepr.Log, organizationId)
 }
 
 // OrganizationEditByUidHandler - Handles organization edit with UID-based parameters

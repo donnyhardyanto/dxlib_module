@@ -38,6 +38,10 @@ func (um *DxmUserManagement) GetOrInitUserPrivilegeVersion(ctx context.Context, 
 
 // IncrementUserPrivilegeVersion increments privilege_version:{userId} in SessionRedis. Best-effort: logs error, does not fail.
 func (um *DxmUserManagement) IncrementUserPrivilegeVersion(ctx context.Context, userId int64) {
+	if um.SessionRedis == nil || um.SessionRedis.Connection == nil {
+		// No session store wired: there are no live sessions to refresh
+		return
+	}
 	key := privilegeVersionKey(userId)
 	err := um.SessionRedis.Connection.Incr(ctx, key).Err()
 	if err != nil {
@@ -47,6 +51,9 @@ func (um *DxmUserManagement) IncrementUserPrivilegeVersion(ctx context.Context, 
 
 // IncrementPrivilegeVersionForRole queries active UserRoleMembership for roleId, then increments privilege version for each affected user.
 func (um *DxmUserManagement) IncrementPrivilegeVersionForRole(ctx context.Context, l *dxlibLog.DXLog, roleId int64) {
+	if um.SessionRedis == nil || um.SessionRedis.Connection == nil {
+		return
+	}
 	_, memberships, err := um.UserRoleMembership.Select(ctx, l, nil, utils.JSON{
 		"role_id": roleId,
 	}, nil, nil, nil, nil)
@@ -68,6 +75,9 @@ func (um *DxmUserManagement) IncrementPrivilegeVersionForRole(ctx context.Contex
 // then increments privilege version for each affected user. This forces session refresh for all members
 // when organization status changes (e.g., activate, suspend, delete).
 func (um *DxmUserManagement) IncrementPrivilegeVersionForOrganization(ctx context.Context, l *dxlibLog.DXLog, organizationId int64) {
+	if um.SessionRedis == nil || um.SessionRedis.Connection == nil {
+		return
+	}
 	_, memberships, err := um.UserOrganizationMembership.Select(ctx, l, nil, utils.JSON{
 		"organization_id": organizationId,
 	}, nil, nil, nil, nil)

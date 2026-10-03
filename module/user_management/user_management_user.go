@@ -1020,6 +1020,9 @@ func (um *DxmUserManagement) DoUserEdit(aepr *api.DXAPIEndPointRequest, userId i
 		return 0, nil, err
 	}
 
+	// Live sessions pick up the edited user (status, loginid, ...) on their next request
+	um.IncrementUserPrivilegeVersion(aepr.Context, userId)
+
 	_, userRow, err := t.ShouldGetById(aepr.Context, &aepr.Log, userId)
 	if err != nil {
 		return 0, nil, err
@@ -1102,6 +1105,9 @@ func (um *DxmUserManagement) DoUserDelete(aepr *api.DXAPIEndPointRequest, userId
 	if err != nil {
 		return 0, nil, err
 	}
+
+	// Live sessions of the deleted user end on their next request
+	um.IncrementUserPrivilegeVersion(aepr.Context, userId)
 
 	return userId, uid, nil
 }
@@ -1212,6 +1218,9 @@ func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err er
 		return err
 	}
 
+	// Live sessions pick up the new status on their next request
+	um.IncrementUserPrivilegeVersion(aepr.Context, userId)
+
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
 }
@@ -1251,6 +1260,9 @@ func (um *DxmUserManagement) UserActivate(aepr *api.DXAPIEndPointRequest) (err e
 	if err != nil {
 		return err
 	}
+
+	// Live sessions pick up the new status on their next request
+	um.IncrementUserPrivilegeVersion(aepr.Context, userId)
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil
@@ -1293,6 +1305,9 @@ func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err e
 	if err != nil {
 		return err
 	}
+
+	// Live sessions pick up the new status on their next request
+	um.IncrementUserPrivilegeVersion(aepr.Context, userId)
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, nil)
 	return nil

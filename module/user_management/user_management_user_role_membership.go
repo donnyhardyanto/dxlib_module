@@ -78,6 +78,9 @@ func (um *DxmUserManagement) UserRoleMembershipCreate(aepr *api.DXAPIEndPointReq
 		return err
 	}
 
+	// The user's live sessions pick up the new role on their next request
+	um.IncrementUserPrivilegeVersion(aepr.Context, userId)
+
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
 		"uid": userRoleMembershipUid,
 	}})
@@ -91,6 +94,7 @@ func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPoin
 	}
 
 	var userRoleMembershipUid string
+	var membershipUserId int64
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var userRoleMembership utils.JSON
 		_, userRoleMembership, err2 := um.UserRoleMembership.TxShouldGetById(dtx, userRoleMembershipId)
@@ -100,6 +104,7 @@ func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPoin
 		if uid, ok := userRoleMembership["uid"].(string); ok {
 			userRoleMembershipUid = uid
 		}
+		membershipUserId, _ = utils.GetInt64FromKV(userRoleMembership, "user_id")
 
 		if um.OnUserRoleMembershipBeforeSoftDelete != nil {
 			err2 = um.OnUserRoleMembershipBeforeSoftDelete(aepr, dtx, userRoleMembership)
@@ -117,6 +122,11 @@ func (um *DxmUserManagement) UserRoleMembershipSoftDelete(aepr *api.DXAPIEndPoin
 		return err
 	}
 
+	// The user's live sessions lose the role on their next request
+	if membershipUserId != 0 {
+		um.IncrementUserPrivilegeVersion(aepr.Context, membershipUserId)
+	}
+
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{
 		"uid": userRoleMembershipUid,
 	}})
@@ -130,6 +140,7 @@ func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPoin
 	}
 
 	var userRoleMembershipUid string
+	var membershipUserId int64
 	err = databases.Manager.GetOrCreate(um.DatabaseNameId).Tx(aepr.Context, &aepr.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
 		var userRoleMembership utils.JSON
 		_, userRoleMembership, err2 := um.UserRoleMembership.TxShouldGetById(dtx, userRoleMembershipId)
@@ -139,6 +150,7 @@ func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPoin
 		if uid, ok := userRoleMembership["uid"].(string); ok {
 			userRoleMembershipUid = uid
 		}
+		membershipUserId, _ = utils.GetInt64FromKV(userRoleMembership, "user_id")
 
 		if um.OnUserRoleMembershipBeforeHardDelete != nil {
 			err2 = um.OnUserRoleMembershipBeforeHardDelete(aepr, dtx, userRoleMembership)
@@ -154,6 +166,11 @@ func (um *DxmUserManagement) UserRoleMembershipHardDelete(aepr *api.DXAPIEndPoin
 	})
 	if err != nil {
 		return err
+	}
+
+	// The user's live sessions lose the role on their next request
+	if membershipUserId != 0 {
+		um.IncrementUserPrivilegeVersion(aepr.Context, membershipUserId)
 	}
 
 	aepr.WriteResponseAsJSON(http.StatusOK, nil, utils.JSON{"data": utils.JSON{

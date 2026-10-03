@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/donnyhardyanto/dxlib/api"
@@ -25,7 +26,14 @@ func (um *DxmUserManagement) RolePrivilegeCreate(aepr *api.DXAPIEndPointRequest)
 		"role_id":      roleId,
 		"privilege_id": privilegeId,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	// Live sessions of the role's members pick up the privilege on their next request
+	if roleIdAsInt64, parseErr := strconv.ParseInt(roleId, 10, 64); parseErr == nil {
+		um.IncrementPrivilegeVersionForRole(aepr.Context, &aepr.Log, roleIdAsInt64)
+	}
+	return nil
 }
 
 func (um *DxmUserManagement) RolePrivilegeTxInsert(dtx *databases.DXDatabaseTx, roleId int64, privilegeNameId string) (id int64, err error) {
