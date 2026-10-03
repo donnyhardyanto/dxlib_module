@@ -44,3 +44,27 @@ Rules:
 - An upgrade must not add a finding. A finding that was already there and has no fix yet may stay, but name it.
 - Put the result in the commit message: "SBOM scan clean (syft, grype, osv-scanner, govulncheck)", or what was
   found and how it was resolved.
+
+## Dependencies: licence check
+
+Every dependency must be open source. Check the licence of each new or upgraded dependency (Go module, GitHub
+Action in `.github/workflows`, or any tool copied into the repo) at the same time as the SBOM scan, including
+what it pulls in.
+
+- Allowed: OSI-approved licences such as MIT, BSD-2-Clause, BSD-3-Clause, Apache-2.0, ISC, and MPL-2.0
+  (weak copyleft that applies per file).
+- Ask the owner first: GPL, AGPL and LGPL.
+- Never: source-available, "community", commercial or key-gated licences.
+- A new major version can change the licence (PrimeVue 5 moved to the proprietary PrimeUI License, so dx-erp
+  stays on PrimeVue 4.x), so read it again on every major upgrade.
+
+List the licences from the repo root (syft reads them from the Go module cache, so run `go mod download` first):
+
+    SYFT_GOLANG_SEARCH_LOCAL_MOD_CACHE_LICENSES=true syft dir:. -q -o syft-json \
+      | jq -r '.artifacts[] | [.name, .version, ([.licenses[]?.value] | join(" | "))] | @tsv' | sort
+
+A blank licence or a `sha256:` value means syft did not recognise the text; read the module's `LICENSE` in
+`$(go env GOMODCACHE)` by hand. Put the result next to the SBOM result in the commit message.
+
+Found by the scan of 2026-10-04 and not yet cleared by the owner: `github.com/golang/freetype`, pulled in
+through `dxlib/captcha`, under the FreeType License (not OSI-approved) or GPL-2.0-or-later.
