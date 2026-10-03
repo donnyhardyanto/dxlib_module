@@ -71,7 +71,14 @@ func (al *DXMAccountLockout) LoadConfig() error {
 		return err
 	}
 
+	applyRuntimeDefaults(cfg)
+
 	al.Config = cfg
+	if al.CircuitBreaker == nil {
+		// The lock check records every Redis call into the breaker, whether or not
+		// circuit_breaker_enabled is set, so it must always exist.
+		al.CircuitBreaker = NewCircuitBreaker(cfg.CircuitBreakerThreshold, cfg.CircuitBreakerTimeout)
+	}
 	log.Log.Infof("Account Lockout configuration loaded: enabled=%v, max_attempts=%d, duration=%d min",
 		cfg.Enabled, cfg.MaxFailedAttempts, cfg.LockoutDurationMinutes)
 
@@ -102,6 +109,24 @@ func (al *DXMAccountLockout) validateConfig(cfg *AccountLockoutConfig) error {
 	}
 
 	return nil
+}
+
+// applyRuntimeDefaults fills the optional settings whose zero value would break
+// the module: a zero flush interval panics time.NewTicker, a zero batch size
+// flushes on every event, and a zero breaker threshold opens on the first error.
+func applyRuntimeDefaults(cfg *AccountLockoutConfig) {
+	if cfg.BatchSize <= 0 {
+		cfg.BatchSize = 100
+	}
+	if cfg.FlushIntervalSeconds <= 0 {
+		cfg.FlushIntervalSeconds = 5
+	}
+	if cfg.CircuitBreakerThreshold <= 0 {
+		cfg.CircuitBreakerThreshold = 5
+	}
+	if cfg.CircuitBreakerTimeout <= 0 {
+		cfg.CircuitBreakerTimeout = 30
+	}
 }
 
 func contains(slice []string, item string) bool {
