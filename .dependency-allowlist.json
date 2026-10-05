@@ -1,4 +1,7 @@
 {
+  "licences": {
+    "github.com/donnyhardyanto/dxlib": "MIT"
+  },
   "vulnerabilities": {
     "GO-2026-5932": "golang.org/x/crypto/openpgp is unmaintained and unsafe by design. The advisory covers every release of golang.org/x/crypto (introduced at v0, no fixed version), so no upgrade clears it. dxlib_module imports nothing from the module; it is required only through dxlib, which uses argon2 and bcrypt. Nothing imports openpgp, and govulncheck ./... reports the vulnerable package is not called (0 affecting, 1 in a required module not called). Same acceptance as dxlib's .dependency-allowlist.json entry for GO-2026-5932. Accepted by the owner on 2026-10-05 at x/crypto v0.56.0; review by 2027-04-05, or as soon as a fixed release exists."
   }

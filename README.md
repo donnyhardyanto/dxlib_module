@@ -47,6 +47,10 @@ Current entries:
   required only through dxlib, which uses `argon2` and `bcrypt`. Nothing imports openpgp, and
   govulncheck reports the package is not called. Review by 2027-04-05, or sooner if a fix appears.
 
+- `github.com/donnyhardyanto/dxlib`: MIT, read from its `LICENSE` file. Recorded because the licence
+  lookup the pre-commit scan makes (deps.dev, through osv-scanner) has nothing for a release tagged the
+  same day, which refuses the commit that moves the pin.
+
 A project that depends on dxlib_module inherits this finding through its `go.mod`. It can accept it
 the same way, citing this entry or dxlib's, provided its own govulncheck run shows the same: openpgp
 not called.

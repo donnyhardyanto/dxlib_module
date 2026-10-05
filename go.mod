@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	firebase.google.com/go/v4 v4.21.0
 	github.com/HugoSmits86/nativewebp v1.3.0
-	github.com/donnyhardyanto/dxlib v1.121.0
+	github.com/donnyhardyanto/dxlib v1.126.0
 	github.com/google/uuid v1.6.0
 	github.com/tealeg/xlsx v1.0.5
 	go.opentelemetry.io/otel v1.46.0
