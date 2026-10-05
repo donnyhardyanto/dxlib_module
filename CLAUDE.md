@@ -42,6 +42,10 @@ Rules:
   in, at the version chosen. If it is not clean, choose a fixed version or a different library, or ask the
   owner.
 - An upgrade must not add a finding. A finding that was already there and has no fix yet may stay, but name it.
+- A finding that no version change can clear is recorded, on the owner's word and with govulncheck proof that
+  the code does not call it, in `.dependency-allowlist.json` at the repo root, which the pre-commit scan reads.
+  README's Dependencies section has the file's shape and the current entries (GO-2026-5932 in
+  `golang.org/x/crypto`, the openpgp advisory, accepted 2026-10-05).
 - Put the result in the commit message: "SBOM scan clean (syft, grype, osv-scanner, govulncheck)", or what was
   found and how it was resolved.
 
