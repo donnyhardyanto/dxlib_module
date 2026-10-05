@@ -2,6 +2,7 @@ package self
 
 import (
 	"context"
+	"crypto/ed25519"
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
@@ -38,7 +39,6 @@ import (
 	"github.com/donnyhardyanto/dxlib_module/lib"
 	"github.com/donnyhardyanto/dxlib_module/module/user_management"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/ed25519"
 )
 
 const (

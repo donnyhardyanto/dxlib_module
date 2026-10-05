@@ -43,10 +43,9 @@ Current entries:
 - `GO-2026-5932` in `golang.org/x/crypto`, accepted 2026-10-05, the same acceptance as the entry in
   dxlib's `.dependency-allowlist.json`. The advisory declares `golang.org/x/crypto/openpgp`
   unmaintained and unsafe by design, and it covers every release of the module (introduced at v0, no
-  fixed version), so no upgrade clears it. dxlib_module requires the module directly, for the frozen
-  `ed25519` wrapper over `crypto/ed25519` in `module/self`, and through dxlib, which uses `argon2`
-  and `bcrypt`. Nothing imports openpgp, and govulncheck reports the package is not called. Review by
-  2027-04-05, or sooner if a fix appears.
+  fixed version), so no upgrade clears it. dxlib_module imports nothing from the module; it is
+  required only through dxlib, which uses `argon2` and `bcrypt`. Nothing imports openpgp, and
+  govulncheck reports the package is not called. Review by 2027-04-05, or sooner if a fix appears.
 
 A project that depends on dxlib_module inherits this finding through its `go.mod`. It can accept it
 the same way, citing this entry or dxlib's, provided its own govulncheck run shows the same: openpgp
