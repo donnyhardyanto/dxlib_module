@@ -11,10 +11,14 @@ From the repo root, after `go get` and `go mod tidy`:
     grype sbom:/tmp/dxlib_module-sbom.cdx.json
     osv-scanner scan source -r .
     govulncheck ./...
+    trivy fs --scanners vuln .
 
-The databases disagree at times, so all four run and the union counts. Every dependency must be open
-source under an OSI-approved licence; syft lists the licences from the module cache after
-`go mod download`:
+The databases disagree at times, so all five run and the union counts. Trivy cannot tell whether code
+calls a vulnerable package, so `.trivyignore` at the repo root repeats the accepted GO-2026-5932 with an
+expiry date.
+
+Every dependency must be open source under an OSI-approved licence; syft lists the licences from the
+module cache after `go mod download`:
 
     SYFT_GOLANG_SEARCH_LOCAL_MOD_CACHE_LICENSES=true syft dir:. -q -o syft-json \
       | jq -r '.artifacts[] | [.name, .version, ([.licenses[]?.value] | join(" | "))] | @tsv' | sort

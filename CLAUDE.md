@@ -23,7 +23,7 @@ Every dependency upgrade or new dependency gets an SBOM scan before it is commit
 
 Tools (all via Homebrew except govulncheck):
 
-    brew install syft grype osv-scanner
+    brew install syft grype osv-scanner trivy
     go install golang.org/x/vuln/cmd/govulncheck@latest
 
 Run from the repo root after changing the dependency (`go get ...` and `go mod tidy`):
@@ -32,6 +32,10 @@ Run from the repo root after changing the dependency (`go get ...` and `go mod t
     grype sbom:/tmp/dxlib_module-sbom.cdx.json
     osv-scanner scan source -r .
     govulncheck ./...
+    trivy fs --scanners vuln .
+
+Trivy has no reachability filter, so `.trivyignore` at the repo root carries the accepted GO-2026-5932 with an
+expiry date (do not use `--ignore-unfixed`, which hides too much).
 
 The databases disagree at times (grype has flagged `golang.org/x/crypto` releases that osv-scanner passed), so
 run all of them and act on the union.
