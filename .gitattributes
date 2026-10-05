@@ -1,28 +1,14 @@
-# Set the default behavior, in case people don't have core.autocrlf set.
-# This will handle all text files by default.
-* text=auto
+# Line endings are LF on every platform. This file travels with the module into each
+# consumer's vendor/ tree (go mod vendor copies the root package's files), so it must not
+# leave the choice to the consumer's core.autocrlf: with autocrlf=true, `text=auto` alone
+# checks the vendored files out with CRLF while go mod vendor writes LF, and the files
+# show as modified after every go mod vendor.
+* text=auto eol=lf
+*.go text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
 
-#
-# The above is usually sufficient, but if you want to be explicit, you can
-# add lines for specific file types.
-#
-
-# These files should always have LF line endings in the repo
-*.js    text
-*.json  text
-*.html  text
-*.css   text
-*.py    text
-*.java  text
-*.md    text
-*.sh    text eol=lf
-
-# These files are Windows-specific and should have CRLF endings
-*.bat   text eol=crlf
-*.ps1   text eol=crlf
-
-# These files are binary and should not be touched
-*.png   binary
-*.jpg   binary
-*.pdf   binary
-
+# Binary files are left untouched
+*.png binary
+*.jpg binary
+*.pdf binary
