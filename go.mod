@@ -5,7 +5,7 @@ go 1.27.2
 require (
 	firebase.google.com/go/v4 v4.21.0
 	github.com/HugoSmits86/nativewebp v1.3.0
-	github.com/donnyhardyanto/dxlib v1.126.7
+	github.com/donnyhardyanto/dxlib v1.127.0
 	github.com/google/uuid v1.6.0
 	github.com/tealeg/xlsx v1.0.5
 	go.opentelemetry.io/otel v1.46.0
@@ -83,18 +83,12 @@ require (
 	github.com/newrelic/go-agent/v3 v3.44.2 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
-	github.com/richardlehane/mscfb v1.0.8 // indirect
-	github.com/richardlehane/msoleps v1.0.6 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sijms/go-ora/v2 v2.9.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
-	github.com/tiendc/go-deepcopy v1.7.2 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
-	github.com/xuri/efp v0.0.1 // indirect
-	github.com/xuri/excelize/v2 v2.11.0 // indirect
-	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.46.0 // indirect
