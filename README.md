@@ -2,6 +2,25 @@
 
 Released under the MIT License; see [LICENSE](LICENSE).
 
+## Permission table
+
+`module/permission_table` prints the grants the module's permission check reads, as the permission table
+SpecArch's `extract permissions` reads (format version 1). A service calls it once its databases are open,
+for example behind a flag that prints and exits:
+
+    err := permission_table.Print(ctx, &log.Log, os.Stdout)
+
+It prints one JSON object, its first line `{` alone, with `grants` (each role and privilege it grants, by
+name id, read from `user_management.role_privilege` as `self.DxmSelf.RegenerateSessionObject` reads it) and
+`gates` (each check that runs only when a setting is present, and so lets every request through while the
+setting is empty). Both lists are sorted, each entry listed once. `EVERYTHING` is printed as stored, not
+expanded. The module's own middleware has no gate (`ModuleGates` says why); a service passes the gates of its
+own middleware after the writer, as `permission_table.Gate{Check: ..., Setting: ...}`. SpecArch's
+`tools/permissions/dump-permissions.sh` runs the service's printing command in a committed folder and adds the
+format version, the folder's path and the commit.
+dxlib's log writes to standard output and the dump script wants `{` alone on the first line, so keep every log
+line off standard output while printing: write the table to a file and print that file afterwards.
+
 ## Dependencies
 
 Every new or upgraded dependency is scanned and its licence checked before the change is committed.
