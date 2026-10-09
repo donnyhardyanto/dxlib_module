@@ -16,7 +16,7 @@ Complete guide for using the {{.ProjectDescription}}.
 
 Before running this tool, ensure you have:
 
-- [ ] Go 1.21 or higher installed
+- [ ] Go 1.27.2 or higher installed
 - [ ] Access to Vault server (or vault secrets available)
 - [ ] Database admin credentials configured in Vault
 - [ ] Understanding of what this tool does (it can DROP databases!)
