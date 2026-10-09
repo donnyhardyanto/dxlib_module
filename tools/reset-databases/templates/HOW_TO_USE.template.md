@@ -393,7 +393,7 @@ Containers are built and run with Podman, not Docker.
 
 ```dockerfile
 # Containerfile.reset
-FROM golang:1.27-alpine AS builder
+FROM golang:1.27.2-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN go build -o {{.ProjectName}} ./src/cmd/{{.ProjectName}}
