@@ -59,6 +59,33 @@ func (e *NotFoundError) StatusCode() int {
 	return http.StatusNotFound
 }
 
+// The methods below make NotFoundError a dxlib api.DXAPIDomainError, so a
+// route handler that returns one (wrapped or not) answers 404 with the reason
+// instead of a 500 that hides it.
+
+func (e *NotFoundError) DomainErrorCode() string {
+	return e.Code
+}
+
+func (e *NotFoundError) DomainErrorHTTPStatusCode() int {
+	return http.StatusNotFound
+}
+
+// DomainErrorResponseBody names the reason and what was looked up. Lookup
+// holds only what the caller sent or fingerprints of secrets, so it is safe to
+// return.
+func (e *NotFoundError) DomainErrorResponseBody() map[string]any {
+	return map[string]any{
+		"reason":         e.Code,
+		"reason_message": e.Error(),
+		"entity":         e.Entity,
+	}
+}
+
+func (e *NotFoundError) DomainErrorLogDetails() string {
+	return e.Error()
+}
+
 // Fingerprint names a secret (a token, a key handle) in errors and logs
 // without giving it away: the first 12 hex digits of its SHA-256.
 func Fingerprint(secret string) string {

@@ -829,6 +829,7 @@ type fcmDrainPass struct {
 	Due               int
 	Sent              int
 	Retry             int
+	FailedLastAttempt int
 	FailedPermanent   int
 	Exhausted         int
 	Expired           int
@@ -842,10 +843,10 @@ type fcmDrainPass struct {
 }
 
 func (p *fcmDrainPass) String() string {
-	return fmt.Sprintf("FCM %s drain pass for application %s (id %d): %d due; %d sent, %d to retry, %d failed permanently, "+
-		"%d out of attempts, %d expired, %d not due yet, %d held by another worker, %d claim errors, %d rate limiter errors, "+
+	return fmt.Sprintf("FCM %s drain pass for application %s (id %d): %d due; %d sent, %d to retry, "+
+		"%d failed on their last attempt (marked failed permanently next pass), %d failed permanently, %d out of attempts, %d expired, %d not due yet, %d held by another worker, %d claim errors, %d rate limiter errors, "+
 		"%d unreadable rows, %d status writes failed, %d sent but not recorded (sent again when their claim ends)",
-		p.Kind, p.ApplicationNameId, p.ApplicationId, p.Due, p.Sent, p.Retry, p.FailedPermanent,
+		p.Kind, p.ApplicationNameId, p.ApplicationId, p.Due, p.Sent, p.Retry, p.FailedLastAttempt, p.FailedPermanent,
 		p.Exhausted, p.Expired, p.NotDue, p.HeldElsewhere, p.ClaimErrors, p.RateLimitErrors,
 		p.InvalidRows, p.StatusWriteErrors, p.UnrecordedSent)
 }
@@ -897,7 +898,11 @@ func recordSendResult(ctx context.Context, pass *fcmDrainPass, t fcmSendTarget, 
 		return
 	}
 
-	pass.Retry++
+	if attempt >= t.MaxAttempts {
+		pass.FailedLastAttempt++
+	} else {
+		pass.Retry++
+	}
 	nextRetryTime, err := t.UpdateStatus(ctx, t.Id, StatusFailed, attempt)
 	if err != nil {
 		pass.StatusWriteErrors++

@@ -7,8 +7,32 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/donnyhardyanto/dxlib/api"
 	dxerrors "github.com/donnyhardyanto/dxlib/errors"
 )
+
+// dxlib's route handler answers an api.DXAPIDomainError with its own status
+// and body instead of a 500.
+var _ api.DXAPIDomainError = (*NotFoundError)(nil)
+
+func TestNotFoundErrorIsDomainError(t *testing.T) {
+	err := NewNotFoundError("FCM_TOKEN_NOT_FOUND", "FCM user token", map[string]any{"user_id": int64(7), "fcm_token": Fingerprint("tok")})
+	// The route handler finds it the same way, through the transaction's wraps.
+	var domainErr api.DXAPIDomainError
+	if !errors.As(dxerrors.Wrapf(dxerrors.Wrap(err, "tx"), "handler %d", 1), &domainErr) {
+		t.Fatal("errors.As(api.DXAPIDomainError) = false through dxlib wraps")
+	}
+	if domainErr.DomainErrorCode() != "FCM_TOKEN_NOT_FOUND" || domainErr.DomainErrorHTTPStatusCode() != http.StatusNotFound {
+		t.Errorf("code %q status %d, want FCM_TOKEN_NOT_FOUND 404", domainErr.DomainErrorCode(), domainErr.DomainErrorHTTPStatusCode())
+	}
+	body := domainErr.DomainErrorResponseBody()
+	if body["reason"] != "FCM_TOKEN_NOT_FOUND" || body["entity"] != "FCM user token" || body["reason_message"] != err.Error() {
+		t.Errorf("body = %v", body)
+	}
+	if strings.Contains(err.Error(), "tok,") || !strings.Contains(domainErr.DomainErrorLogDetails(), "user_id=7") {
+		t.Errorf("log details = %q", domainErr.DomainErrorLogDetails())
+	}
+}
 
 func TestNotFoundError(t *testing.T) {
 	err := NewNotFoundError("USER_NOT_FOUND", "user", map[string]any{"id": int64(42)})

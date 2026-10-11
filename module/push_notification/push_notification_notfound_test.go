@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib_module/base"
 )
@@ -25,6 +26,11 @@ func TestSendToDeviceNotFoundIsTyped(t *testing.T) {
 	}
 	if nf.Code != "FCM_APPLICATION_NOT_FOUND" || nf.Lookup["nameid"] != "no-such-app" {
 		t.Errorf("missing application: got code %q lookup %v", nf.Code, nf.Lookup)
+	}
+	// dxlib's route handler finds it as a domain error and answers 404.
+	var domainErr api.DXAPIDomainError
+	if !errors.As(err, &domainErr) || domainErr.DomainErrorHTTPStatusCode() != 404 {
+		t.Errorf("missing application: not an api.DXAPIDomainError with 404: %v", err)
 	}
 
 	if _, err := f.Database.Connection.Exec(`INSERT INTO push_notification.fcm_application (nameid) VALUES ('app1')`); err != nil {

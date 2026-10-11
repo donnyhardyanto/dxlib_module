@@ -123,7 +123,7 @@ func TestRecordSendResult(t *testing.T) {
 		{"temporary, retried", internal, nil, 4, statusWrite{StatusFailed, 5}, false,
 			func(p *fcmDrainPass) bool { return p.Retry == 1 }, "Retry"},
 		{"temporary on the last attempt", internal, nil, 9, statusWrite{StatusFailed, 10}, false,
-			func(p *fcmDrainPass) bool { return p.Retry == 1 }, "Retry"},
+			func(p *fcmDrainPass) bool { return p.FailedLastAttempt == 1 && p.Retry == 0 }, "FailedLastAttempt"},
 		{"temporary, status write failed", internal, writeFailure, 4, statusWrite{StatusFailed, 5}, false,
 			func(p *fcmDrainPass) bool { return p.Retry == 1 && p.StatusWriteErrors == 1 }, "StatusWriteErrors"},
 	}
@@ -147,11 +147,11 @@ func TestRecordSendResult(t *testing.T) {
 
 func TestDrainPassString(t *testing.T) {
 	p := &fcmDrainPass{Kind: "message", ApplicationId: 3, ApplicationNameId: "app1", Due: 9,
-		Sent: 4, Retry: 2, FailedPermanent: 1, Expired: 1, HeldElsewhere: 1, UnrecordedSent: 1}
+		Sent: 4, Retry: 2, FailedLastAttempt: 1, FailedPermanent: 1, Expired: 1, HeldElsewhere: 1, UnrecordedSent: 1}
 	got := p.String()
 	for _, want := range []string{
 		"FCM message drain pass for application app1 (id 3): 9 due",
-		"4 sent", "2 to retry", "1 failed permanently", "1 expired", "1 held by another worker",
+		"4 sent", "2 to retry", "1 failed on their last attempt", "1 failed permanently", "1 expired", "1 held by another worker",
 		"1 sent but not recorded",
 	} {
 		if !strings.Contains(got, want) {
