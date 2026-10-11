@@ -51,6 +51,20 @@ func openClaimTestDatabase(t *testing.T) *FirebaseCloudMessaging {
 			status varchar(255) NOT NULL,
 			next_retry_time timestamp with time zone,
 			retry_count integer NOT NULL DEFAULT 0)`,
+		`CREATE TABLE push_notification.fcm_application (
+			id bigserial PRIMARY KEY,
+			uid text NOT NULL DEFAULT gen_random_uuid()::text,
+			nameid varchar(255) NOT NULL UNIQUE,
+			service_account_source varchar(255) NOT NULL DEFAULT 'RAW',
+			service_account_data jsonb)`,
+		`CREATE TABLE push_notification.fcm_user_token (
+			id bigserial PRIMARY KEY,
+			uid text NOT NULL DEFAULT gen_random_uuid()::text,
+			fcm_application_id bigint NOT NULL,
+			user_id bigint NOT NULL,
+			fcm_token text NOT NULL,
+			device_type varchar(255) NOT NULL)`,
+		`CREATE VIEW push_notification.v_fcm_user_token AS SELECT * FROM push_notification.fcm_user_token`,
 	}
 	for _, q := range ddl {
 		if _, err := d.Connection.Exec(q); err != nil {

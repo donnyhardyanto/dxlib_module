@@ -23,6 +23,7 @@ import (
 	utilsJson "github.com/donnyhardyanto/dxlib/utils/json"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
 	security "github.com/donnyhardyanto/dxlib/utils/security"
+	"github.com/donnyhardyanto/dxlib_module/base"
 	"github.com/tealeg/xlsx"
 )
 
@@ -1062,7 +1063,7 @@ func (um *DxmUserManagement) DoUserDelete(aepr *api.DXAPIEndPointRequest, userId
 			return err2
 		}
 		if user == nil {
-			return errors.New("USER_NOT_FOUND")
+			return base.NewNotFoundError("USER_NOT_FOUND", "user", map[string]any{"id": userId})
 		}
 		userIsDeleted, ok := user["is_deleted"].(bool)
 		if !ok {
@@ -1193,7 +1194,7 @@ func (um *DxmUserManagement) UserSuspend(aepr *api.DXAPIEndPointRequest) (err er
 			return err2
 		}
 		if user == nil {
-			return errors.New("USER_NOT_FOUND")
+			return base.NewNotFoundError("USER_NOT_FOUND", "user", map[string]any{"id": userId})
 		}
 		userIsDeleted, ok := user["is_deleted"].(bool)
 		if !ok {
@@ -1236,7 +1237,7 @@ func (um *DxmUserManagement) UserActivate(aepr *api.DXAPIEndPointRequest) (err e
 			return err2
 		}
 		if user == nil {
-			return errors.New("USER_NOT_FOUND")
+			return base.NewNotFoundError("USER_NOT_FOUND", "user", map[string]any{"id": userId})
 		}
 		userIsDeleted, ok := user["is_deleted"].(bool)
 		if !ok {
@@ -1279,7 +1280,7 @@ func (um *DxmUserManagement) UserUndelete(aepr *api.DXAPIEndPointRequest) (err e
 			return err2
 		}
 		if user == nil {
-			return errors.New("USER_NOT_FOUND")
+			return base.NewNotFoundError("USER_NOT_FOUND", "user", map[string]any{"id": userId})
 		}
 		userIsDeleted, ok := user["is_deleted"].(bool)
 		if !ok {
@@ -1542,7 +1543,7 @@ func (um *DxmUserManagement) PreKeyUnpack(ctx context.Context, preKeyIndex strin
 		return nil, nil, nil, err
 	}
 	if preKeyData == nil {
-		return nil, nil, nil, errors.New("PREKEY_NOT_FOUND")
+		return nil, nil, nil, base.NewNotFoundError("PREKEY_NOT_FOUND", "pre-key", map[string]any{"index": base.Fingerprint(preKeyIndex)})
 	}
 
 	sharedKey1AsHexString, err := utils.GetStringFromKV(preKeyData, "shared_key_1")
@@ -1600,7 +1601,7 @@ func (um *DxmUserManagement) PreKeyUnpackCaptcha(ctx context.Context, preKeyInde
 		return nil, nil, nil, "", "", err
 	}
 	if preKeyData == nil {
-		return nil, nil, nil, "", "", errors.New("PREKEY_NOT_FOUND")
+		return nil, nil, nil, "", "", base.NewNotFoundError("PREKEY_NOT_FOUND", "pre-key", map[string]any{"index": base.Fingerprint(preKeyIndex)})
 	}
 
 	sharedKey1AsHexString, err := utils.GetStringFromKV(preKeyData, "shared_key_1")
