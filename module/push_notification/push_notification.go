@@ -844,7 +844,7 @@ type fcmDrainPass struct {
 
 func (p *fcmDrainPass) String() string {
 	return fmt.Sprintf("FCM %s drain pass for application %s (id %d): %d due; %d sent, %d to retry, "+
-		"%d failed on their last attempt (marked failed permanently next pass), %d failed permanently, %d out of attempts, %d expired, %d not due yet, %d held by another worker, %d claim errors, %d rate limiter errors, "+
+		"%d failed on their last attempt (marked failed permanently on the first pass after their retry time), %d failed permanently, %d out of attempts, %d expired, %d not due yet, %d held by another worker, %d claim errors, %d rate limiter errors, "+
 		"%d unreadable rows, %d status writes failed, %d sent but not recorded (sent again when their claim ends)",
 		p.Kind, p.ApplicationNameId, p.ApplicationId, p.Due, p.Sent, p.Retry, p.FailedLastAttempt, p.FailedPermanent,
 		p.Exhausted, p.Expired, p.NotDue, p.HeldElsewhere, p.ClaimErrors, p.RateLimitErrors,
@@ -911,8 +911,9 @@ func recordSendResult(ctx context.Context, pass *fcmDrainPass, t fcmSendTarget, 
 		return
 	}
 	if attempt >= t.MaxAttempts {
-		log.Log.Warnf("%s failed on attempt %d of %d (%s), no attempts left; it is marked %s on the next pass: %v",
-			t.name(), attempt, t.MaxAttempts, detail, StatusFailedPermanent, sendErr)
+		log.Log.Warnf("%s failed on attempt %d of %d (%s), no attempts left; it is marked %s on the first pass after its retry time %s (in %s): %v",
+			t.name(), attempt, t.MaxAttempts, detail, StatusFailedPermanent, nextRetryTime.Format(time.RFC3339),
+			time.Until(nextRetryTime).Round(time.Second), sendErr)
 		return
 	}
 	log.Log.Warnf("%s failed on attempt %d of %d (%s); attempt %d of %d in %s: %v",
