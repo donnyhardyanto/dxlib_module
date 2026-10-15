@@ -33,7 +33,7 @@
     },
     "env_var_prefix": {
       "type": "string",
-      "description": "Prefix for environment variables (e.g., 'MY_PROJECT' generates 'IS_MY_PROJECT_RESET_DELETE_AND_CREATE_DB')",
+      "description": "Prefix for environment variables (e.g., 'MY_PROJECT' generates 'MY_PROJECT_IS_DEV', 'MY_PROJECT_RESET_DELETE_AND_CREATE_DB' and 'MY_PROJECT_RESET_BYPASS_CONFIRMATION')",
       "pattern": "^[A-Z][A-Z0-9_]*$"
     },
     "ddl_output_folder": {

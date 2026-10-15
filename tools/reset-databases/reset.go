@@ -94,7 +94,7 @@ func Run(config *Config) {
 
 // defineConfiguration sets up the configuration phase (extracted from doOnDefineConfiguration)
 func defineConfiguration(config *Config) error {
-	// Read IS_DEV environment variable to determine if running in local/dev environment
+	// Read the <EnvVarPrefix>_IS_DEV environment variable to determine if running in local/dev environment
 	isDev = osUtils.GetEnvDefaultValueAsBool(config.EnvVarPrefix+"_IS_DEV", false)
 
 	// IS_DEV=true (Development): Allow a DB drop and bypass confirmation (both can be overridden)
