@@ -9,33 +9,42 @@ import (
 )
 
 const (
-	redisKeyPrefix     = "pgn:partner:lockout"
+	// DefaultRedisKeyPrefix is used when the configuration sets no core.redis_key_prefix.
+	DefaultRedisKeyPrefix = "dxlib:account_lockout"
+
 	redisKeyCounter    = "counter"
 	redisKeyLocked     = "locked"
 	redisKeyAttempts   = "attempts"
 	redisKeyStatistics = "stats:daily"
 )
 
-// Redis key patterns:
-// pgn:partner:lockout:counter:{user_id}
-// pgn:partner:lockout:locked:{user_id}
-// pgn:partner:lockout:attempts:{user_id}
-// pgn:partner:lockout:stats:daily:{YYYYMMDD}
+// Redis key patterns ({redisKeyPrefix} is Config.RedisKeyPrefix):
+// {redisKeyPrefix}:counter:{user_id}
+// {redisKeyPrefix}:locked:{user_id}
+// {redisKeyPrefix}:attempts:{user_id}
+// {redisKeyPrefix}:stats:daily:{YYYYMMDD}
+
+func (al *DXMAccountLockout) redisKeyPrefix() string {
+	if al.Config == nil || al.Config.RedisKeyPrefix == "" {
+		return DefaultRedisKeyPrefix
+	}
+	return al.Config.RedisKeyPrefix
+}
 
 func (al *DXMAccountLockout) redisKeyCounterForUser(userID int64) string {
-	return fmt.Sprintf("%s:%s:%d", redisKeyPrefix, redisKeyCounter, userID)
+	return fmt.Sprintf("%s:%s:%d", al.redisKeyPrefix(), redisKeyCounter, userID)
 }
 
 func (al *DXMAccountLockout) redisKeyLockedForUser(userID int64) string {
-	return fmt.Sprintf("%s:%s:%d", redisKeyPrefix, redisKeyLocked, userID)
+	return fmt.Sprintf("%s:%s:%d", al.redisKeyPrefix(), redisKeyLocked, userID)
 }
 
 func (al *DXMAccountLockout) redisKeyAttemptsForUser(userID int64) string {
-	return fmt.Sprintf("%s:%s:%d", redisKeyPrefix, redisKeyAttempts, userID)
+	return fmt.Sprintf("%s:%s:%d", al.redisKeyPrefix(), redisKeyAttempts, userID)
 }
 
 func (al *DXMAccountLockout) redisKeyStatsDaily(date string) string {
-	return fmt.Sprintf("%s:%s:%s", redisKeyPrefix, redisKeyStatistics, date)
+	return fmt.Sprintf("%s:%s:%s", al.redisKeyPrefix(), redisKeyStatistics, date)
 }
 
 // CheckLockStatusRedis checks if user is locked (fast path)

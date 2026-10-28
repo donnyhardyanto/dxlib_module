@@ -57,3 +57,41 @@ func TestLoadConfigFillsRuntimeDefaults(t *testing.T) {
 	al.CircuitBreaker.RecordFailure()
 	al.CircuitBreaker.RecordSuccess()
 }
+
+// The Redis keys take core.redis_key_prefix, so a consumer keeps its stored
+// lockouts across upgrades; without it they fall back to DefaultRedisKeyPrefix.
+func TestRedisKeyPrefix(t *testing.T) {
+	core := utils.JSON{
+		"enabled":                  true,
+		"max_failed_attempts":      5,
+		"lockout_duration_minutes": 15,
+		"lockout_type":             LockoutTypeAutoUnlock,
+	}
+	failure := utils.JSON{"redis_fail_mode": RedisFailModeKeepUnlock}
+
+	setLockoutConfiguration(t, utils.JSON{"core": core, "failure_handling": failure})
+	al := &DXMAccountLockout{}
+	if err := al.LoadConfig(); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := al.redisKeyLockedForUser(7), DefaultRedisKeyPrefix+":locked:7"; got != want {
+		t.Errorf("default key = %q, want %q", got, want)
+	}
+
+	core["redis_key_prefix"] = "app:lockout"
+	setLockoutConfiguration(t, utils.JSON{"core": core, "failure_handling": failure})
+	al = &DXMAccountLockout{}
+	if err := al.LoadConfig(); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := al.redisKeyCounterForUser(7), "app:lockout:counter:7"; got != want {
+		t.Errorf("configured key = %q, want %q", got, want)
+	}
+	if got, want := al.redisKeyStatsDaily("20261028"), "app:lockout:stats:daily:20261028"; got != want {
+		t.Errorf("configured stats key = %q, want %q", got, want)
+	}
+
+	if got := (&DXMAccountLockout{}).redisKeyAttemptsForUser(7); got != DefaultRedisKeyPrefix+":attempts:7" {
+		t.Errorf("key before LoadConfig = %q", got)
+	}
+}

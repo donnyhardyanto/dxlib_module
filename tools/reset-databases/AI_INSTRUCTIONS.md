@@ -128,8 +128,8 @@ Read the template from `templates/HOW_TO_USE.template.md` and replace the same p
 If config has:
 ```json
 {
-  "project_name": "pgn-partner-reset",
-  "env_var_prefix": "PGN_PARTNER",
+  "project_name": "my-project-reset",
+  "env_var_prefix": "MY_PROJECT",
   "databases": [
     {"name_id": "config", "display_name": "Config Database", ...}
   ]
@@ -148,8 +148,8 @@ Environment: {{.EnvVarPrefix}}_RESET_BYPASS_CONFIRMATION
 
 Generates:
 ```markdown
-# pgn-partner-reset
-Environment: PGN_PARTNER_RESET_BYPASS_CONFIRMATION
+# my-project-reset
+Environment: MY_PROJECT_RESET_BYPASS_CONFIRMATION
 
 - Config Database (config)
 ```

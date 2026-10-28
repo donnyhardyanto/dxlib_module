@@ -21,6 +21,16 @@ format version, the folder's path and the commit.
 dxlib's log writes to standard output and the dump script wants `{` alone on the first line, so keep every log
 line off standard output while printing: write the table to a file and print that file afterwards.
 
+## Names a service sets for itself
+
+- `module/account_lockout` starts every Redis key with `core.redis_key_prefix` from the `account_lockout`
+  configuration (`AccountLockoutConfig.RedisKeyPrefix`); unset, it is `dxlib:account_lockout`. A service that
+  already has lockout keys in Redis sets its old prefix before it upgrades, or its stored lockouts and counters
+  are no longer read.
+- `module/push_notification` names the tracer of its FCM spans `push_notification.TracerName`, by default the
+  package's import path. A service whose dashboards read another tracer name sets it at start-up.
+- `tools/reset-databases` reads `VAULT_PATH` with the default `kv/data/dev`.
+
 ## Dependencies
 
 Every new or upgraded dependency is scanned and its licence checked before the change is committed.

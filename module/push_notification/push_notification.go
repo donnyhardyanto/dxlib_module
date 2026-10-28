@@ -49,6 +49,10 @@ var (
 	}
 )
 
+// TracerName names the OpenTelemetry tracer of the FCM send spans. A consumer that
+// needs another name for its dashboards sets it before the first send.
+var TracerName = "github.com/donnyhardyanto/dxlib_module/module/push_notification"
+
 var (
 	FCMMessageMaxRetryAttemptCount        int64 = 10    // Maximum number of retry attempts
 	FCMMessageExpirationInSeconds         int64 = 86400 // Messages expire after 24 hours
@@ -1356,7 +1360,7 @@ func (f *FirebaseCloudMessaging) sendNotification(ctx context.Context, client *m
 		return errors.Errorf("UNKNOWN_DEVICE_TYPE: %s", deviceType)
 	}
 
-	ctx, span := otel.Tracer("pgn.fcm").Start(ctx, "fcm.Send",
+	ctx, span := otel.Tracer(TracerName).Start(ctx, "fcm.Send",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("peer.service", "google-fcm"),
@@ -1381,7 +1385,7 @@ func (f *FirebaseCloudMessaging) sendTopicNotification(ctx context.Context, clie
 		Data:  msgData,
 	}
 
-	ctx, span := otel.Tracer("pgn.fcm").Start(ctx, "fcm.SendTopic",
+	ctx, span := otel.Tracer(TracerName).Start(ctx, "fcm.SendTopic",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("peer.service", "google-fcm"),

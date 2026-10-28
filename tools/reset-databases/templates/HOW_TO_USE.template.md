@@ -287,7 +287,7 @@ VAULT_PATH=kv/data/your-path \
 **Symptoms:**
 ```
 ❌ ERROR: Database Creation Failed: Config Database
-Database: pgn_partner_config, Error: permission denied
+Database: my_project_config, Error: permission denied
 ```
 
 **Cause:** Admin user lacks CREATE DATABASE permission

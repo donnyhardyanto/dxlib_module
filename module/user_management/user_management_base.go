@@ -21,8 +21,8 @@ import (
 
 // UserMessageChannelTypeIdFCM is the user_message_channel_type_id for FCM (= 1, matching
 // self.go's SelfUserMessageSearchPagingList query). Defined locally to drop the former
-// dependency on github.com/repoareta/pgn-partner-common (PGN-private) — dxlib_module now
-// depends only on dxlib + public libraries.
+// dependency on a private consumer library — dxlib_module now depends only on dxlib
+// + public libraries.
 const UserMessageChannelTypeIdFCM int64 = 1
 
 const (

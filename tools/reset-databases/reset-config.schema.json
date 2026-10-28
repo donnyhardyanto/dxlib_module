@@ -66,7 +66,7 @@
           },
           "model_name": {
             "type": "string",
-            "description": "Name of the database model struct (e.g., 'PartnerConfigDB')",
+            "description": "Name of the database model struct (e.g., 'ConfigDB')",
             "pattern": "^[A-Z][A-Za-z0-9]*$"
           },
           "ddl_output_filename": {

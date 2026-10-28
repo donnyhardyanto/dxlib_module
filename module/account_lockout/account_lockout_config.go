@@ -29,6 +29,7 @@ func (al *DXMAccountLockout) LoadConfig() error {
 	cfg.MaxFailedAttempts, _ = utils.GetIntFromKV(coreData, "max_failed_attempts")
 	cfg.LockoutDurationMinutes, _ = utils.GetIntFromKV(coreData, "lockout_duration_minutes")
 	cfg.LockoutType, _ = utils.GetStringFromKV(coreData, "lockout_type")
+	cfg.RedisKeyPrefix, _ = utils.GetStringFromKV(coreData, "redis_key_prefix")
 
 	// Load failure handling
 	failureData, err := utils.GetJSONFromKV(*mainConfig.Data, "failure_handling")
@@ -115,6 +116,9 @@ func (al *DXMAccountLockout) validateConfig(cfg *AccountLockoutConfig) error {
 // the module: a zero flush interval panics time.NewTicker, a zero batch size
 // flushes on every event, and a zero breaker threshold opens on the first error.
 func applyRuntimeDefaults(cfg *AccountLockoutConfig) {
+	if cfg.RedisKeyPrefix == "" {
+		cfg.RedisKeyPrefix = DefaultRedisKeyPrefix
+	}
 	if cfg.BatchSize <= 0 {
 		cfg.BatchSize = 100
 	}

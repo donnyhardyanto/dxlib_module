@@ -164,9 +164,9 @@ func defineConfiguration() error {
 
 **Fix:** Check `DB_{TYPE}_ADDRESS`, `DB_{TYPE}_USER_NAME`, `DB_{TYPE}_USER_PASSWORD` environment variables or vault configuration
 
-## Example: PGN Partner
+## Example: a full reset tool
 
-See `src/cmd/tool-pgn-partner-reset/main.go` for a complete working example with:
+A complete reset tool built on this package typically has:
 - 3 databases (config, auditlog, task-dispatcher)
 - Custom confirmation keys
 - Seed function

@@ -37,7 +37,7 @@ func Run(config *Config) {
 		osUtils.GetEnvDefaultValue("VAULT_ADDRESS", "http://127.0.0.1:8200/"),
 		osUtils.GetEnvDefaultValue("VAULT_TOKEN", " dev-vault-token"),
 		"__VAULT__",
-		osUtils.GetEnvDefaultValue("VAULT_PATH", "kv/data/pgn-partner-dev"),
+		osUtils.GetEnvDefaultValue("VAULT_PATH", "kv/data/dev"),
 	)
 
 	// Encryption vault configuration - MUST be explicitly set, no defaults

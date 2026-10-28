@@ -1093,7 +1093,7 @@ func (um *DxmUserManagement) DoUserDelete(aepr *api.DXAPIEndPointRequest, userId
 			return err2
 		}
 
-		// Notify callback for cascade cleanup (partner_management FK children + user_role_membership)
+		// Notify callback for cascade cleanup (the consumer's FK children + user_role_membership)
 		if um.OnUserAfterDelete != nil {
 			err2 = um.OnUserAfterDelete(aepr, tx, userId)
 			if err2 != nil {

@@ -61,6 +61,9 @@ type AccountLockoutConfig struct {
 	MaxFailedAttempts      int
 	LockoutDurationMinutes int
 	LockoutType            string
+	// RedisKeyPrefix starts every Redis key of the module (core.redis_key_prefix);
+	// empty means DefaultRedisKeyPrefix.
+	RedisKeyPrefix string
 
 	// Failure Handling
 	RedisFailMode           string

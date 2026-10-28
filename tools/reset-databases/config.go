@@ -21,7 +21,7 @@ type Config struct {
 	OnSeed                func() error
 
 	// Environment variable customization
-	EnvVarPrefix string // e.g., "PGN_PARTNER" generates "PGN_PARTNER_IS_DEV", "PGN_PARTNER_RESET_DELETE_AND_CREATE_DB"
+	EnvVarPrefix string // e.g., "MY_PROJECT" generates "MY_PROJECT_IS_DEV", "MY_PROJECT_RESET_DELETE_AND_CREATE_DB"
 
 	// DDL output settings
 	DDLOutputFolder string // default: "."
@@ -46,7 +46,7 @@ type DatabaseConfig struct {
 	GetSQLContent func(path string) (string, error)
 
 	// DDL output file name
-	DDLOutputFileName string // e.g., "db_partner_config.sql"
+	DDLOutputFileName string // e.g., "db_my_project_config.sql"
 }
 
 // DatabaseModel interface that all database models must implement
