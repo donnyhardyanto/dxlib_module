@@ -80,8 +80,9 @@ not called.
 
 ## Compliance and Security
 
-Every release's software bill of materials is committed in `sbom/<tag>/` at the root of this repository, in two
-formats from the same syft run: CycloneDX JSON (`<name>-<version>.cdx.json`) and SPDX JSON
+The software bill of materials of every release from v1.73.0 on is committed in `sbom/<tag>/` at the root of
+this repository (releases before v1.73.0 have none: the records began with v1.73.0 and were not made for earlier
+tags), in two formats from the same syft run: CycloneDX JSON (`<name>-<version>.cdx.json`) and SPDX JSON
 (`<name>-<version>.spdx.json`). Beside them are the report of each scanner that ran on the release's tree (grype
 on the SBOM, osv-scanner on the source, govulncheck for each Go module, and the repository's own scanners when
 it names any), `tools.json` with the scanners' versions and exit statuses, `allowlist-applied.json` with the
