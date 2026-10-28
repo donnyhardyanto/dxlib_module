@@ -1,0 +1,4 @@
+Scanning dir .
+Starting filesystem walk for root: /
+Scanned ./go.mod file and found 114 packages
+End status: 21 dirs visited, 99 inodes visited, 1 Extract calls, 4.066292ms elapsed, 4.066ms wall time
