@@ -9,7 +9,7 @@
       "step" : "syft"
     },
     {
-      "command" : "grype sbom:dxlib_module-1.73.0.cdx.json -o json",
+      "command" : "grype sbom:dxlib-module-1.73.0.cdx.json -o json",
       "exit" : 0,
       "report" : "reports/grype.json",
       "step" : "grype"
