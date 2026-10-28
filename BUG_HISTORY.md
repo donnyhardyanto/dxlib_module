@@ -2,6 +2,19 @@
 
 Entries move here from [BUG_OUTSTANDING.md](BUG_OUTSTANDING.md) when fixed, newest first.
 
+## BUG-002: the reset template still asked for Go 1.27.2 after the move to Go 1.27.3
+
+- **Reported**: 2026-10-28, by the after-the-fact review of 9fc5720 and 63c668e (the Go 1.27.3
+  move and the x/net and go-jose bumps, pushed without a review).
+- **Cause**: 9fc5720 moved go.mod and the template's `golang:` base image to 1.27.3 but missed the
+  Prerequisites line of `tools/reset-databases/templates/HOW_TO_USE.template.md`, which 57f98d3 had
+  set to "Go 1.27.2 or higher" in the previous Go move. Generated projects told users to install a Go
+  older than the one this module's go.mod requires.
+- **Fixed**: 2026-10-28. The line asks for Go 1.27.3 or higher. The rest of the range checked out:
+  go.mod says go 1.27.3 with golang.org/x/net v0.62.0 and go-jose/v4 v4.1.6, go.sum matches, build,
+  vet and `go test -race` pass, and govulncheck, grype, osv-scanner and trivy find nothing but the
+  accepted GO-2026-5932.
+
 ## BUG-001: v1.73.0 claimed an SBOM it did not carry; v1.73.0 and v1.74.0 had no `sbom/<tag>/` records
 
 - **Reported**: 2026-10-28, by a consumer whose audit needs every release's SBOM. The notes of
