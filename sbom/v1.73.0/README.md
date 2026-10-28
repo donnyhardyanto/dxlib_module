@@ -1,0 +1,28 @@
+# SBOM of dxlib_module v1.73.0
+
+- Tag: `v1.73.0`
+- Commit scanned: `042e9bd02b73dda0a75691946b6b954870537685`
+- Date: 2026-10-28 02:45 UTC
+- Result: findings
+
+SBOM: dxlib_module-1.73.0.cdx.json (CycloneDX, 117 components). Scan (syft 1.55.0, grype 0.121.0, osv-scanner 2.7.0, govulncheck v1.8.0): 3 findings not allowlisted: CVE-2026-116587/GHSA-mgcc-cww5-fp2q in github.com/go-jose/go-jose/v4 4.1.5 (a fixed version exists); CVE-2026-78661/GO-2026-6860 in golang.org/x/net 0.61.0 (a fixed version exists); CVE-2026-97045/GO-2026-6866 in golang.org/x/net 0.61.0 (a fixed version exists). Accepted: GO-2026-5932 in golang.org/x/crypto 0.58.0 (.dependency-allowlist.json).
+
+## Files
+- `dxlib_module-1.73.0.cdx.json`: CycloneDX JSON, from syft
+- `dxlib_module-1.73.0.spdx.json`: SPDX JSON, from the same syft run
+- `reports/grype.json`: grype sbom:dxlib_module-1.73.0.cdx.json -o json
+- `reports/osv-scanner.json`: osv-scanner scan source -r --allow-no-lockfiles --format json .
+- `reports/osv-scanner.stderr.txt`: what osv-scanner wrote to stderr
+- `reports/govulncheck-0.json`: govulncheck -format json ./... in .
+- `tools.json`: the tools and their versions, each step's command and exit status
+- `allowlist-applied.json`: the .dependency-allowlist.json entries that applied, with their reasons
+
+## Left out of the scan
+
+- `.build`
+- `.worktrees`
+- `references`
+
+## Run it again
+
+`sbom-record v1.73.0` from the repository's root scans the tag's tree again and replaces this folder.
