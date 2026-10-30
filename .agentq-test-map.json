@@ -1,0 +1,16 @@
+[
+  {"paths": ["base/**"],
+   "command": "go vet ./base ./module/push_notification ./module/user_management ./module/account_lockout ./module/permission_table ./module/self && go test ./base ./module/push_notification ./module/user_management ./module/account_lockout ./module/permission_table ./module/self"},
+  {"paths": ["module/push_notification/**"],
+   "command": "go vet ./module/push_notification ./module/user_management ./module/account_lockout ./module/permission_table ./module/self && go test ./module/push_notification ./module/user_management ./module/account_lockout ./module/permission_table ./module/self"},
+  {"paths": ["module/user_management/**"],
+   "command": "go vet ./module/user_management ./module/account_lockout ./module/permission_table ./module/self && go test ./module/user_management ./module/account_lockout ./module/permission_table ./module/self"},
+  {"paths": ["lib/**"],
+   "command": "go vet ./lib ./module/general ./module/self && go test ./lib ./module/general ./module/self"},
+  {"paths": ["tools/reset-databases/**"],
+   "command": "go vet ./tools/reset-databases && go test ./tools/reset-databases"},
+  {"paths": ["*.go"],
+   "command": "go vet {dirs} && go test {dirs}"},
+  {"paths": ["/go.mod", "/go.sum"],
+   "command": "go build ./... && go vet ./... && go test ./..."}
+]
