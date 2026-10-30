@@ -12,7 +12,8 @@ specific to this repo.
 - Bugs follow the umbrella's rule for public repos (this repo is public; GitHub issues are disabled):
   one `BUG-NNN` entry per bug in `BUG_OUTSTANDING.md` at the repo root, moved to `BUG_HISTORY.md` when
   fixed, with `Fixes BUG-NNN` in the fixing commit.
-- Ask before pushing; never force-push.
+- Pushing follows the repo's Push switch (`agentq policy <repo>`, read right before): on = push without
+  asking once committed (and approved where Review is on), off = ask; never force-push.
 - No Docker. There are no images or compose files; if containers are ever needed, use Podman (`podman`,
   `podman compose`).
 
