@@ -134,7 +134,8 @@ WebAuthn registration and login as a relying party, on `github.com/go-webauthn/w
   registration whose audit record cannot be written is refused and the passkey deleted.
 - **Errors**: a refused ceremony returns an error wrapping `ErrRefused` whose text holds the real reason; answer
   the browser with 400 or 401 and log the text. It wraps the cause too, so `errors.Is` finds `ErrDuplicate` or
-  `ErrTooMany` when the store refused the passkey.
+  `ErrTooMany` when the store refused the passkey. Its cause may also be `ErrNotFound` or the service's own
+  error, so test for `ErrRefused` first.
 
 The Valkey user of the challenges needs, under its own prefix:
 

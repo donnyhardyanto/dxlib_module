@@ -108,7 +108,8 @@ var (
 	// ErrRefused wraps every ceremony that did not pass (a wrong, replayed or expired challenge, a bad signature, no
 	// user verification, an unknown passkey, a refused account). Answer it as 401 or 400 without the detail; the
 	// error's text holds the real reason for the log, and the audit record has it too. The error wraps its cause as
-	// well, so errors.Is finds ErrDuplicate or ErrTooMany from the store.
+	// well, so errors.Is finds ErrDuplicate or ErrTooMany from the store; it may also find ErrNotFound or the
+	// service's own error, so test for ErrRefused before any other error.
 	ErrRefused = errors.New("passkey: not accepted")
 	// ErrNotFound: no such passkey for this user. Answer it as 404.
 	ErrNotFound = errors.New("passkey: not found")
