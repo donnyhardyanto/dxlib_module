@@ -207,8 +207,9 @@ func (s *DBStore) Remove(ctx context.Context, userUUID string, allow func() erro
 				return err, nil
 			}
 		}
-		// databases/db.TxDelete, not DXDatabaseTx.TxDelete: dxlib v1.133.0's method returns a nil error when the
-		// delete fails.
+		// databases/db.TxDelete, not DXDatabaseTx.TxDelete: dxlib v1.133.0's method has its error check inverted
+		// (databases/database_tx_delete.go:12): a failed delete comes back with a nil error, and a successful one
+		// with a nil sql.Result, whose RowsAffected would panic.
 		res, _, err := db.TxDelete(ctx, dtx.Tx, s.table, utils.JSON{colUserUUID: userUUID}, nil)
 		if err != nil {
 			return nil, err

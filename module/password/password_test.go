@@ -219,6 +219,66 @@ func TestAnUnknownUserIsRefusedAuditedAndTakesAHash(t *testing.T) {
 	}
 }
 
+// loginTook times one login that must be refused.
+func loginTook(t *testing.T, r *rig, login, password string) time.Duration {
+	t.Helper()
+	start := time.Now()
+	_, _, err := r.m.Login(bg, login, password, Client{})
+	took := time.Since(start)
+	if !errors.Is(err, ErrRefused) {
+		t.Fatalf("login %q: got %v, want ErrRefused", login, err)
+	}
+	return took
+}
+
+func TestAnOverLongPasswordCostsAHashForAKnownUserAsForAnUnknownOne(t *testing.T) {
+	r := newRig(t, nil)
+	alice := r.accounts.add("alice")
+	if err := r.m.Set(bg, "", alice, goodPassword, false, Client{}); err != nil {
+		t.Fatal(err)
+	}
+	long := pw(2 * HighestMaxLength) // over the character limit, under the 4x byte limit where burn stops hashing
+	loginTook(t, r, "nobody", long)  // the first unknown login also makes the dummy hash
+	unknown := loginTook(t, r, "nobody", long)
+	known := loginTook(t, r, "alice", long)
+	if known < unknown/3 {
+		t.Errorf("an over-long password took %s for a known user and %s for an unknown one: one login tells whether the name exists", known, unknown)
+	}
+	if r.lockout.failuresOf(alice) != 1 {
+		t.Errorf("the over-long password was counted %d times by the lockout, want 1", r.lockout.failuresOf(alice))
+	}
+}
+
+func TestALockedUserCostsAHashAsAnUnknownOneDoes(t *testing.T) {
+	r := newRig(t, nil)
+	alice := r.accounts.add("alice")
+	if err := r.m.Set(bg, "", alice, goodPassword, false, Client{}); err != nil {
+		t.Fatal(err)
+	}
+	r.lockout.mu.Lock()
+	r.lockout.locked[alice] = true
+	r.lockout.mu.Unlock()
+	loginTook(t, r, "nobody", otherPassword)
+	unknown := loginTook(t, r, "nobody", otherPassword)
+	locked := loginTook(t, r, "alice", otherPassword)
+	if locked < unknown/3 {
+		t.Errorf("a locked user took %s, an unknown one %s: the fast refusal tells that the name exists", locked, unknown)
+	}
+}
+
+func TestNewRefusesTheInsecureTestTransitOutsideGoTest(t *testing.T) {
+	deps := Dependencies{Store: NewMemoryStore(), Transit: NewInsecureTestTransit(), Breached: NewHashListOf(), Lockout: newFakeLockout(),
+		Sessions: newFakeSessions(), Accounts: newFakeAccounts(), Audit: &auth_audit.Memory{}}
+	if _, err := New(Config{}, deps); err != nil {
+		t.Fatalf("under go test: %v", err)
+	}
+	underGoTest = func() bool { return false }
+	defer func() { underGoTest = testing.Testing }()
+	if _, err := New(Config{}, deps); err == nil || !strings.Contains(err.Error(), "InsecureTestTransit outside `go test`") {
+		t.Fatalf("outside go test: got %v, want the refusal naming InsecureTestTransit", err)
+	}
+}
+
 func TestAUserWithoutAPasswordIsRefused(t *testing.T) {
 	r := newRig(t, nil)
 	r.accounts.add("bob")

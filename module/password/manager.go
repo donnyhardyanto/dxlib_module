@@ -113,8 +113,9 @@ func (m *Manager) refuseLogin(ctx context.Context, userUUID string, cause error,
 	return err
 }
 
-// burn spends the time of one password check, so a login for an unknown user (or one with no password) takes as
-// long as a wrong password.
+// burn spends the time of one password check, so a login refused for an unknown user, one with no password, a locked
+// user or an over-long password costs a hash as a wrong password does. Whether it hashes depends on pw alone (none
+// over 4*HighestMaxLength bytes), so known and unknown names get the same answer for the same password.
 func (m *Manager) burn(ctx context.Context, pw string) {
 	m.dummyOnce.Do(func() {
 		b := make([]byte, 24)
@@ -158,6 +159,9 @@ func (m *Manager) authenticate(ctx context.Context, userUUID, pw string, client 
 		return nil, m.refuseLogin(ctx, userUUID, fmt.Errorf("asking the lockout whether user %s is locked: %w", userUUID, err), false, client, d)
 	}
 	if locked {
+		// burn, so a locked name is refused no faster than an unknown one: locking a name with a few wrong tries
+		// must not let a fast refusal tell that it exists.
+		m.burn(ctx, pw)
 		return nil, m.refuseLogin(ctx, userUUID, ErrLocked, false, client, d)
 	}
 	rec, err := m.store.Get(ctx, userUUID)
@@ -169,6 +173,9 @@ func (m *Manager) authenticate(ctx context.Context, userUUID, pw string, client 
 		return nil, m.refuseLogin(ctx, userUUID, fmt.Errorf("reading the stored password of user %s: %w", userUUID, err), false, client, d)
 	}
 	if utf8.RuneCountInString(pw) > HighestMaxLength {
+		// burn, as findUser does for an unknown name: burn's choice to hash depends on the password alone, so the
+		// same over-long password costs the same for a known and an unknown name.
+		m.burn(ctx, pw)
 		return nil, m.refuseLogin(ctx, userUUID, fmt.Errorf("the password given is longer than %d characters, so it cannot be the stored one", HighestMaxLength), true, client, d)
 	}
 	pt, err := m.transit.Decrypt(ctx, rec.Ciphertext)

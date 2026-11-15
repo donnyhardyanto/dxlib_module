@@ -180,8 +180,9 @@ is then encrypted by a transit key in the secret store, so a copy of the table a
 - **Transit**: the PHC string is encrypted through the `Transit` interface. `OpenBaoTransit` speaks the OpenBao
   (or Vault) transit HTTP API; its token comes from the `credentials.Provider` (the credential's `Password`)
   and is asked for again on HTTP 403, so a rotated token is picked up. `Check` at start-up refuses a key that is
-  not `aes256-gcm96`, or is exportable, allows a plaintext backup or is derived. `TestTransit` is an in-memory
-  key ring for tests only. Each row stores the key version that encrypted it.
+  not `aes256-gcm96`, or is exportable, allows a plaintext backup or is derived. `InsecureTestTransit` is an
+  in-memory key ring for tests only: its keys die with the process, and `New` refuses it outside `go test`. Each
+  row stores the key version that encrypted it.
 - **Bound to its user**: the encrypted value holds the user's uuid beside the hash, and a value read from
   another user's row is refused, so copying your own row over the owner's does not log you in as the owner.
 - **Rotation**: after the key is rotated, `RewrapAll(ctx, batch)` re-encrypts every row of an older key version
@@ -197,9 +198,12 @@ is then encrypted by a transit key in the secret store, so a copy of the table a
 - **Login**: `Login(ctx, login, password, Client)` turns the login name into a user uuid through
   `Accounts.FindUser`, asks the `Lockout` first (a locked account, or a lockout that cannot answer, is refused:
   fail closed), checks the password, asks `Accounts.LoginProfile`, and starts the session through
-  `session.Store.Create` with the auth method `password`. An unknown user, or one without a password, costs one
-  Argon2id hash too. Every refusal is written to the `auth_audit.Sink` as `login_failed` with its real reason,
-  and a wrong password is also fed to the `Lockout` (`Failed`); a success resets it (`Succeeded`).
+  `session.Store.Create` with the auth method `password`. An unknown user, one without a password, a locked one
+  and a password over the 1024-character limit each cost one Argon2id hash too (none when the password is over
+  4096 bytes, for any user), so a single refusal does not tell whether the name exists; the lockout, store and
+  transit round trips of a known user still add a few milliseconds. Every refusal is written to the
+  `auth_audit.Sink` as `login_failed` with its real reason, and a wrong password is also fed to the `Lockout`
+  (`Failed`); a success resets it (`Succeeded`).
 - **Forced change**: a password set by someone else (`Set(..., mustChange=true)`, the reset-owner command) gives
   `ErrMustChange` at login and no session. `ChangeAndLogin(ctx, login, current, next, Client)` checks the current
   password as a login does, stores the new one, clears `must_change_password`, and starts the session.

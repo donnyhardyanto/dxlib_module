@@ -100,11 +100,11 @@ func TestRangeAPIErrorsNameTheStatus(t *testing.T) {
 	}
 }
 
-// fakeBao is a transit server speaking the OpenBao HTTP API over TestTransit.
+// fakeBao is a transit server speaking the OpenBao HTTP API over InsecureTestTransit.
 type fakeBao struct {
 	mu       sync.Mutex
 	tokens   map[string]bool
-	transit  *TestTransit
+	transit  *InsecureTestTransit
 	key      KeyInfo
 	requests int
 }
@@ -159,7 +159,7 @@ func (f *fakeBao) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func newFakeBao(t *testing.T, tokens ...string) (*fakeBao, *httptest.Server) {
-	f := &fakeBao{tokens: map[string]bool{}, transit: NewTestTransit(), key: KeyInfo{Type: "aes256-gcm96"}}
+	f := &fakeBao{tokens: map[string]bool{}, transit: NewInsecureTestTransit(), key: KeyInfo{Type: "aes256-gcm96"}}
 	for _, tk := range tokens {
 		f.tokens[tk] = true
 	}

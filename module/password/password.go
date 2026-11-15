@@ -4,7 +4,7 @@
 // salt. The hash is then encrypted by a Transit key: OpenBaoTransit uses an OpenBao (or Vault) transit key of type
 // aes256-gcm96 that cannot be exported, so a copy of the table alone is useless without the secret store. The
 // key version that encrypted a row is stored beside it; after the key is rotated, RewrapAll re-encrypts the rows to
-// the newest version without ever seeing a hash. TestTransit is an in-memory key ring for tests only.
+// the newest version without ever seeing a hash. InsecureTestTransit is an in-memory key ring for tests only.
 //
 // Each encrypted value carries the uuid of the user it belongs to, and a value read from another user's row is
 // refused, so a hash copied from one row into another (say into the owner's) does not log anyone in.
@@ -28,6 +28,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"testing"
 	"time"
 	"unicode/utf8"
 
@@ -194,8 +195,14 @@ func (d Dependencies) check() error {
 	if len(missing) > 0 {
 		return fmt.Errorf("password: New is missing Dependencies.%s", strings.Join(missing, ", Dependencies."))
 	}
+	if _, insecure := d.Transit.(*InsecureTestTransit); insecure && !underGoTest() {
+		return errors.New("password: New refuses Dependencies.Transit = *InsecureTestTransit outside `go test`: its keys live in this process only, so every password stored with it is unreadable after a restart; use OpenBaoTransit")
+	}
 	return nil
 }
+
+// underGoTest reports whether this binary is a `go test` binary; a test replaces it to check the refusal.
+var underGoTest = testing.Testing
 
 // canonicalUUID parses a user uuid and returns its canonical lower-case form.
 func canonicalUUID(s string) (string, error) {

@@ -15,7 +15,7 @@ import (
 )
 
 // Transit encrypts and decrypts with a key that never leaves the secret store. OpenBaoTransit is the
-// implementation for a service; TestTransit is for tests only.
+// implementation for a service; InsecureTestTransit is for tests only.
 type Transit interface {
 	// Encrypt encrypts plaintext with the newest key version.
 	Encrypt(ctx context.Context, plaintext []byte) (Ciphertext, error)
@@ -67,9 +67,10 @@ func open(userUUID string, plaintext []byte) (string, error) {
 	return string(parts[2]), nil
 }
 
-// TestTransit is a Transit holding AES-256-GCM keys in memory. It is for tests only: its keys live in the process
-// and die with it.
-type TestTransit struct {
+// InsecureTestTransit is a Transit holding AES-256-GCM keys in memory. It is for tests only: its keys live in the
+// process and die with it, so every password stored with it is unreadable after a restart. New refuses it outside
+// `go test`.
+type InsecureTestTransit struct {
 	mu   sync.RWMutex
 	keys []cipher.AEAD // keys[v-1] is version v
 	// MinDecryptionVersion, when set, refuses to decrypt ciphertexts of older versions, as a trimmed transit key does.
@@ -78,15 +79,15 @@ type TestTransit struct {
 	Fail error
 }
 
-// NewTestTransit returns a TestTransit with one key version.
-func NewTestTransit() *TestTransit {
-	t := &TestTransit{}
+// NewInsecureTestTransit returns an InsecureTestTransit with one key version.
+func NewInsecureTestTransit() *InsecureTestTransit {
+	t := &InsecureTestTransit{}
 	t.Rotate()
 	return t
 }
 
 // Rotate adds a new key version, as rotating a transit key does.
-func (t *TestTransit) Rotate() {
+func (t *InsecureTestTransit) Rotate() {
 	k := make([]byte, 32)
 	if _, err := rand.Read(k); err != nil {
 		panic(err)
@@ -104,7 +105,7 @@ func (t *TestTransit) Rotate() {
 	t.mu.Unlock()
 }
 
-func (t *TestTransit) encrypt(plaintext []byte) (Ciphertext, error) {
+func (t *InsecureTestTransit) encrypt(plaintext []byte) (Ciphertext, error) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	v := len(t.keys)
@@ -117,7 +118,7 @@ func (t *TestTransit) encrypt(plaintext []byte) (Ciphertext, error) {
 	return Ciphertext{Text: "test:v" + strconv.Itoa(v) + ":" + base64.StdEncoding.EncodeToString(out), KeyVersion: v}, nil
 }
 
-func (t *TestTransit) decrypt(ct string) ([]byte, error) {
+func (t *InsecureTestTransit) decrypt(ct string) ([]byte, error) {
 	v, err := keyVersionOf(ct)
 	if err != nil {
 		return nil, err
@@ -146,7 +147,7 @@ func (t *TestTransit) decrypt(ct string) ([]byte, error) {
 }
 
 // Encrypt encrypts with the newest key version.
-func (t *TestTransit) Encrypt(_ context.Context, plaintext []byte) (Ciphertext, error) {
+func (t *InsecureTestTransit) Encrypt(_ context.Context, plaintext []byte) (Ciphertext, error) {
 	if t.Fail != nil {
 		return Ciphertext{}, t.Fail
 	}
@@ -154,7 +155,7 @@ func (t *TestTransit) Encrypt(_ context.Context, plaintext []byte) (Ciphertext, 
 }
 
 // Decrypt decrypts with the ciphertext's key version.
-func (t *TestTransit) Decrypt(_ context.Context, ct string) ([]byte, error) {
+func (t *InsecureTestTransit) Decrypt(_ context.Context, ct string) ([]byte, error) {
 	if t.Fail != nil {
 		return nil, t.Fail
 	}
@@ -162,7 +163,7 @@ func (t *TestTransit) Decrypt(_ context.Context, ct string) ([]byte, error) {
 }
 
 // Rewrap re-encrypts with the newest key version.
-func (t *TestTransit) Rewrap(_ context.Context, ct string) (Ciphertext, error) {
+func (t *InsecureTestTransit) Rewrap(_ context.Context, ct string) (Ciphertext, error) {
 	if t.Fail != nil {
 		return Ciphertext{}, t.Fail
 	}
@@ -174,7 +175,7 @@ func (t *TestTransit) Rewrap(_ context.Context, ct string) (Ciphertext, error) {
 }
 
 // LatestVersion is the newest key version.
-func (t *TestTransit) LatestVersion(context.Context) (int, error) {
+func (t *InsecureTestTransit) LatestVersion(context.Context) (int, error) {
 	if t.Fail != nil {
 		return 0, t.Fail
 	}
@@ -183,4 +184,4 @@ func (t *TestTransit) LatestVersion(context.Context) (int, error) {
 	return len(t.keys), nil
 }
 
-var _ Transit = (*TestTransit)(nil)
+var _ Transit = (*InsecureTestTransit)(nil)

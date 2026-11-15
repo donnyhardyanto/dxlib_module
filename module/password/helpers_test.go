@@ -189,7 +189,7 @@ func (s *fakeSessions) loginCount() int {
 type rig struct {
 	m        *Manager
 	store    Store
-	transit  *TestTransit
+	transit  *InsecureTestTransit
 	accounts *fakeAccounts
 	lockout  *fakeLockout
 	sessions *fakeSessions
@@ -201,7 +201,7 @@ func newRig(t *testing.T, store Store, breached ...string) *rig {
 	if store == nil {
 		store = NewMemoryStore()
 	}
-	r := &rig{store: store, transit: NewTestTransit(), accounts: newFakeAccounts(), lockout: newFakeLockout(), sessions: newFakeSessions(), audit: &auth_audit.Memory{}}
+	r := &rig{store: store, transit: NewInsecureTestTransit(), accounts: newFakeAccounts(), lockout: newFakeLockout(), sessions: newFakeSessions(), audit: &auth_audit.Memory{}}
 	m, err := New(Config{}, Dependencies{Store: store, Transit: r.transit, Breached: NewHashListOf(breached...), Lockout: r.lockout,
 		Sessions: r.sessions, Accounts: r.accounts, Audit: r.audit})
 	if err != nil {
