@@ -385,6 +385,9 @@ names each credential once:
 - **TLS**: an http:// address is refused (`AllowHTTP` is for a local test server only), and so is a client that
   does not verify the certificate (`VAULT_SKIP_VERIFY`, which dxlib's client reads from the environment). Give
   the CA with `VAULT_CACERT`. The namespace is the one in `OpenBaoOptions.Namespace`, never `VAULT_NAMESPACE`.
+- **A client of its own**: the provider sets the vault client's namespace and replaces its token, so give it a
+  `DXHashicorpVault` the service does not also read its configuration with. A lease issued under a token that was
+  replaced is replaced too, at once: it ends with its token.
 - **Errors** name the OpenBao address, the credential's name, the path and OpenBao's own status and text.
 
 The token's policy, for the sources above:
@@ -433,8 +436,9 @@ so OpenBao's database engine reaches PostgreSQL; each test mounts its own engine
 
 They cover KV versions, one lease per name, renewal past the first TTL (a login still works), a new lease at
 `max_ttl`, a transaction open across a rotation, a lease that ran out while idle, a revoked lease replaced once for
-eight transactions refused together, token renewal, a refused token replaced from the `TokenSource`, and a Valkey
-password rotated in KV with the data kept. Without `DXLIB_MODULE_TEST_OPENBAO` they are skipped.
+eight transactions refused together, token renewal, a revoked token replaced from the `TokenSource` as a
+transaction begins, a token at its explicit max TTL replaced with its lease, and a Valkey password rotated in KV
+with the data kept. Without `DXLIB_MODULE_TEST_OPENBAO` they are skipped.
 
 ## Dependencies
 

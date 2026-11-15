@@ -90,6 +90,7 @@ type OpenBao struct {
 	tokenExpires time.Time // zero: the token does not expire
 	tokenTTL     time.Duration
 	tokenRenew   bool
+	tokenGen     uint64 // bumped when the token is replaced: leases of an older one end with it
 
 	leaseMu sync.Mutex
 	leases  map[string]*leaseEntry
@@ -109,6 +110,7 @@ type leaseEntry struct {
 	duration time.Duration // the lease's duration as issued: the renewal asks for this again
 	renew    bool
 	end      time.Time // the lease's own end, before the cap at the token's end
+	tokenGen uint64    // the token generation that issued it
 }
 
 var baoSegment = regexp.MustCompile(`^[A-Za-z0-9_.\-]{1,128}$`)
@@ -127,6 +129,8 @@ func validBaoPath(p string, maxSegments int) bool {
 }
 
 // NewOpenBao returns a provider for the named sources, speaking through v's client (started here if it was not).
+// The provider sets that client's namespace and replaces its token (TokenSource), so give it a client of its own,
+// not one the service also reads its configuration with.
 // It makes no request; call Check at start-up to verify the token and every source.
 func NewOpenBao(v *dxVault.DXHashicorpVault, sources map[string]OpenBaoSource, opts OpenBaoOptions) (*OpenBao, error) {
 	if v == nil {
@@ -244,6 +248,7 @@ func (o *OpenBao) replaceToken(ctx context.Context) error {
 	o.tokenMu.Lock()
 	defer o.tokenMu.Unlock()
 	o.tokenKnown = false
+	o.tokenGen++
 	if err := o.lookupToken(ctx); err != nil {
 		return fmt.Errorf("the new token from the TokenSource: %w", err)
 	}
@@ -359,6 +364,12 @@ func (o *OpenBao) tokenEnd() time.Time {
 	return o.tokenExpires
 }
 
+func (o *OpenBao) tokenGeneration() uint64 {
+	o.tokenMu.Lock()
+	defer o.tokenMu.Unlock()
+	return o.tokenGen
+}
+
 // Credential returns the current credential for name.
 func (o *OpenBao) Credential(ctx context.Context, name string) (Credential, error) {
 	s, ok := o.sources[name]
@@ -436,6 +447,12 @@ func (o *OpenBao) databaseCredential(ctx context.Context, name string, s OpenBao
 	defer e.mu.Unlock()
 	now := time.Now()
 	var renewErr error
+	if e.leaseID != "" && e.tokenGen != o.tokenGeneration() {
+		// Issued under a token that has since been replaced: it ends with that token (or already has, when the
+		// token was refused), whatever its own end says.
+		o.retire(e)
+		e.leaseID, e.end = "", time.Time{}
+	}
 	if e.leaseID != "" && now.Before(e.end) {
 		if e.end.Sub(now) >= o.threshold(e.duration) {
 			return o.capped(e), nil
@@ -460,7 +477,9 @@ func (o *OpenBao) databaseCredential(ctx context.Context, name string, s OpenBao
 	}
 	path := s.Mount + "/creds/" + s.Path
 	var sec *baoapi.Secret
+	var gen uint64
 	err := o.call(ctx, func() (err error) {
+		gen = o.tokenGeneration() // the token this attempt runs with (call may replace it and try again)
 		sec, err = o.vault.Client.Logical().ReadWithContext(ctx, path)
 		return err
 	})
@@ -484,6 +503,7 @@ func (o *OpenBao) databaseCredential(ctx context.Context, name string, s OpenBao
 	e.duration = time.Duration(sec.LeaseDuration) * time.Second
 	e.renew = sec.Renewable
 	e.end = got.Add(e.duration)
+	e.tokenGen = gen
 	e.cred = Credential{Username: user, Password: pass, Version: sec.LeaseID}
 	return o.capped(e), nil
 }

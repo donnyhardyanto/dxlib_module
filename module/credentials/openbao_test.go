@@ -576,47 +576,84 @@ func TestOpenBaoRenewsItsToken(t *testing.T) {
 	}
 }
 
-// A refused token is replaced from the TokenSource; without one, the error carries OpenBao's own answer.
+// A revoked token (and with it every lease it issued) is replaced from the TokenSource as a transaction begins:
+// its sessions ended (57P01), the old user refused (28P01), the provider told (Invalidate), OpenBao refuses the token
+// (403), a new token, a new lease. Without a TokenSource, the error carries OpenBao's own 403.
 func TestOpenBaoTakesANewTokenWhenRefused(t *testing.T) {
 	b := newBaoEnv(t)
 	r := newDBRole(t, b, "1m", "10m")
-	tok := b.token(r.rules(), "")
 	ctx := context.Background()
-
-	plain := newProvider(t, b, tok, map[string]OpenBaoSource{"pg": DatabaseRole(r.mount, r.role)}, OpenBaoOptions{})
-	if _, err := plain.Credential(ctx, "pg"); err != nil {
-		t.Fatal(err)
-	}
 	asked := 0
-	withSource := newProvider(t, b, tok, map[string]OpenBaoSource{"pg": DatabaseRole(r.mount, r.role)}, OpenBaoOptions{
+	tokPlain, tokSource := b.token(r.rules(), ""), b.token(r.rules(), "")
+	plain := newProvider(t, b, tokPlain, map[string]OpenBaoSource{"pg": DatabaseRole(r.mount, r.role)}, OpenBaoOptions{})
+	withSource := newProvider(t, b, tokSource, map[string]OpenBaoSource{"pg": DatabaseRole(r.mount, r.role)}, OpenBaoOptions{
 		TokenSource: func(context.Context) (string, error) { asked++; return b.token(r.rules(), ""), nil },
 	})
-	if _, err := withSource.Credential(ctx, "pg"); err != nil {
-		t.Fatal(err)
+	cPlain, cSource := r.connection(t, plain, "pg"), r.connection(t, withSource, "pg")
+	r.insert(t, cPlain, "plain before")
+	r.insert(t, cSource, "source before")
+	firstSource := cSource.CredentialVersion()
+
+	b.call(b.root, "POST", "auth/token/revoke", map[string]any{"token": tokPlain})
+	b.call(b.root, "POST", "auth/token/revoke", map[string]any{"token": tokSource})
+	deadline := time.Now().Add(10 * time.Second)
+	for r.users(t) != 0 {
+		if time.Now().After(deadline) {
+			t.Fatalf("%d database users still there 10 s after their tokens were revoked", r.users(t))
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
 
-	b.call(b.root, "POST", "auth/token/revoke", map[string]any{"token": tok})
-	plain.Invalidate("pg", mustVersion(t, plain))
-	if _, err := plain.Credential(ctx, "pg"); err == nil || !strings.Contains(err.Error(), "403") {
+	r.insert(t, cSource, "source after")
+	if asked != 1 || cSource.CredentialVersion() == firstSource {
+		t.Fatalf("TokenSource asked %d times (want 1), credential %q (first %q)", asked, cSource.CredentialVersion(), firstSource)
+	}
+	err := cPlain.Tx(ctx, nil, sql.LevelReadCommitted, func(*databases.DXDatabaseTx) error {
+		t.Fatal("the callback ran with a revoked credential")
+		return nil
+	})
+	if err == nil || !strings.Contains(err.Error(), "403") || !strings.Contains(err.Error(), "permission denied") {
 		t.Fatalf("revoked token without a TokenSource: %v, want OpenBao's 403", err)
-	}
-	withSource.Invalidate("pg", mustVersion(t, withSource))
-	c, err := withSource.Credential(ctx, "pg")
-	if err != nil || asked != 1 {
-		t.Fatalf("revoked token with a TokenSource: %v %v, asked %d times (want 1)", c, err, asked)
-	}
-	conn := r.connection(t, NewFixed(map[string]Credential{"pg": c}), "pg")
-	if u := currentUser(t, conn); u != c.Username {
-		t.Fatalf("login as %q, want %q", u, c.Username)
 	}
 }
 
-func mustVersion(t *testing.T, p *OpenBao) string {
-	t.Helper()
-	e := p.entry("pg")
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.leaseID
+// A token that reaches its explicit max TTL is replaced from the TokenSource before it ends, and the lease it issued
+// (which ends with it) is replaced at once, with no Invalidate: ExpiresAt never passes the issuing token's end.
+func TestOpenBaoReplacesLeasesOfAReplacedToken(t *testing.T) {
+	b := newBaoEnv(t)
+	r := newDBRole(t, b, "1m", "10m")
+	name := "p" + tag()
+	b.call(b.root, "PUT", "sys/policies/acl/"+name, map[string]any{"policy": r.rules()})
+	short := b.call(b.root, "POST", "auth/token/create", map[string]any{"policies": []string{name}, "no_default_policy": true,
+		"renewable": true, "ttl": "6s", "explicit_max_ttl": "6s"})["auth"].(map[string]any)["client_token"].(string)
+	asked := 0
+	p := newProvider(t, b, short, map[string]OpenBaoSource{"pg": DatabaseRole(r.mount, r.role)}, OpenBaoOptions{
+		TokenSource: func(context.Context) (string, error) { asked++; return b.token(r.rules(), ""), nil },
+	})
+	ctx := context.Background()
+	first, err := p.Credential(ctx, "pg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if until(first.ExpiresAt) > 6*time.Second {
+		t.Fatalf("first ExpiresAt %s is past the token's end (6 s)", first.ExpiresAt)
+	}
+	time.Sleep(3500 * time.Millisecond) // within half the token's 6 s of its end
+	second, err := p.Credential(ctx, "pg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if asked != 1 || second.Version == first.Version || until(second.ExpiresAt) < 50*time.Second {
+		t.Fatalf("near the token's end: asked %d (want 1), credential %v (first %v), want a new lease of about 1 minute", asked, second, first)
+	}
+	time.Sleep(time.Until(first.ExpiresAt) + time.Second)
+	if n := r.users(t); n != 1 {
+		t.Fatalf("%d database users after the first token ended, want only the new lease's", n)
+	}
+	c := r.connection(t, p, "pg")
+	if u := currentUser(t, c); u != second.Username {
+		t.Fatalf("connected as %q, want the new lease's %q", u, second.Username)
+	}
 }
 
 // ---- Valkey with KV credentials ----
