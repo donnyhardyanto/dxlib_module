@@ -141,6 +141,9 @@ func (c *RedisConnection) client(ctx context.Context, mode connectMode, used uin
 		return nil, 0, fmt.Errorf("%s: no new connection attempt for another %s after %d failed in a row; the last one: %w",
 			c.Describe(), wait.Round(time.Millisecond), c.failures, c.lastErr)
 	}
+	if inv, ok := c.Provider.(Invalidator); ok && mode == modeRefused && c.cred.Version != "" {
+		inv.Invalidate(c.CredentialName, c.cred.Version)
+	}
 	cred, err := c.Provider.Credential(ctx, c.CredentialName)
 	if err != nil {
 		return nil, 0, c.fail(ctx, fmt.Errorf("%s: reading credential %q from the credential provider: %w", c.Describe(), c.CredentialName, err))

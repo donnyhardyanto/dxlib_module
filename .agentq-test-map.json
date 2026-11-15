@@ -7,6 +7,8 @@
    "command": "go vet ./module/user_management ./module/account_lockout ./module/permission_table ./module/self && go test ./module/user_management ./module/account_lockout ./module/permission_table ./module/self"},
   {"paths": ["lib/**"],
    "command": "go vet ./lib ./module/general ./module/self && go test ./lib ./module/general ./module/self"},
+  {"paths": ["module/credentials/**"],
+   "command": "go vet ./module/credentials ./module/passkey ./module/password ./module/session ./module/user_photo && go test ./module/credentials ./module/passkey ./module/password ./module/session ./module/user_photo"},
   {"paths": ["tools/reset-databases/**"],
    "command": "go vet ./tools/reset-databases && go test ./tools/reset-databases"},
   {"paths": ["*.go"],

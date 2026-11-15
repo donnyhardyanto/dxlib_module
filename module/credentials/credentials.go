@@ -2,7 +2,9 @@
 //
 // Every part (session store, password store, photo store, audit store) takes its Valkey, PostgreSQL and
 // object-storage credentials through one Provider, never from configuration values or the environment.
-// A service ships a Provider backed by its secret store (OpenBao or Vault); Fixed is for tests only.
+// A service ships OpenBao, the Provider backed by OpenBao (or Vault): KV secrets for Valkey and object storage,
+// dynamic database credentials for PostgreSQL. RedisConnection and PostgresConnection connect with them and
+// reconnect when they rotate or expire. Fixed is for tests only.
 package credentials
 
 import (
@@ -35,6 +37,14 @@ func (c Credential) GoString() string { return c.String() }
 // call it again and reconnect.
 type Provider interface {
 	Credential(ctx context.Context, name string) (Credential, error)
+}
+
+// Invalidator is implemented by a Provider that caches a credential (the OpenBao provider caches each dynamic
+// database credential for its lease). A holder whose server refused a credential calls Invalidate with that
+// credential's Version before asking again, so the provider issues a new one instead of returning the refused one.
+// A provider that reads its store on every call need not implement it.
+type Invalidator interface {
+	Invalidate(name, version string)
 }
 
 // Fixed is a Provider holding credentials in memory. It is for tests only: a service never puts credentials in

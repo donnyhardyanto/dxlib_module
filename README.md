@@ -354,6 +354,88 @@ include the package's `DBStore` tests and a test against the real session store.
 `DXLIB_MODULE_TEST_S3`, `DXLIB_MODULE_TEST_POSTGRES` or `DXLIB_MODULE_TEST_VALKEY`, `go test ./...` skips them.
 `FuzzReencode` feeds the image checks arbitrary bytes (`go test -fuzz FuzzReencode ./module/user_photo/`).
 
+## Credentials from OpenBao (`module/credentials`)
+
+`credentials.OpenBao` is the `credentials.Provider` a service ships: every Valkey, PostgreSQL and object-storage
+credential comes from OpenBao (or Vault), through dxlib's vault client (`vault.NewHashiCorpVault`). The service
+names each credential once:
+
+    v := vault.NewHashiCorpVault("https://bao.example.test:8200", token, "", "")
+    p, err := credentials.NewOpenBao(v, map[string]credentials.OpenBaoSource{
+        "valkey/sessions": credentials.KV("secret", "login/valkey"),        // fields username, password
+        "objects/photos":  {Kind: credentials.SourceKV, Mount: "secret", Path: "login/objects",
+                            UsernameKey: "access_key", PasswordKey: "secret_key"},
+        "postgres/app":    credentials.DatabaseRole("database", "login-app"),
+    }, credentials.OpenBaoOptions{TokenSource: login})
+    err = p.Check(ctx)                    // at start-up: reads every source once
+    defer p.Close(ctx)                    // revokes the database leases it issued
+
+- **KV** (version 2): read again on every call, so a holder always gets the newest version. `Version` is the
+  KV version, `ExpiresAt` is zero. A holder sees a rotation when its server refuses the old password.
+- **Database** (dynamic credentials): one lease per name serves every call. `Version` is the lease id and
+  `ExpiresAt` its end. Near the end (`RenewBefore`, one minute, or half the lease when shorter) it is renewed;
+  once it cannot be renewed past that (the role's `max_ttl`, a lease revoked out of band) a new lease is issued
+  and the old one is left to run out, so transactions still on it finish. A holder whose server refused the
+  credential calls `Invalidate` (the optional `credentials.Invalidator` interface) and gets a new lease.
+- **The provider's own token**: every lease is a child of it, and OpenBao revokes them all when it ends. The
+  provider renews it (`auth/token/renew-self`) near its end, caps each `ExpiresAt` at its end, and asks the
+  optional `TokenSource` for a new token when OpenBao refuses the current one (HTTP 403) or it cannot be renewed.
+  Give the service a periodic token (or an auth method that issues one). The token handed to the vault client is
+  the service's bootstrap secret; it is the one value not read through the provider.
+- **TLS**: an http:// address is refused (`AllowHTTP` is for a local test server only), and so is a client that
+  does not verify the certificate (`VAULT_SKIP_VERIFY`, which dxlib's client reads from the environment). Give
+  the CA with `VAULT_CACERT`. The namespace is the one in `OpenBaoOptions.Namespace`, never `VAULT_NAMESPACE`.
+- **Errors** name the OpenBao address, the credential's name, the path and OpenBao's own status and text.
+
+The token's policy, for the sources above:
+
+    path "secret/data/login/*"          { capabilities = ["read"] }
+    path "database/creds/login-app"     { capabilities = ["read"] }
+    path "sys/leases/renew"             { capabilities = ["update"] }
+    path "sys/leases/revoke"            { capabilities = ["update"] }
+    path "auth/token/renew-self"        { capabilities = ["update"] }
+    path "auth/token/lookup-self"       { capabilities = ["read"] }
+
+A database role whose revocation ends the user's sessions before dropping it, so a revoked or expired lease
+leaves no session behind and the role can be dropped:
+
+    creation_statements   = CREATE ROLE "{{name}}" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';
+                            GRANT USAGE ON SCHEMA <schema> TO "{{name}}"; GRANT ... ON <schema>.<table> TO "{{name}}";
+    revocation_statements = SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = '{{name}}';
+                            REVOKE ALL ON ALL TABLES IN SCHEMA <schema> FROM "{{name}}";
+                            REVOKE ALL ON ALL SEQUENCES IN SCHEMA <schema> FROM "{{name}}";
+                            REVOKE USAGE ON SCHEMA <schema> FROM "{{name}}"; DROP ROLE IF EXISTS "{{name}}";
+
+### PostgreSQL connections (`credentials.PostgresConnection`)
+
+The PostgreSQL counterpart of `RedisConnection`: a dxlib `databases.DXDatabase` pool opened with the provider's
+credential. Its `Tx` is the one the `DBStore`s of `module/password`, `module/passkey` and `module/user_photo` take:
+
+    db := credentials.NewPostgresConnection("login", "db.example.test:5432", "app", "postgres/app", p)
+    db.ConnectionOptions = "sslmode=verify-full sslrootcert=/etc/ssl/db-ca.pem"
+    store, err := password.NewDBStore(db, "login.passwords")
+
+- It asks the provider again near `ExpiresAt` (`RenewBefore`, one minute, or half the credential's lifetime),
+  on `Refresh` (a rotation notice), and when PostgreSQL refuses the credential as a transaction begins (SQLSTATE
+  28P01 or 28000). A renewed lease only moves the expiry; a new credential opens a new pool and new transactions
+  go to it. The old pool is closed when its last running transaction ends, so a rotation loses no work, and the
+  sessions (in Valkey, or any table) are untouched.
+- A callback runs at most once. Before it runs, a refused credential is retried on a new pool and a connection
+  the server had ended (SQLSTATE 57P01, as a revoked lease ends its user's sessions) on the same pool.
+- The connection string is built here with every value quoted, so a password cannot add keywords;
+  `ConnectionOptions` may not set the user, password, host, port or database. A failed attempt leaves no pool
+  running; the next waits `RetryMin` (1 s), doubling up to `RetryMax` (30 s).
+
+The tests start OpenBao (`quay.io/openbao/openbao:2.7.2`), PostgreSQL (`postgres:18.7`) and Valkey in one pod,
+so OpenBao's database engine reaches PostgreSQL; each test mounts its own engines, schema, role and policy:
+
+    tools/test-credentials.sh -v        # PODMAN=... names the container command (default podman)
+
+They cover KV versions, one lease per name, renewal past the first TTL (a login still works), a new lease at
+`max_ttl`, a transaction open across a rotation, a lease that ran out while idle, a revoked lease replaced once for
+eight transactions refused together, token renewal, a refused token replaced from the `TokenSource`, and a Valkey
+password rotated in KV with the data kept. Without `DXLIB_MODULE_TEST_OPENBAO` they are skipped.
+
 ## Dependencies
 
 Every new or upgraded dependency is scanned and its licence checked before the change is committed.
