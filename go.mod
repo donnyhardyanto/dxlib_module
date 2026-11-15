@@ -6,6 +6,7 @@ require (
 	firebase.google.com/go/v4 v4.22.0
 	github.com/HugoSmits86/nativewebp v1.3.0
 	github.com/donnyhardyanto/dxlib v1.133.0
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
 	github.com/tealeg/xlsx v1.0.5
 	go.opentelemetry.io/otel v1.47.0
@@ -44,7 +45,6 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-sql-driver/mysql v1.10.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect

@@ -31,6 +31,61 @@ line off standard output while printing: write the table to a file and print tha
   package's import path. A service whose dashboards read another tracer name sets it at start-up.
 - `tools/reset-databases` reads `VAULT_PATH` with the default `kv/data/dev`.
 
+## Sessions in Valkey (`module/session`, `module/credentials`, `module/auth_audit`)
+
+The base of a login framework: a session store in Valkey that carries the user's profile, with every change
+to the user written into all of that user's sessions at once.
+
+- **Cookie**: a 256-bit random token, base64url (43 characters), in a `__Host-` cookie (default
+  `__Host-session`) with `Path=/`, `Secure`, `HttpOnly`, `SameSite=Strict` and no `Domain`
+  (`Config.Cookie`, `Config.ClearCookie`, `Config.TokenFromRequest`). A value of any other form is refused
+  before Valkey is asked.
+- **Keys**: the session is a hash at `<KeyPrefix>s:<hex SHA-256 of the token>`, never the token itself; it
+  holds the user uuid, auth method, CSRF token, creation time, absolute expiry and the profile (username,
+  display name, status, photo reference and version, roles, permissions) with its version. Every session of
+  a user is listed in the set `<KeyPrefix>u:<user uuid>`. The service sets `KeyPrefix`.
+- **Expiry**: a sliding idle TTL (`IdleTTL`, default 15 minutes) that never runs past the absolute expiry
+  (`AbsoluteTTL`, default 12 hours), both as Valkey TTLs. Times come from Valkey's own clock.
+- **Rotation**: `Rotate` gives a session a new token and CSRF token at a privilege change, keeping its creation
+  time and absolute expiry; `Logout`, `RevokeSession` (one of the caller's own sessions, by id; another user's
+  id answers `ErrNotFound`, as a missing one does) and `RevokeAll` (every session of a user, for disable and
+  delete) end sessions.
+- **Propagation**: after the database commit of a change to a user (display name, status, photo, roles), the
+  service calls `PropagateProfile`; one Lua script writes the profile into every session of the user. A copy
+  with a lower `Profile.Version` never replaces a higher one. When the write fails, every session of the user
+  is deleted (fail closed), the cause logged and audited, and a `*PropagationError` returned; when even the
+  delete fails (Valkey down), the error says so and carries both causes, and the service should retry
+  `RevokeAll` once Valkey is back. The database stays the authority: `InvalidateProfiles` drops the cached
+  copies and the next `Get` of each session rebuilds it through the service's `ProfileLoader`.
+- **Audit**: every login, refused login, logout, rotation, revocation and propagation goes to an
+  `auth_audit.Sink` the service points at its own append-only store. A login whose audit record cannot be
+  written is refused and its session deleted. `auth_audit.Memory` is for tests.
+- **Credentials**: the store connects through `credentials.RedisConnection`, a dxlib redis connection made
+  with the credential a `credentials.Provider` returns, never with configuration values or the environment.
+  It reconnects with the provider's newer credential when the current one is within `RenewBefore` of its
+  expiry, when Valkey refuses it (`WRONGPASS`, `NOAUTH`), or on `Refresh`; the sessions stay in Valkey across
+  it. `credentials.Fixed` is for tests only.
+
+Valkey:
+
+- dxlib's redis package pins `github.com/go-redis/redis/v8` v8.11.5, which speaks RESP2 and authenticates with
+  `AUTH <user> <password>`; Valkey accepts both. The tests run against `valkey/valkey:9.1.3`.
+- One node or a Sentinel-managed primary. Valkey Cluster is not supported: the scripts reach sessions through the
+  per-user set.
+- dxlib's redis package has no TLS option yet, so the connection is plain TCP: keep Valkey on a private network
+  until it has one.
+- Run Valkey with `maxmemory-policy noeviction`, so sessions are never dropped silently.
+- An ACL user limited to the prefix is enough:
+
+      ACL SETUSER <user> on ><password> resetkeys ~<KeyPrefix>* resetchannels -@all +ping +select +eval +evalsha
+        +script|load +time +hset +hget +hmget +hdel +del +exists +pexpire +pttl +sadd +srem +smembers
+
+The tests that need Valkey start a throwaway container and make such an ACL user for each test:
+
+    tools/test-valkey.sh -v             # PODMAN=... names the container command (default podman)
+
+Without `DXLIB_MODULE_TEST_VALKEY` set, `go test ./...` skips them.
+
 ## Dependencies
 
 Every new or upgraded dependency is scanned and its licence checked before the change is committed.
