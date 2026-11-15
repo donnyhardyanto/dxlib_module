@@ -275,7 +275,11 @@ func (s *ValkeyStore) Create(ctx context.Context, login LoginInfo) (string, *Ses
 	if !authMethodPattern.MatchString(login.AuthMethod) {
 		return "", nil, fmt.Errorf("session: auth method %q must be 1 to 32 lower-case letters, digits, _ or -", truncate(login.AuthMethod, 40))
 	}
-	detail := map[string]string{"auth_method": login.AuthMethod, "client_address": login.ClientAddress, "user_agent": truncate(login.UserAgent, 256)}
+	detail := map[string]string{}
+	for k, v := range login.AuditDetail {
+		detail[k] = v
+	}
+	detail["auth_method"], detail["client_address"], detail["user_agent"] = login.AuthMethod, login.ClientAddress, truncate(login.UserAgent, 256)
 	token, err := NewToken()
 	if err != nil {
 		return "", nil, err

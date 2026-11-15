@@ -95,6 +95,70 @@ The tests that need Valkey start a throwaway container and make such an ACL user
 
 Without `DXLIB_MODULE_TEST_VALKEY` set, `go test ./...` skips them.
 
+## Passkeys (`module/passkey`)
+
+WebAuthn registration and login as a relying party, on `github.com/go-webauthn/webauthn` (BSD-3-Clause).
+
+- **Passkeys only**: every credential is discoverable (`residentKey: required`) and made and used with user
+  verification (`userVerification: required`); an answer without the UV flag is refused. A credential the
+  client reports as not discoverable (`credProps.rk: false`) is refused. A user may hold several
+  (`Config.MaxPerUser`, default 20); a new registration excludes the user's own.
+- **Flow**: `BeginRegistration(ctx, User)` and `BeginLogin(ctx)` return the options for
+  `navigator.credentials.create()` / `.get()` as JSON (`{"publicKey": ...}`) and a handle the page sends back
+  with the browser's answer; `FinishRegistration(ctx, userUUID, handle, name, body, Client)` stores the passkey
+  under a name (`CheckName` tells the user what is wrong with one), and `FinishLogin(ctx, handle, body, Client)`
+  starts the session through `session.Store.Create` with the auth method `passkey` and returns its token. Bodies
+  are read up to 64 KiB. No go-webauthn type is part of the API.
+- **Challenges** live in Valkey under `<KeyPrefix>c:<hex SHA-256 of the handle>` for `ChallengeTTL` (default and
+  longest 5 minutes), not in a table, through `credentials.RedisConnection`. Each is taken (read and deleted in one
+  step) before the answer is checked, so it works once, also when the answer is refused. A registration challenge
+  is bound to the user it was started for and cannot be used to log in, nor a login challenge to register.
+- **Login**: the authenticator names the user (the user handle is the user uuid's 16 bytes, so the service's
+  uuids should be random, v4 or v7, never v1); the passkey must belong to that user. Then the service's
+  `Accounts.LoginProfile` gives the profile, or an error that refuses the login (disabled, deleted, locked). The
+  new signature counter and flags are stored before the session starts; a counter that goes back (a copied
+  key) or a backup-eligible flag that changes refuses the login.
+- **Never the last way in**: `Remove` refuses the user's last passkey (`ErrLastWayIn`) unless
+  `Accounts.HasPassword` says the user has a password; an error from it refuses too. The store counts and
+  deletes in one transaction with the user's rows locked, so two removals at once cannot take both of the last
+  two. Another user's passkey answers `ErrNotFound`, as a missing one does.
+- **Audit**: registrations and removals (`credential_registered`, `credential_removed`), refused ones with
+  their real reason, and failed logins (`login_failed`) go to the `auth_audit.Sink`; a successful login is
+  audited once, by the session store, with the passkey's id in its detail (`session.LoginInfo.AuditDetail`). A
+  registration whose audit record cannot be written is refused and the passkey deleted.
+- **Errors**: a refused ceremony returns an error wrapping `ErrRefused` whose text holds the real reason; answer
+  the browser with 400 or 401 and log the text.
+
+The Valkey user of the challenges needs, under its own prefix:
+
+    ACL SETUSER <user> on ><password> resetkeys ~<KeyPrefix>* resetchannels -@all +ping +select +eval +evalsha
+      +script|load +set +get +del
+
+The passkeys are kept by a `CredentialStore`. `DBStore` keeps them in a PostgreSQL table the service names
+(`table` or `schema.table`), through dxlib's databases package, with fixed column names and every value bound as
+a parameter. It takes any `Database` with dxlib's `Tx` (a `*databases.DXDatabase`):
+
+    CREATE TABLE <schema>.<table> (
+        id              text PRIMARY KEY,           -- credential id, base64url
+        user_uuid       uuid NOT NULL,
+        name            text NOT NULL,
+        credential      text NOT NULL,              -- the WebAuthn credential record, JSON
+        backup_eligible boolean NOT NULL,
+        backup_state    boolean NOT NULL,
+        created_at      timestamptz NOT NULL,
+        last_used_at    timestamptz
+    );
+    CREATE INDEX ON <schema>.<table> (user_uuid);
+    GRANT SELECT, INSERT, UPDATE, DELETE ON <schema>.<table> TO <service role>;
+
+`MemoryStore` is for tests. The tests that need PostgreSQL start a throwaway `postgres:18.7` container, make a
+schema, that table and a role with only those grants for each test:
+
+    tools/test-postgres.sh -v           # PODMAN=... names the container command (default podman)
+
+`tools/test-valkey.sh` runs the passkey tests that need Valkey. Without `DXLIB_MODULE_TEST_POSTGRES` or
+`DXLIB_MODULE_TEST_VALKEY` set, `go test ./...` skips them.
+
 ## Dependencies
 
 Every new or upgraded dependency is scanned and its licence checked before the change is committed.

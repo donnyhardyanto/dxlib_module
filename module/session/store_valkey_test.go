@@ -724,3 +724,24 @@ func TestValkeyRotationRefusedWhenTheProfileCannotBeRebuilt(t *testing.T) {
 		t.Fatalf("a refused rotation was audited as done: %+v", r)
 	}
 }
+
+func TestValkeyLoginAuditCarriesTheCallersDetailButNotOverItsOwn(t *testing.T) {
+	e := newValkeyEnv(t)
+	audit := &auth_audit.Memory{}
+	s := e.store(t, Config{}, audit, nil)
+	user := uuid.NewString()
+	_, sess, err := s.Create(context.Background(), LoginInfo{UserUUID: user, AuthMethod: "passkey", ClientAddress: "192.0.2.9",
+		Profile:     Profile{Username: "u", Status: "active", Version: 1},
+		AuditDetail: map[string]string{"passkey_id": "abc", "auth_method": "password", "client_address": "198.51.100.1"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ev := audit.OfKind(auth_audit.LoginSucceeded)
+	if len(ev) != 1 || ev[0].SessionID != sess.ID {
+		t.Fatalf("login audits %+v", ev)
+	}
+	d := ev[0].Detail
+	if d["passkey_id"] != "abc" || d["auth_method"] != "passkey" || d["client_address"] != "192.0.2.9" {
+		t.Fatalf("audit detail %v", d)
+	}
+}

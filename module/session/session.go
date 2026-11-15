@@ -76,6 +76,9 @@ type LoginInfo struct {
 	// ClientAddress and UserAgent go to the audit record only.
 	ClientAddress string
 	UserAgent     string
+	// AuditDetail adds facts of the login to its audit record (for example the passkey used). Its keys never
+	// replace auth_method, client_address or user_agent. Never put a secret in it.
+	AuditDetail map[string]string
 }
 
 // ProfileLoader reads a user's profile from the authoritative store, to rebuild a session's cached copy.
