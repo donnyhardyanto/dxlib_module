@@ -29,6 +29,9 @@ import (
 // The commands the store's ACL user needs; README's session section repeats this list.
 const aclCommands = "+ping +select +eval +evalsha +script|load +time +hset +hget +hmget +hdel +del +exists +pexpire +pttl +sadd +srem +smembers"
 
+// The store's Connection is met by the credential-provider connection.
+var _ Connection = (*credentials.RedisConnection)(nil)
+
 type valkeyEnv struct {
 	addr     string
 	admin    *goredis.Client
@@ -373,15 +376,15 @@ func TestValkeyACLLimitsTheStoreToItsPrefix(t *testing.T) {
 	e := newValkeyEnv(t)
 	c := e.conn(t, e.addr)
 	ctx := context.Background()
-	err := c.Do(ctx, "outside the prefix", func(cl goredis.UniversalClient) error { return cl.Set(ctx, "other:key", "x", 0).Err() })
+	_, err := c.Command(ctx, "outside the prefix", "SET", "other:key", "x")
 	if err == nil || !strings.Contains(err.Error(), "NOPERM") {
 		t.Fatalf("write outside the prefix: %v, want NOPERM", err)
 	}
-	err = c.Do(ctx, "inside the prefix", func(cl goredis.UniversalClient) error { return cl.HSet(ctx, e.prefix+"x", "a", "b").Err() })
+	_, err = c.Command(ctx, "inside the prefix", "HSET", e.prefix+"x", "a", "b")
 	if err != nil {
 		t.Fatalf("write inside the prefix: %v", err)
 	}
-	err = c.Do(ctx, "flushall", func(cl goredis.UniversalClient) error { return cl.FlushAll(ctx).Err() })
+	_, err = c.Command(ctx, "flushall", "FLUSHALL")
 	if err == nil || !strings.Contains(err.Error(), "NOPERM") {
 		t.Fatalf("FLUSHALL: %v, want NOPERM", err)
 	}
@@ -418,7 +421,7 @@ func TestValkeyCredentialRotationKeepsOpenSessions(t *testing.T) {
 	c.RenewBefore = time.Minute
 	ping := func() {
 		t.Helper()
-		if err := c.Do(ctx, "ping", func(cl goredis.UniversalClient) error { return cl.Ping(ctx).Err() }); err != nil {
+		if _, err := c.Command(ctx, "ping", "PING"); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -690,5 +693,34 @@ func TestValkeyRotationRefusedWhenTheAuditCannotBeWritten(t *testing.T) {
 	}
 	if list, _ := s.List(context.Background(), user); len(list) != 0 {
 		t.Fatalf("an unaudited rotated session was left: %+v", list)
+	}
+}
+
+// A rotation whose session has no cached profile and whose rebuild fails ends the session: the new token is never
+// handed out, so the new session must not stay behind without its audit record.
+func TestValkeyRotationRefusedWhenTheProfileCannotBeRebuilt(t *testing.T) {
+	e := newValkeyEnv(t)
+	audit := &auth_audit.Memory{}
+	s := e.store(t, Config{}, audit, ProfileLoaderFunc(func(context.Context, string) (Profile, error) {
+		return Profile{}, errors.New("database unreachable")
+	}))
+	ctx := context.Background()
+	user := uuid.NewString()
+	tok, _ := login(t, s, user, "u")
+	if err := s.InvalidateProfiles(ctx, user); err != nil {
+		t.Fatal(err)
+	}
+	newTok, _, err := s.Rotate(ctx, tok, nil)
+	if err == nil || newTok != "" || !strings.Contains(err.Error(), "database unreachable") || !strings.Contains(err.Error(), "rotation refused") {
+		t.Fatalf("Rotate with a failing rebuild: %q, %v", newTok, err)
+	}
+	if list, err := s.List(ctx, user); err != nil || len(list) != 0 {
+		t.Fatalf("a rotated session without its token or audit record was left: %+v, %v", list, err)
+	}
+	if n, _ := e.admin.SCard(ctx, e.prefix+"u:"+user).Result(); n != 0 {
+		t.Fatalf("the user's index still lists %d sessions", n)
+	}
+	if r := audit.OfKind(auth_audit.SessionRotated); len(r) != 0 {
+		t.Fatalf("a refused rotation was audited as done: %+v", r)
 	}
 }

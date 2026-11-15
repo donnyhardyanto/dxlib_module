@@ -64,7 +64,7 @@ func TestExplainUnreachableAddsTheDialError(t *testing.T) {
 
 func TestRedisConnectionReportsAProviderFailure(t *testing.T) {
 	c := NewRedisConnection("x", "127.0.0.1:1", 0, "absent", NewFixed(nil))
-	err := c.Do(context.Background(), "probe", nil)
+	_, err := c.Command(context.Background(), "probe", "PING")
 	if err == nil || !strings.Contains(err.Error(), `credential "absent"`) || !strings.Contains(err.Error(), "127.0.0.1:1") {
 		t.Fatalf("got %v", err)
 	}

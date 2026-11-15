@@ -9,15 +9,19 @@ import (
 	"time"
 
 	"github.com/donnyhardyanto/dxlib/log"
-	goredis "github.com/go-redis/redis/v8"
 
 	"github.com/donnyhardyanto/dxlib_module/module/auth_audit"
 )
 
-// Connection runs commands on Valkey. credentials.RedisConnection implements it: a dxlib redis connection made
-// with credentials from the credential provider, reconnecting when they rotate.
+// Connection runs the store's commands on Valkey. credentials.RedisConnection implements it: a dxlib redis
+// connection made with credentials from the credential provider, reconnecting when they rotate. Replies are plain
+// RESP values (string, int64, []interface{}), a nil reply is (nil, nil), and op names the operation in errors, so
+// no client library type is part of this interface.
 type Connection interface {
-	Do(ctx context.Context, op string, fn func(goredis.UniversalClient) error) error
+	// Eval runs a Lua script (EVALSHA, then EVAL when the server does not have it cached).
+	Eval(ctx context.Context, op, script string, keys []string, args ...interface{}) (interface{}, error)
+	// HGet returns a hash field and whether it exists.
+	HGet(ctx context.Context, op, key, field string) (string, bool, error)
 }
 
 // ValkeyStore is the Store in Valkey. Every multi-key change is one Lua script, so it is atomic.
@@ -66,7 +70,7 @@ local function n(x) return string.format('%.0f', x) end
 
 // KEYS: session, index, version marker. ARGV: uuid, method, csrf, profile, version, idle ms, absolute ms, id.
 // Returns {created, absolute expiry, 1 when the profile was stored or 0 when it is older than the propagated one}.
-var scriptCreate = goredis.NewScript(luaNow + `
+const scriptCreate = luaNow + `
 local idle, abs = tonumber(ARGV[6]), tonumber(ARGV[7])
 if redis.call('EXISTS', KEYS[1]) == 1 then return redis.error_reply('SESSION_TOKEN_COLLISION') end
 local ta = now + abs
@@ -79,10 +83,10 @@ redis.call('SADD', KEYS[2], ARGV[8])
 if redis.call('PTTL', KEYS[2]) < abs then redis.call('PEXPIRE', KEYS[2], n(abs)) end
 if fresh then return {n(now), n(ta), 1} end
 return {n(now), n(ta), 0}
-`)
+`
 
 // KEYS: session. ARGV: idle ms, prefix, id.
-var scriptGet = goredis.NewScript(luaNow + `
+const scriptGet = luaNow + `
 local v = redis.call('HMGET', KEYS[1], 'u', 'm', 'c', 't0', 'ta', 'p', 'pv')
 if not v[1] then return false end
 local ta = tonumber(v[5])
@@ -93,11 +97,11 @@ if (not ta) or ta <= now then
 end
 redis.call('PEXPIRE', KEYS[1], n(math.min(tonumber(ARGV[1]), ta - now)))
 return v
-`)
+`
 
 // KEYS: old session, new session, version marker. ARGV: prefix, old id, new id, new csrf, idle ms,
 // profile (empty: keep), version (empty: keep). A given profile older than the cached or propagated one is ignored.
-var scriptRotate = goredis.NewScript(luaNow + `
+const scriptRotate = luaNow + `
 local v = redis.call('HMGET', KEYS[1], 'u', 'm', 't0', 'ta', 'p', 'pv')
 if not v[1] then return false end
 local idx = ARGV[1] .. 'u:' .. v[1]
@@ -119,30 +123,30 @@ redis.call('DEL', KEYS[1])
 redis.call('SREM', idx, ARGV[2])
 redis.call('SADD', idx, ARGV[3])
 return {v[1], v[2], ARGV[4], v[3], v[4], p, pv}
-`)
+`
 
 // KEYS: session. ARGV: prefix, id, owner uuid (empty: any owner). Returns the owner's uuid, or false.
-var scriptDelete = goredis.NewScript(`
+const scriptDelete = `
 local u = redis.call('HGET', KEYS[1], 'u')
 if not u then return false end
 if ARGV[3] ~= '' and u ~= ARGV[3] then return false end
 redis.call('DEL', KEYS[1])
 redis.call('SREM', ARGV[1] .. 'u:' .. u, ARGV[2])
 return u
-`)
+`
 
 // KEYS: index. ARGV: prefix. Returns the number of sessions deleted.
-var scriptDeleteAll = goredis.NewScript(`
+const scriptDeleteAll = `
 local ids = redis.call('SMEMBERS', KEYS[1])
 local count = 0
 for _, id in ipairs(ids) do count = count + redis.call('DEL', ARGV[1] .. 's:' .. id) end
 redis.call('DEL', KEYS[1])
 return count
-`)
+`
 
 // KEYS: index, version marker. ARGV: prefix, profile, version, uuid, absolute ms. Returns {updated, newer, stale}.
 // The marker keeps the highest version for as long as a session can live, also when the user has no session yet.
-var scriptPropagate = goredis.NewScript(`
+const scriptPropagate = `
 local mv = tonumber(redis.call('HGET', KEYS[2], 'pv') or '')
 if (not mv) or tonumber(ARGV[3]) > mv then redis.call('HSET', KEYS[2], 'pv', ARGV[3]) end
 redis.call('PEXPIRE', KEYS[2], ARGV[5])
@@ -162,21 +166,21 @@ for _, id in ipairs(ids) do
   end
 end
 return {updated, newer, stale}
-`)
+`
 
 // KEYS: index. ARGV: prefix, uuid. Drops the cached profile of every session of the user.
-var scriptInvalidate = goredis.NewScript(`
+const scriptInvalidate = `
 local ids = redis.call('SMEMBERS', KEYS[1])
 for _, id in ipairs(ids) do
   local k = ARGV[1] .. 's:' .. id
   if redis.call('HGET', k, 'u') == ARGV[2] then redis.call('HDEL', k, 'p') else redis.call('SREM', KEYS[1], id) end
 end
 return #ids
-`)
+`
 
 // KEYS: session, version marker. ARGV: profile, version, uuid. Writes a rebuilt profile unless a newer one is
 // cached or was propagated (-1), or the session is gone (0).
-var scriptSetProfile = goredis.NewScript(`
+const scriptSetProfile = `
 local cur = redis.call('HMGET', KEYS[1], 'u', 'pv', 'p')
 if cur[1] ~= ARGV[3] then return 0 end
 local mv = tonumber(redis.call('HGET', KEYS[2], 'pv') or '')
@@ -184,10 +188,10 @@ if mv and tonumber(ARGV[2]) < mv then return -1 end
 if cur[3] and cur[2] and tonumber(cur[2]) > tonumber(ARGV[2]) then return -1 end
 redis.call('HSET', KEYS[1], 'p', ARGV[1], 'pv', ARGV[2])
 return 1
-`)
+`
 
 // KEYS: index. ARGV: prefix, uuid. Returns {id, method, created, absolute, profile, version} per live session.
-var scriptList = goredis.NewScript(luaNow + `
+const scriptList = luaNow + `
 local ids = redis.call('SMEMBERS', KEYS[1])
 local out = {}
 for _, id in ipairs(ids) do
@@ -199,22 +203,12 @@ for _, id in ipairs(ids) do
   end
 end
 return out
-`)
+`
 
 func ms(d time.Duration) string { return strconv.FormatInt(d.Milliseconds(), 10) }
 
-func (s *ValkeyStore) run(ctx context.Context, op string, sc *goredis.Script, keys []string, args ...interface{}) (interface{}, error) {
-	var res interface{}
-	err := s.conn.Do(ctx, op, func(c goredis.UniversalClient) error {
-		r, err := sc.Run(ctx, c, keys, args...).Result()
-		if errors.Is(err, goredis.Nil) {
-			res = nil
-			return nil
-		}
-		res = r
-		return err
-	})
-	return res, err
+func (s *ValkeyStore) run(ctx context.Context, op string, script string, keys []string, args ...interface{}) (interface{}, error) {
+	return s.conn.Eval(ctx, op, script, keys, args...)
 }
 
 func (s *ValkeyStore) writeAudit(ctx context.Context, e auth_audit.Event) error {
@@ -439,6 +433,12 @@ func (s *ValkeyStore) Rotate(ctx context.Context, token string, profile *Profile
 	p, ok := decodeProfile(v[5], v[6])
 	if !ok {
 		if p, err = s.rebuildProfile(ctx, sess); err != nil {
+			// The new session exists but its token is never handed out and it has no audit record: delete it, as
+			// Create does. The old token is already gone.
+			err = fmt.Errorf("session: rotation refused, the session is ended: %w", err)
+			if _, derr := s.run(context.WithoutCancel(ctx), "session delete after a failed profile rebuild", scriptDelete, []string{s.sessionKey(newID)}, s.cfg.KeyPrefix, newID, ""); derr != nil {
+				return "", nil, errors.Join(err, fmt.Errorf("session: the rotated session %s could not be deleted: %w", newID, derr))
+			}
 			return "", nil, err
 		}
 	}
@@ -455,15 +455,7 @@ func (s *ValkeyStore) Rotate(ctx context.Context, token string, profile *Profile
 
 // ownerOf returns the user uuid of a session id, or ErrNotFound.
 func (s *ValkeyStore) ownerOf(ctx context.Context, id string) (string, error) {
-	var owner string
-	err := s.conn.Do(ctx, "session owner", func(c goredis.UniversalClient) error {
-		v, err := c.HGet(ctx, s.sessionKey(id), "u").Result()
-		if errors.Is(err, goredis.Nil) {
-			return nil
-		}
-		owner = v
-		return err
-	})
+	owner, _, err := s.conn.HGet(ctx, "session owner", s.sessionKey(id), "u")
 	if err != nil {
 		return "", fmt.Errorf("session: reading the session failed: %w", err)
 	}

@@ -67,7 +67,13 @@ to the user written into all of that user's sessions at once.
   with the credential a `credentials.Provider` returns, never with configuration values or the environment.
   It reconnects with the provider's newer credential when the current one is within `RenewBefore` of its
   expiry, when Valkey refuses it (`WRONGPASS`, `NOAUTH`), or on `Refresh`; the sessions stay in Valkey across
-  it. `credentials.Fixed` is for tests only.
+  it. Calls refused at the same moment reconnect once between them, and a credential the provider still returns
+  after Valkey refused it is not tried again. Each new credential is first tried on one plain connection that is
+  closed afterwards, and only an accepted one goes to dxlib's `Connect` (a failed `Connect` leaves its client
+  running); after a failed attempt the next waits `RetryMin` (1 s), doubling up to `RetryMax` (30 s), and calls
+  in between get the last error at once. Its methods (`Eval`, `HGet`, `Command`) and the store's `Connection`
+  interface take and return plain Go values, so no Redis client type is part of the API.
+  `credentials.Fixed` is for tests only.
 
 Valkey:
 
