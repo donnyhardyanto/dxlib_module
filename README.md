@@ -260,6 +260,96 @@ every value bound as a parameter; it takes any `Database` with dxlib's `Tx`:
 own transit engine, key, policy and token). Without `DXLIB_MODULE_TEST_POSTGRES` or `DXLIB_MODULE_TEST_OPENBAO`
 set, `go test ./...` skips them.
 
+## User photos (`module/user_photo`)
+
+One profile photo per user, checked, re-encoded and kept in a private bucket. Only the photo route reads it
+back, after the caller's right is checked.
+
+- **Upload**: `Set(ctx, caller, userUUID, body)` reads at most `Config.MaxBytes` (2 MiB by default, at most
+  8 MiB), counted while reading, so a chunked upload cannot pass the limit. The file is accepted only when its
+  own bytes are PNG, JPEG or WebP; the request's Content-Type and file name are never read, so a GIF, BMP, SVG
+  or HTML page sent as `image/png` is refused. The service's route checks the caller's CSRF token
+  (`session.Session.CheckCSRF`) before calling `Set` or `Remove`.
+- **Pixel-bomb limit**: the dimensions are read from the header with that format's own decoder (no other
+  registered decoder is ever reached) and refused over `Config.MaxPixels` (16 777 216, 4096x4096) or
+  `Config.MaxSide` (8192) before any pixel is decoded. For WebP every frame header is checked as well as the
+  canvas, since the decoder allocates by the frame; an animated WebP is refused. At most
+  `Config.MaxConcurrentDecodes` (2) decodes run at once, each up to `MaxPixels` x 8 bytes (a 16-bit PNG); an
+  upload waits for a slot until its context ends. A decoded image whose size differs from its header is
+  refused.
+- **Re-encoding**: a centred square is cut and scaled to 256x256 (Catmull-Rom), then encoded as lossless WebP
+  (`github.com/HugoSmits86/nativewebp`) from the pixels alone: the stored file is RIFF, WEBP and one VP8L
+  chunk, so no EXIF, GPS, ICC, XMP or comment survives. Transparency is kept. EXIF orientation is not applied,
+  so a camera photo stored sideways with an orientation tag comes out sideways.
+- **Storage**: each photo goes under a new random key (`Config.KeyPrefix` + 64 hex digits + `.webp`, nothing
+  of the user in it) through the `ObjectStore` interface. `S3Store` speaks the S3 API (SeaweedFS, MinIO,
+  Garage) through `github.com/minio/minio-go/v7`, path-style; its access key and secret key are the
+  credential's `Username` and `Password` from the `credentials.Provider` (`S3Config.CredentialName`), asked
+  for again 30 seconds before `ExpiresAt` and after any answer refusing the credential (`AccessDenied`,
+  `InvalidAccessKeyId`, `SignatureDoesNotMatch`, `ExpiredToken`), which is then tried once more. `Check(ctx)`
+  at start-up refuses a bucket that does not exist (it never creates one) and one that answers an unsigned
+  listing or read with anything but 401 or 403. `MemoryObjectStore` is for tests.
+- **The row**: `Store` keeps, per user, the object key and a version that rises by one with every change or
+  removal (a removal keeps the row with an empty key, so the version keeps rising). The previous object is
+  deleted once the new row is committed; when that fails the change still stands, and `Change.OldObjectErr`,
+  the log and the audit record (`old_object_left`) name the key to remove by hand. When the row cannot be
+  written, the new object is deleted again.
+- **Sessions**: after the commit the profile is loaded through `Profiles` and written into every session of
+  the user with `session.Store.PropagateProfile`. `NewProfiles(serviceLoader, store, cfg)` wraps the
+  service's own `session.ProfileLoader` and fills `PhotoRef` (`Config.PhotoPath` with the uuid and
+  `?v=<version>`, never the object key) and `PhotoVersion` from the `Store`. Give it to
+  `session.NewValkeyStore` as the loader, and build every login's profile with `Profiles.LoadProfile` or
+  `Profiles.Fill` (the `LoginProfile` of password's and passkey's `Accounts`), so every session carries the
+  photo. The profile's `Version` stays the service's own: a photo change never raises it, so the session
+  store's version marker stays on the service's scale and a later login or name change is never taken for an
+  older copy. When the profile cannot be loaded, the user's cached profiles are dropped (rebuilt on the next
+  request), and when even that fails their sessions are ended; `Change.SessionsErr` says which. A
+  `*session.PropagationError` (the session store has deleted the sessions) is handed back the same way.
+- **The route**: `Handler(sessions, sessionConfig)` serves `GET` and `HEAD`; mount it on a pattern with
+  `{uuid}` that matches `Config.PhotoPath`:
+
+      mux.Handle("GET /users/{uuid}/photo", photos.Handler(sessions, sessionConfig))
+
+  It reads the session from the cookie (401 without one), asks `Rights.MayView`, and only then reads the row
+  and the object. Another user's photo without the right, a user without a photo, a removed photo and
+  anything that is not a uuid all answer the same 404. A photo is served with `Content-Type: image/webp`,
+  `X-Content-Type-Options: nosniff`, `Cache-Control: private, max-age=86400` (`Config.CacheMaxAge`),
+  `Vary: Cookie`, `ETag: "<version>"` (`If-None-Match` gives 304), `Content-Security-Policy: default-src
+  'none'; sandbox` and `Cross-Origin-Resource-Policy: same-origin`; refusals are `private, no-store`. A
+  session store or bucket that fails answers 503, the real error in the log.
+- **Rights**: `SelfOrPermission{ViewAny, ChangeAny}` (the default with both empty) lets each user see and
+  change their own photo, and a session holding the named permission anyone's. A service with other rules
+  implements `Rights`. A caller who may not change a photo gets `ErrNotFound`, and the attempt is audited.
+- **Deleted with the user**: `DeleteUser(ctx, userUUID, actorUUID)` deletes the row and the object as part of
+  deleting the user (the service ends the sessions with `RevokeAll`). When the object cannot be deleted, the
+  error and the audit record name its key.
+- **Audit**: `photo_changed` and `photo_removed` with the actor's uuid when it is not the user, the version,
+  the sizes, and on a failure the real reason (a refused image, a refused right, a store error).
+- **Errors**: a refused image wraps `ErrRejected` and one of `ErrTooLarge` (answer 413), `ErrFormat`,
+  `ErrTooManyPixels`, `ErrDecode` (422); that text is safe to show the user. `ErrNotFound` is 404.
+
+`DBStore` keeps the rows in a PostgreSQL table the service names, through dxlib, with fixed column names and
+every value bound as a parameter:
+
+    CREATE TABLE <schema>.<table> (
+        user_uuid  uuid PRIMARY KEY,
+        object_key text NOT NULL,        -- '' once the photo was removed
+        version    bigint NOT NULL,
+        changed_at timestamptz NOT NULL
+    );
+    GRANT SELECT, INSERT, UPDATE, DELETE ON <schema>.<table> TO <service role>;
+
+The bucket is created by the operator, with no anonymous access, and the service's identity limited to it.
+In SeaweedFS (`-s3.config`), an identity with only `Read:<bucket>`, `Write:<bucket>` and `List:<bucket>`, and no
+`anonymous` identity that names the bucket; `Check` refuses the bucket whenever an unsigned request gets in.
+
+`tools/test-seaweedfs.sh` runs the `S3Store` tests against `chrislusf/seaweedfs:4.53` with an admin, a photo
+identity limited to the test bucket, another limited to another bucket, and an anonymous identity that may
+read only a `public-test` bucket (for `Check`'s refusal). `tools/test-postgres.sh` and `tools/test-valkey.sh`
+include the package's `DBStore` tests and a test against the real session store. Without
+`DXLIB_MODULE_TEST_S3`, `DXLIB_MODULE_TEST_POSTGRES` or `DXLIB_MODULE_TEST_VALKEY`, `go test ./...` skips them.
+`FuzzReencode` feeds the image checks arbitrary bytes (`go test -fuzz FuzzReencode ./module/user_photo/`).
+
 ## Dependencies
 
 Every new or upgraded dependency is scanned and its licence checked before the change is committed.

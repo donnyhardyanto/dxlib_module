@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs the tests that need a real Valkey (module/session, module/credentials, module/passkey) against a throwaway Valkey container.
+# Runs the tests that need a real Valkey (module/session, module/credentials, module/passkey, module/user_photo) against a throwaway Valkey container.
 #
 #   tools/test-valkey.sh [go test flags...]      e.g. tools/test-valkey.sh -v -run Valkey
 #
@@ -30,4 +30,4 @@ until $PODMAN exec "$NAME" valkey-cli -a "$ADMIN_PASSWORD" --no-auth-warning pin
 done
 
 DXLIB_MODULE_TEST_VALKEY=127.0.0.1:$PORT DXLIB_MODULE_TEST_VALKEY_ADMIN_PASSWORD=$ADMIN_PASSWORD \
-  go test -count=1 "$@" ./module/session/ ./module/credentials/ ./module/passkey/
+  go test -count=1 "$@" ./module/session/ ./module/credentials/ ./module/passkey/ ./module/user_photo/
