@@ -9,7 +9,10 @@
 // never in a table, and is taken (read and deleted in one step) before the browser's answer is checked, so each
 // challenge is used at most once, also when the check fails. A successful login starts a session through
 // session.Store with the auth method "passkey". Every registration, removal, login and failure is written to an
-// auth_audit.Sink.
+// auth_audit.Sink (BeginLogin's errors excepted: no user or answer exists yet).
+//
+// BeginLogin is called before any login, so anyone can call it, and each call keeps a challenge in Valkey for
+// Config.ChallengeTTL: rate-limit the endpoint that calls it, per client address.
 //
 // The passkeys themselves are kept by a CredentialStore: DBStore keeps them in a table the service names, through
 // dxlib's databases package; MemoryStore is for tests.
@@ -47,7 +50,8 @@ type Passkey struct {
 	CreatedAt  time.Time
 	LastUsedAt time.Time // zero until it is first used to log in
 	// BackupEligible and BackupState tell a synced passkey (copied by the platform to the user's other devices)
-	// from one bound to a single device.
+	// from one bound to a single device. BackupEligible is fixed at registration (a login that reports another
+	// value is refused); BackupState is the value of the last login, or of the registration before the first one.
 	BackupEligible bool
 	BackupState    bool
 	// Credential is the WebAuthn credential record (public key, sign count, flags) as opaque JSON. A
@@ -64,9 +68,10 @@ type CredentialStore interface {
 	ByUser(ctx context.Context, userUUID string) ([]Passkey, error)
 	// ByID returns the passkey with this ID, whoever holds it. ErrNotFound when there is none.
 	ByID(ctx context.Context, id string) (*Passkey, error)
-	// RecordUse stores the credential record and time after a login with the passkey (its sign count and flags
-	// change). ErrNotFound when the user holds no passkey with this ID.
-	RecordUse(ctx context.Context, userUUID, id string, credential []byte, usedAt time.Time) error
+	// RecordUse stores the credential record, the backup state and the time after a login with the passkey (its
+	// sign count and flags change; a device-bound passkey the platform later syncs reports BackupState true).
+	// ErrNotFound when the user holds no passkey with this ID.
+	RecordUse(ctx context.Context, userUUID, id string, credential []byte, backupState bool, usedAt time.Time) error
 	// Remove deletes one of the user's passkeys. Before deleting, and while no other Remove of the same user can
 	// run, it calls allow with the number of passkeys the user would keep; an error from allow refuses the removal
 	// and is returned. allow may be nil. ErrNotFound when the user holds no passkey with this ID, also when another
@@ -102,7 +107,8 @@ type Client struct {
 var (
 	// ErrRefused wraps every ceremony that did not pass (a wrong, replayed or expired challenge, a bad signature, no
 	// user verification, an unknown passkey, a refused account). Answer it as 401 or 400 without the detail; the
-	// error's text holds the real reason for the log, and the audit record has it too.
+	// error's text holds the real reason for the log, and the audit record has it too. The error wraps its cause as
+	// well, so errors.Is finds ErrDuplicate or ErrTooMany from the store.
 	ErrRefused = errors.New("passkey: not accepted")
 	// ErrNotFound: no such passkey for this user. Answer it as 404.
 	ErrNotFound = errors.New("passkey: not found")

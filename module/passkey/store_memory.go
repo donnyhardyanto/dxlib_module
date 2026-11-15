@@ -89,8 +89,8 @@ func (m *MemoryStore) ByID(_ context.Context, id string) (*Passkey, error) {
 	return &c, nil
 }
 
-// RecordUse stores the credential record and time after a login.
-func (m *MemoryStore) RecordUse(_ context.Context, userUUID, id string, credential []byte, usedAt time.Time) error {
+// RecordUse stores the credential record, the backup state and the time after a login.
+func (m *MemoryStore) RecordUse(_ context.Context, userUUID, id string, credential []byte, backupState bool, usedAt time.Time) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.Fail != nil {
@@ -101,6 +101,7 @@ func (m *MemoryStore) RecordUse(_ context.Context, userUUID, id string, credenti
 		return ErrNotFound
 	}
 	p.Credential = append([]byte(nil), credential...)
+	p.BackupState = backupState
 	p.LastUsedAt = usedAt
 	m.byID[id] = p
 	return nil

@@ -251,6 +251,34 @@ func TestTooManyPasskeysAreRefused(t *testing.T) {
 	if _, _, err := r.rp.BeginRegistration(context.Background(), User{UUID: alice}); !errors.Is(err, ErrTooMany) {
 		t.Fatalf("want ErrTooMany, got %v", err)
 	}
+	if e := lastAudit(t, r.audit, auth_audit.CredentialRegistered); e.Outcome != auth_audit.OutcomeFailed || e.UserUUID != alice ||
+		!strings.Contains(e.Reason, ErrTooMany.Error()) {
+		t.Fatalf("the refused start is not audited with its reason: %+v", e)
+	}
+}
+
+// Two registrations started while the user held none, finished after the first fills the limit: the store refuses
+// the second, and the caller can tell why.
+func TestTooManyFromTheStoreReachesTheCaller(t *testing.T) {
+	cfg := testConfig()
+	cfg.MaxPerUser = 1
+	r := newRig(t, cfg)
+	ctx := context.Background()
+	alice := uuid.NewString()
+	o1, h1, err1 := r.rp.BeginRegistration(ctx, User{UUID: alice})
+	o2, h2, err2 := r.rp.BeginRegistration(ctx, User{UUID: alice})
+	if err1 != nil || err2 != nil {
+		t.Fatal(err1, err2)
+	}
+	resp1, _ := r.auth.create(t, o1, nil, flagUP|flagUV, yes)
+	resp2, _ := r.auth.create(t, o2, nil, flagUP|flagUV, yes)
+	if _, err := r.rp.FinishRegistration(ctx, alice, h1, "One", bytes.NewReader(resp1), Client{}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := r.rp.FinishRegistration(ctx, alice, h2, "Two", bytes.NewReader(resp2), Client{})
+	if !errors.Is(err, ErrRefused) || !errors.Is(err, ErrTooMany) {
+		t.Fatalf("want an error wrapping ErrRefused and ErrTooMany, got %v", err)
+	}
 }
 
 func TestRegistrationWithoutUserVerificationIsRefused(t *testing.T) {
@@ -370,6 +398,9 @@ func TestADuplicateCredentialIsRefused(t *testing.T) {
 		resp, _ := r.auth.create(t, opts, k, flagUP|flagUV, yes)
 		_, err := r.rp.FinishRegistration(context.Background(), u, h, "Again", bytes.NewReader(resp), Client{})
 		mustRefuse(t, err, ErrDuplicate.Error())
+		if !errors.Is(err, ErrDuplicate) {
+			t.Fatalf("errors.Is(err, ErrDuplicate) is false for %v", err)
+		}
 	}
 	if p, _ := r.store.ByID(context.Background(), k.id()); p.UserUUID != alice {
 		t.Fatal("the passkey changed hands")
@@ -556,12 +587,28 @@ func TestPasskeyNames(t *testing.T) {
 
 func TestBadUserUUIDsAreRefused(t *testing.T) {
 	r := newRig(t, testConfig())
-	for _, u := range []string{"", "1", "00000000-0000-0000-0000-000000000000", "' OR '1'='1", uuid.NewString() + "x"} {
+	bad := []string{"", "1", "00000000-0000-0000-0000-000000000000", "' OR '1'='1", uuid.NewString() + "x"}
+	for _, u := range bad {
 		if _, _, err := r.rp.BeginRegistration(context.Background(), User{UUID: u}); err == nil {
 			t.Errorf("BeginRegistration accepted user %q", u)
 		}
 		if _, err := r.rp.List(context.Background(), u); err == nil {
 			t.Errorf("List accepted user %q", u)
+		}
+		if err := r.rp.Remove(context.Background(), u, "AAAA", Client{Address: "192.0.2.9"}); err == nil {
+			t.Errorf("Remove accepted user %q", u)
+		}
+	}
+	// A refused registration start and a refused removal are audited like the other refusals, with the reason.
+	for _, kind := range []auth_audit.Kind{auth_audit.CredentialRegistered, auth_audit.CredentialRemoved} {
+		ev := r.audit.OfKind(kind)
+		if len(ev) != len(bad) {
+			t.Fatalf("%s: %d audit records, want %d", kind, len(ev), len(bad))
+		}
+		for _, e := range ev {
+			if e.Outcome != auth_audit.OutcomeFailed || e.UserUUID != "" || !strings.Contains(e.Reason, "is not a user uuid") {
+				t.Fatalf("%s: %+v", kind, e)
+			}
 		}
 	}
 }
@@ -578,6 +625,31 @@ func TestConfigIsChecked(t *testing.T) {
 	}
 	if _, err := New(testConfig(), nil, NewMemoryStore(), &fakeSessions{}, newFakeAccounts(), &auth_audit.Memory{}); err == nil {
 		t.Error("a nil Connection was accepted")
+	}
+}
+
+// A device-bound passkey that the platform later syncs reports BS at its next login; List shows it from then on.
+func TestALoginStoresTheNewBackupState(t *testing.T) {
+	r := newRig(t, testConfig())
+	ctx := context.Background()
+	alice := uuid.NewString()
+	opts, h, err := r.rp.BeginRegistration(ctx, User{UUID: alice})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, k := r.auth.create(t, opts, nil, flagUP|flagUV|flagBE, yes)
+	if _, err := r.rp.FinishRegistration(ctx, alice, h, "Phone", bytes.NewReader(resp), Client{}); err != nil {
+		t.Fatal(err)
+	}
+	if l, _ := r.rp.List(ctx, alice); len(l) != 1 || !l[0].BackupEligible || l[0].BackupState {
+		t.Fatalf("after registration: %+v", l)
+	}
+	k.backup = flagBE | flagBS
+	if err := r.login(t, k, flagUP|flagUV, k.userHandle); err != nil {
+		t.Fatal(err)
+	}
+	if l, _ := r.rp.List(ctx, alice); len(l) != 1 || !l[0].BackupState || l[0].LastUsedAt.IsZero() {
+		t.Fatalf("after a login reporting BS: %+v", l)
 	}
 }
 

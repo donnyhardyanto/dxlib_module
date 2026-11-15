@@ -179,22 +179,38 @@ func (rp *RelyingParty) detail(c Client, ceremony string) map[string]string {
 	return map[string]string{"auth_method": AuthMethod, "ceremony": ceremony, "client_address": c.Address, "user_agent": truncate(c.UserAgent, 256)}
 }
 
-// refuse audits a refused ceremony and returns its error, wrapping ErrRefused.
-func (rp *RelyingParty) refuse(ctx context.Context, kind auth_audit.Kind, userUUID, op string, cause error, d map[string]string) error {
-	err := fmt.Errorf("%w: %s: %s", ErrRefused, op, cause)
+// failed audits a failed step with err's text as its reason and returns err, joined with the audit store's error
+// when the record could not be written.
+func (rp *RelyingParty) failed(ctx context.Context, kind auth_audit.Kind, userUUID string, err error, d map[string]string) error {
 	if aerr := rp.audit.Write(ctx, auth_audit.Event{Time: rp.now(), Kind: kind, UserUUID: userUUID, Outcome: auth_audit.OutcomeFailed, Reason: err.Error(), Detail: d}); aerr != nil {
 		return errors.Join(err, fmt.Errorf("passkey: the audit record of this refusal could not be written: %w", aerr))
 	}
 	return err
 }
 
+// refuse audits a refused ceremony and returns its error, wrapping both ErrRefused and the cause (so errors.Is still
+// finds ErrDuplicate or ErrTooMany from the store).
+func (rp *RelyingParty) refuse(ctx context.Context, kind auth_audit.Kind, userUUID, op string, cause error, d map[string]string) error {
+	return rp.failed(ctx, kind, userUUID, fmt.Errorf("%w: %s: %w", ErrRefused, op, cause), d)
+}
+
 // BeginRegistration starts adding a passkey for the logged-in user. It returns the options to hand to
 // navigator.credentials.create() (JSON, {"publicKey": ...}) and the handle the browser sends back with its answer.
+// ErrTooMany when the user already holds Config.MaxPerUser passkeys. Every error is audited as a failed
+// registration.
 func (rp *RelyingParty) BeginRegistration(ctx context.Context, u User) (options []byte, handle string, err error) {
 	userUUID, err := canonicalUUID(u.UUID)
-	if err != nil {
-		return nil, "", err
+	if err == nil {
+		options, handle, err = rp.beginRegistration(ctx, u, userUUID)
+		if err == nil {
+			return options, handle, nil
+		}
 	}
+	d := map[string]string{"auth_method": AuthMethod, "ceremony": kindRegister, "step": "begin"}
+	return nil, "", rp.failed(ctx, auth_audit.CredentialRegistered, userUUID, err, d)
+}
+
+func (rp *RelyingParty) beginRegistration(ctx context.Context, u User, userUUID string) (options []byte, handle string, err error) {
 	existing, err := rp.store.ByUser(ctx, userUUID)
 	if err != nil {
 		return nil, "", fmt.Errorf("passkey: reading the passkeys of user %s: %w", userUUID, err)
@@ -308,6 +324,11 @@ func (rp *RelyingParty) FinishRegistration(ctx context.Context, userUUID, handle
 // BeginLogin starts a passkey login. It returns the options to hand to navigator.credentials.get() (JSON,
 // {"publicKey": ...}, with no allowed credentials: the authenticator offers the user's discoverable passkeys) and
 // the handle the browser sends back with its answer.
+//
+// Anyone may call it, before any login, and each call keeps a challenge in Valkey for Config.ChallengeTTL: the
+// service must rate-limit the endpoint that calls it (per client address), or a client that loops on it fills
+// Valkey's memory. Its errors are not audited: no user and no answer exist yet, and it fails only when the
+// challenge cannot be made or stored (the error names the cause).
 func (rp *RelyingParty) BeginLogin(ctx context.Context) (options []byte, handle string, err error) {
 	assertion, sd, err := rp.wa.BeginDiscoverableLogin(webauthn.WithUserVerification(protocol.VerificationRequired))
 	if err != nil {
@@ -383,7 +404,7 @@ func (rp *RelyingParty) FinishLogin(ctx context.Context, handle string, response
 	if err != nil {
 		return refuse(fmt.Errorf("encoding the credential record: %w", err))
 	}
-	if err := rp.store.RecordUse(ctx, found.UserUUID, found.ID, raw, rp.now().UTC().Truncate(time.Microsecond)); err != nil {
+	if err := rp.store.RecordUse(ctx, found.UserUUID, found.ID, raw, cred.Flags.BackupState, rp.now().UTC().Truncate(time.Microsecond)); err != nil {
 		return refuse(fmt.Errorf("the passkey's new signature counter could not be stored: %w", err))
 	}
 	token, sess, err := rp.sessions.Create(ctx, session.LoginInfo{UserUUID: found.UserUUID, AuthMethod: AuthMethod, Profile: profile,
@@ -407,16 +428,11 @@ func (rp *RelyingParty) List(ctx context.Context, userUUID string) ([]Passkey, e
 // when another user does), and ErrLastWayIn when it is the user's last passkey and they have no password.
 func (rp *RelyingParty) Remove(ctx context.Context, userUUID, id string, client Client) error {
 	d := rp.detail(client, "remove")
-	u, err := canonicalUUID(userUUID)
-	if err != nil {
-		return err
-	}
 	d["passkey_id"] = truncate(id, 128)
-	fail := func(err error) error {
-		if aerr := rp.audit.Write(ctx, auth_audit.Event{Time: rp.now(), Kind: auth_audit.CredentialRemoved, UserUUID: u, Outcome: auth_audit.OutcomeFailed, Reason: err.Error(), Detail: d}); aerr != nil {
-			return errors.Join(err, fmt.Errorf("passkey: the audit record of this refusal could not be written: %w", aerr))
-		}
-		return err
+	u, err := canonicalUUID(userUUID)
+	fail := func(err error) error { return rp.failed(ctx, auth_audit.CredentialRemoved, u, err, d) }
+	if err != nil {
+		return fail(err)
 	}
 	if err := checkID(id); err != nil {
 		return fail(err)

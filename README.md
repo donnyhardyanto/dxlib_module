@@ -109,6 +109,9 @@ WebAuthn registration and login as a relying party, on `github.com/go-webauthn/w
   under a name (`CheckName` tells the user what is wrong with one), and `FinishLogin(ctx, handle, body, Client)`
   starts the session through `session.Store.Create` with the auth method `passkey` and returns its token. Bodies
   are read up to 64 KiB. No go-webauthn type is part of the API.
+- **Rate-limit `BeginLogin`**: anyone may call it, before any login, and each call keeps a challenge in Valkey
+  for `ChallengeTTL`. The service must rate-limit the endpoint that calls it (per client address), or a client
+  that loops on it fills Valkey's memory.
 - **Challenges** live in Valkey under `<KeyPrefix>c:<hex SHA-256 of the handle>` for `ChallengeTTL` (default and
   longest 5 minutes), not in a table, through `credentials.RedisConnection`. Each is taken (read and deleted in one
   step) before the answer is checked, so it works once, also when the answer is refused. A registration challenge
@@ -117,17 +120,21 @@ WebAuthn registration and login as a relying party, on `github.com/go-webauthn/w
   uuids should be random, v4 or v7, never v1); the passkey must belong to that user. Then the service's
   `Accounts.LoginProfile` gives the profile, or an error that refuses the login (disabled, deleted, locked). The
   new signature counter and flags are stored before the session starts; a counter that goes back (a copied
-  key) or a backup-eligible flag that changes refuses the login.
+  key) or a backup-eligible flag that changes refuses the login. The backup state is stored too, so `List`
+  shows a device-bound passkey the platform later synced as synced from its next login.
 - **Never the last way in**: `Remove` refuses the user's last passkey (`ErrLastWayIn`) unless
   `Accounts.HasPassword` says the user has a password; an error from it refuses too. The store counts and
   deletes in one transaction with the user's rows locked, so two removals at once cannot take both of the last
   two. Another user's passkey answers `ErrNotFound`, as a missing one does.
 - **Audit**: registrations and removals (`credential_registered`, `credential_removed`), refused ones with
-  their real reason, and failed logins (`login_failed`) go to the `auth_audit.Sink`; a successful login is
+  their real reason (a refused `BeginRegistration` and a malformed user uuid included), and failed logins
+  (`login_failed`) go to the `auth_audit.Sink`; `BeginLogin`'s errors are not, since no user or answer exists
+  yet and it fails only when the challenge cannot be stored; a successful login is
   audited once, by the session store, with the passkey's id in its detail (`session.LoginInfo.AuditDetail`). A
   registration whose audit record cannot be written is refused and the passkey deleted.
 - **Errors**: a refused ceremony returns an error wrapping `ErrRefused` whose text holds the real reason; answer
-  the browser with 400 or 401 and log the text.
+  the browser with 400 or 401 and log the text. It wraps the cause too, so `errors.Is` finds `ErrDuplicate` or
+  `ErrTooMany` when the store refused the passkey.
 
 The Valkey user of the challenges needs, under its own prefix:
 

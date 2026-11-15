@@ -129,7 +129,10 @@ func (s *DBStore) Add(ctx context.Context, p Passkey, maxPerUser int) error {
 			colBackupEligible: p.BackupEligible, colBackupState: p.BackupState, colCreatedAt: p.CreatedAt.UTC(),
 		}, nil)
 		if err != nil && strings.Contains(err.Error(), "23505") {
-			return ErrDuplicate, nil
+			// Another transaction stored the same credential id between the check above and this insert. The
+			// failed insert has aborted the transaction, so the duplicate goes back as the callback's error: dxlib
+			// rolls back (a commit would fail) and returns it as it is, so errors.Is finds ErrDuplicate.
+			return nil, fmt.Errorf("%w: %v", ErrDuplicate, err)
 		}
 		return nil, err
 	})
@@ -170,10 +173,10 @@ func (s *DBStore) ByID(ctx context.Context, id string) (*Passkey, error) {
 	return found, nil
 }
 
-// RecordUse stores the credential record and time after a login.
-func (s *DBStore) RecordUse(ctx context.Context, userUUID, id string, credential []byte, usedAt time.Time) error {
+// RecordUse stores the credential record, the backup state and the time after a login.
+func (s *DBStore) RecordUse(ctx context.Context, userUUID, id string, credential []byte, backupState bool, usedAt time.Time) error {
 	return s.tx(ctx, "record use", func(dtx *databases.DXDatabaseTx) (error, error) {
-		res, _, err := dtx.Update(ctx, s.table, utils.JSON{colCredential: string(credential), colLastUsedAt: usedAt.UTC()},
+		res, _, err := dtx.Update(ctx, s.table, utils.JSON{colCredential: string(credential), colBackupState: backupState, colLastUsedAt: usedAt.UTC()},
 			utils.JSON{colID: id, colUserUUID: userUUID}, nil)
 		if err != nil {
 			return nil, err

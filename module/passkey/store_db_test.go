@@ -10,6 +10,7 @@ package passkey
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"errors"
 	"os"
 	"strings"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/base"
 	"github.com/donnyhardyanto/dxlib/databases"
+	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/google/uuid"
 )
 
@@ -108,14 +110,14 @@ func TestPostgresStoreKeepsEveryFieldAsGiven(t *testing.T) {
 		t.Fatalf("stored %+v\nread   %+v", p, *got)
 	}
 	used := time.Now().UTC().Truncate(time.Microsecond)
-	if err := s.RecordUse(ctx, alice, p.ID, []byte(`{"signCount":4}`), used); err != nil {
+	if err := s.RecordUse(ctx, alice, p.ID, []byte(`{"signCount":4}`), true, used); err != nil {
 		t.Fatal(err)
 	}
 	list, err := s.ByUser(ctx, alice)
 	if err != nil || len(list) != 1 {
 		t.Fatalf("ByUser: %v, %d", err, len(list))
 	}
-	if string(list[0].Credential) != `{"signCount":4}` || !list[0].LastUsedAt.Equal(used) {
+	if string(list[0].Credential) != `{"signCount":4}` || !list[0].LastUsedAt.Equal(used) || !list[0].BackupState || !list[0].BackupEligible {
 		t.Fatalf("after RecordUse: %+v", list[0])
 	}
 }
@@ -141,6 +143,67 @@ func TestPostgresStoreRefusesDuplicatesAndTooMany(t *testing.T) {
 	}
 }
 
+// Two registrations of the same credential at once: the second one's check runs before the first commits, so it is
+// the unique index that refuses its insert. It must come back as ErrDuplicate with the database's reason, from a
+// transaction that was rolled back, not as a failed commit.
+func TestPostgresConcurrentDuplicateInsertIsErrDuplicate(t *testing.T) {
+	s, table := newPGStore(t)
+	pg := s.db.(*databases.DXDatabase)
+	ctx := context.Background()
+	alice, bob := uuid.NewString(), uuid.NewString()
+	p := samplePasskey(alice, "Laptop")
+	inserted, release := make(chan struct{}), make(chan struct{})
+	firstDone := make(chan error, 1)
+	go func() {
+		firstDone <- pg.Tx(ctx, s.Log, sql.LevelReadCommitted, func(dtx *databases.DXDatabaseTx) error {
+			if _, _, err := dtx.Insert(ctx, table, utils.JSON{colID: p.ID, colUserUUID: alice, colName: p.Name, colCredential: string(p.Credential),
+				colBackupEligible: true, colBackupState: false, colCreatedAt: p.CreatedAt}, nil); err != nil {
+				close(inserted)
+				return err
+			}
+			close(inserted)
+			<-release
+			return nil
+		})
+	}()
+	<-inserted
+	q := p
+	q.UserUUID = bob
+	secondDone := make(chan error, 1)
+	go func() { secondDone <- s.Add(ctx, q, 20) }()
+	// Wait until the second insert waits on the first transaction's row lock, so the check has already passed.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		var waiting int
+		if err := pg.Connection.QueryRowContext(ctx,
+			"SELECT count(*) FROM pg_stat_activity WHERE usename = current_user AND wait_event_type = 'Lock'").Scan(&waiting); err != nil {
+			t.Fatal(err)
+		}
+		if waiting > 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			close(release)
+			t.Fatalf("the second Add never waited on the first insert (it returned %v)", <-secondDone)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	close(release)
+	if err := <-firstDone; err != nil {
+		t.Fatalf("first registration: %v", err)
+	}
+	err := <-secondDone
+	if !errors.Is(err, ErrDuplicate) || !strings.Contains(err.Error(), "23505") {
+		t.Fatalf("want ErrDuplicate with the unique violation 23505 in its text, got %v", err)
+	}
+	if strings.Contains(err.Error(), "COMMIT") {
+		t.Fatalf("the aborted transaction was committed: %v", err)
+	}
+	if got, err := s.ByID(ctx, p.ID); err != nil || got.UserUUID != alice {
+		t.Fatalf("the passkey after both: %+v, %v; want alice's", got, err)
+	}
+}
+
 func TestPostgresStoreKeepsUsersApart(t *testing.T) {
 	s, table := newPGStore(t)
 	ctx := context.Background()
@@ -152,7 +215,7 @@ func TestPostgresStoreKeepsUsersApart(t *testing.T) {
 	if err := s.Remove(ctx, bob, p.ID, nil); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("bob removing alice's passkey: %v", err)
 	}
-	if err := s.RecordUse(ctx, bob, p.ID, []byte(`{}`), time.Now()); !errors.Is(err, ErrNotFound) {
+	if err := s.RecordUse(ctx, bob, p.ID, []byte(`{}`), false, time.Now()); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("bob recording a use of alice's passkey: %v", err)
 	}
 	if l, _ := s.ByUser(ctx, bob); len(l) != 0 {
