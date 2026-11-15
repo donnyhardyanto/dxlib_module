@@ -614,3 +614,81 @@ func TestValkeyLoginRefusedWhenTheAuditCannotBeWritten(t *testing.T) {
 		t.Fatalf("an unaudited session was left: %+v", list)
 	}
 }
+
+// A login that read the profile just before a change was propagated must not store the older copy: the session
+// then holds the propagated version (reloaded from the authority), or the login is refused.
+func TestValkeyLoginRacingAPropagationNeverKeepsTheOlderProfile(t *testing.T) {
+	e := newValkeyEnv(t)
+	ctx := context.Background()
+	user := uuid.NewString()
+	current := Profile{Username: "u", DisplayName: "after the change", Roles: []string{"user"}, Version: 2}
+	loader := ProfileLoaderFunc(func(context.Context, string) (Profile, error) { return current, nil })
+	s := e.store(t, Config{}, &auth_audit.Memory{}, loader)
+
+	// The change (an administrator removes the admin role) is committed and propagated while the user has no
+	// session yet; then the login that read version 1 finishes.
+	if res, err := s.PropagateProfile(ctx, user, current); err != nil || res.Updated != 0 {
+		t.Fatalf("PropagateProfile with no session: %+v, %v", res, err)
+	}
+	tok, sess, err := s.Create(ctx, LoginInfo{UserUUID: user, AuthMethod: "password",
+		Profile: Profile{Username: "u", DisplayName: "before the change", Roles: []string{"user", "admin"}, Version: 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sess.Profile.Version != 2 || len(sess.Profile.Roles) != 1 {
+		t.Fatalf("Create kept the older profile: %+v", sess.Profile)
+	}
+	if got, err := s.Get(ctx, tok); err != nil || got.Profile.Version != 2 || got.Profile.DisplayName != "after the change" {
+		t.Fatalf("Get after the racing login: %+v, %v", got, err)
+	}
+
+	// A rotation carrying the older profile does not bring it back.
+	_, rotated, err := s.Rotate(ctx, tok, &Profile{Username: "u", Roles: []string{"user", "admin"}, Version: 1})
+	if err != nil || rotated.Profile.Version != 2 || len(rotated.Profile.Roles) != 1 {
+		t.Fatalf("Rotate with an older profile: %+v, %v", rotated, err)
+	}
+
+	// A rebuild from a lagging authority (version 1) is refused, never stored.
+	lagging := e.store(t, Config{}, &auth_audit.Memory{}, ProfileLoaderFunc(func(context.Context, string) (Profile, error) {
+		return Profile{Username: "u", Roles: []string{"user", "admin"}, Version: 1}, nil
+	}))
+	tok2, _, err := s.Create(ctx, LoginInfo{UserUUID: user, AuthMethod: "password", Profile: current})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.InvalidateProfiles(ctx, user); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := lagging.Get(ctx, tok2); err == nil || !strings.Contains(err.Error(), "older than") {
+		t.Fatalf("rebuild from a lagging authority: %v", err)
+	}
+
+	// Without a loader the racing login is refused and leaves no session.
+	noLoader := e.store(t, Config{}, &auth_audit.Memory{}, nil)
+	other := uuid.NewString()
+	if _, err := noLoader.PropagateProfile(ctx, other, Profile{Version: 5}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := noLoader.Create(ctx, LoginInfo{UserUUID: other, AuthMethod: "password", Profile: Profile{Version: 4}}); err == nil || !strings.Contains(err.Error(), "login refused") {
+		t.Fatalf("racing login without a loader: %v", err)
+	}
+	if list, _ := noLoader.List(ctx, other); len(list) != 0 {
+		t.Fatalf("refused login left a session: %+v", list)
+	}
+}
+
+func TestValkeyRotationRefusedWhenTheAuditCannotBeWritten(t *testing.T) {
+	e := newValkeyEnv(t)
+	audit := &auth_audit.Memory{}
+	s := e.store(t, Config{}, audit, nil)
+	user := uuid.NewString()
+	tok, _ := login(t, s, user, "u")
+	audit.Fail = errors.New("audit database read-only")
+	newTok, _, err := s.Rotate(context.Background(), tok, nil)
+	if err == nil || newTok != "" || !strings.Contains(err.Error(), "audit database read-only") {
+		t.Fatalf("Rotate with the audit down: %q, %v", newTok, err)
+	}
+	if list, _ := s.List(context.Background(), user); len(list) != 0 {
+		t.Fatalf("an unaudited rotated session was left: %+v", list)
+	}
+}

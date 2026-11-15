@@ -54,22 +54,31 @@ func (s *ValkeyStore) Config() Config { return s.cfg }
 func (s *ValkeyStore) sessionKey(id string) string { return s.cfg.KeyPrefix + "s:" + id }
 func (s *ValkeyStore) indexKey(u string) string    { return s.cfg.KeyPrefix + "u:" + u }
 
+// versionKey holds the highest profile version propagated for a user, so a login or rebuild that read an older
+// profile from the database just before a change cannot store it after the change was propagated.
+func (s *ValkeyStore) versionKey(u string) string { return s.cfg.KeyPrefix + "v:" + u }
+
 // The scripts read the time from Valkey (TIME), so every instance of the service shares one clock.
 const luaNow = `local t = redis.call('TIME')
 local now = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
 local function n(x) return string.format('%.0f', x) end
 `
 
-// KEYS: session, index. ARGV: uuid, method, csrf, profile, version, idle ms, absolute ms, id.
+// KEYS: session, index, version marker. ARGV: uuid, method, csrf, profile, version, idle ms, absolute ms, id.
+// Returns {created, absolute expiry, 1 when the profile was stored or 0 when it is older than the propagated one}.
 var scriptCreate = goredis.NewScript(luaNow + `
 local idle, abs = tonumber(ARGV[6]), tonumber(ARGV[7])
 if redis.call('EXISTS', KEYS[1]) == 1 then return redis.error_reply('SESSION_TOKEN_COLLISION') end
 local ta = now + abs
-redis.call('HSET', KEYS[1], 'u', ARGV[1], 'm', ARGV[2], 'c', ARGV[3], 't0', n(now), 'ta', n(ta), 'p', ARGV[4], 'pv', ARGV[5])
+local mv = tonumber(redis.call('HGET', KEYS[3], 'pv') or '')
+local fresh = (not mv) or tonumber(ARGV[5]) >= mv
+redis.call('HSET', KEYS[1], 'u', ARGV[1], 'm', ARGV[2], 'c', ARGV[3], 't0', n(now), 'ta', n(ta))
+if fresh then redis.call('HSET', KEYS[1], 'p', ARGV[4], 'pv', ARGV[5]) end
 redis.call('PEXPIRE', KEYS[1], n(math.min(idle, abs)))
 redis.call('SADD', KEYS[2], ARGV[8])
 if redis.call('PTTL', KEYS[2]) < abs then redis.call('PEXPIRE', KEYS[2], n(abs)) end
-return {n(now), n(ta)}
+if fresh then return {n(now), n(ta), 1} end
+return {n(now), n(ta), 0}
 `)
 
 // KEYS: session. ARGV: idle ms, prefix, id.
@@ -86,7 +95,8 @@ redis.call('PEXPIRE', KEYS[1], n(math.min(tonumber(ARGV[1]), ta - now)))
 return v
 `)
 
-// KEYS: old session, new session. ARGV: prefix, old id, new id, new csrf, idle ms, profile (empty: keep), version (empty: keep).
+// KEYS: old session, new session, version marker. ARGV: prefix, old id, new id, new csrf, idle ms,
+// profile (empty: keep), version (empty: keep). A given profile older than the cached or propagated one is ignored.
 var scriptRotate = goredis.NewScript(luaNow + `
 local v = redis.call('HMGET', KEYS[1], 'u', 'm', 't0', 'ta', 'p', 'pv')
 if not v[1] then return false end
@@ -99,7 +109,8 @@ if (not ta) or ta <= now then
 end
 if redis.call('EXISTS', KEYS[2]) == 1 then return redis.error_reply('SESSION_TOKEN_COLLISION') end
 local p, pv = v[5], v[6]
-if ARGV[6] ~= '' and ((not pv) or tonumber(pv) <= tonumber(ARGV[7])) then p, pv = ARGV[6], ARGV[7] end
+local mv = tonumber(redis.call('HGET', KEYS[3], 'pv') or '')
+if ARGV[6] ~= '' and ((not mv) or tonumber(ARGV[7]) >= mv) and ((not pv) or tonumber(pv) <= tonumber(ARGV[7])) then p, pv = ARGV[6], ARGV[7] end
 redis.call('HSET', KEYS[2], 'u', v[1], 'm', v[2], 'c', ARGV[4], 't0', v[3], 'ta', v[4])
 if p then redis.call('HSET', KEYS[2], 'p', p) end
 if pv then redis.call('HSET', KEYS[2], 'pv', pv) end
@@ -110,7 +121,7 @@ redis.call('SADD', idx, ARGV[3])
 return {v[1], v[2], ARGV[4], v[3], v[4], p, pv}
 `)
 
-// KEYS: session. ARGV: prefix, id, owner uuid or ”. Returns the owner's uuid, or false.
+// KEYS: session. ARGV: prefix, id, owner uuid (empty: any owner). Returns the owner's uuid, or false.
 var scriptDelete = goredis.NewScript(`
 local u = redis.call('HGET', KEYS[1], 'u')
 if not u then return false end
@@ -129,8 +140,12 @@ redis.call('DEL', KEYS[1])
 return count
 `)
 
-// KEYS: index. ARGV: prefix, profile, version, uuid. Returns {updated, newer, stale}.
+// KEYS: index, version marker. ARGV: prefix, profile, version, uuid, absolute ms. Returns {updated, newer, stale}.
+// The marker keeps the highest version for as long as a session can live, also when the user has no session yet.
 var scriptPropagate = goredis.NewScript(`
+local mv = tonumber(redis.call('HGET', KEYS[2], 'pv') or '')
+if (not mv) or tonumber(ARGV[3]) > mv then redis.call('HSET', KEYS[2], 'pv', ARGV[3]) end
+redis.call('PEXPIRE', KEYS[2], ARGV[5])
 local ids = redis.call('SMEMBERS', KEYS[1])
 local updated, newer, stale = 0, 0, 0
 for _, id in ipairs(ids) do
@@ -159,10 +174,13 @@ end
 return #ids
 `)
 
-// KEYS: session. ARGV: profile, version, uuid. Writes a rebuilt profile unless a newer one is there.
+// KEYS: session, version marker. ARGV: profile, version, uuid. Writes a rebuilt profile unless a newer one is
+// cached or was propagated (-1), or the session is gone (0).
 var scriptSetProfile = goredis.NewScript(`
 local cur = redis.call('HMGET', KEYS[1], 'u', 'pv', 'p')
 if cur[1] ~= ARGV[3] then return 0 end
+local mv = tonumber(redis.call('HGET', KEYS[2], 'pv') or '')
+if mv and tonumber(ARGV[2]) < mv then return -1 end
 if cur[3] and cur[2] and tonumber(cur[2]) > tonumber(ARGV[2]) then return -1 end
 redis.call('HSET', KEYS[1], 'p', ARGV[1], 'pv', ARGV[2])
 return 1
@@ -278,7 +296,7 @@ func (s *ValkeyStore) Create(ctx context.Context, login LoginInfo) (string, *Ses
 		return "", nil, err
 	}
 	res, err := s.run(ctx, "session create", scriptCreate,
-		[]string{s.sessionKey(id), s.indexKey(userUUID)},
+		[]string{s.sessionKey(id), s.indexKey(userUUID), s.versionKey(userUUID)},
 		userUUID, login.AuthMethod, csrf, profile, version, ms(s.cfg.IdleTTL), ms(s.cfg.AbsoluteTTL), id)
 	if err != nil {
 		err = fmt.Errorf("session: login refused, the session store could not save the session: %w", err)
@@ -288,11 +306,24 @@ func (s *ValkeyStore) Create(ctx context.Context, login LoginInfo) (string, *Ses
 		return "", nil, err
 	}
 	arr, _ := res.([]interface{})
-	if len(arr) != 2 {
+	if len(arr) != 3 {
 		return "", nil, fmt.Errorf("session create: unexpected reply from Valkey (%T, %d items)", res, len(arr))
 	}
 	sess := &Session{ID: id, UserUUID: userUUID, AuthMethod: login.AuthMethod, CSRFToken: csrf,
 		CreatedAt: msTime(arr[0]), AbsoluteExpiry: msTime(arr[1]), Profile: login.Profile}
+	if arr[2] == int64(0) {
+		// The profile the login read is older than a change already propagated: take the current one from the
+		// authority, or refuse the login.
+		p, rerr := s.rebuildProfile(ctx, sess)
+		if rerr != nil {
+			rerr = fmt.Errorf("session: login refused: profile version %d of user %s is older than the version already propagated, and reloading it failed: %w", login.Profile.Version, userUUID, rerr)
+			if _, derr := s.run(context.WithoutCancel(ctx), "session delete after a stale profile", scriptDelete, []string{s.sessionKey(id)}, s.cfg.KeyPrefix, id, ""); derr != nil {
+				return "", nil, errors.Join(rerr, fmt.Errorf("session: the session %s could not be deleted: %w", id, derr))
+			}
+			return "", nil, rerr
+		}
+		sess.Profile = p
+	}
 	if aerr := s.writeAudit(ctx, auth_audit.Event{Kind: auth_audit.LoginSucceeded, UserUUID: userUUID, SessionID: id, Outcome: auth_audit.OutcomeOK, Detail: detail}); aerr != nil {
 		if _, derr := s.run(context.WithoutCancel(ctx), "session delete after a failed audit", scriptDelete, []string{s.sessionKey(id)}, s.cfg.KeyPrefix, id, ""); derr != nil {
 			return "", nil, errors.Join(fmt.Errorf("session: login refused: %w", aerr), fmt.Errorf("session: the unaudited session %s could not be deleted: %w", id, derr))
@@ -347,7 +378,7 @@ func (s *ValkeyStore) rebuildProfile(ctx context.Context, sess *Session) (Profil
 	if err != nil {
 		return Profile{}, err
 	}
-	res, err := s.run(ctx, "session profile rebuild", scriptSetProfile, []string{s.sessionKey(sess.ID)}, raw, version, sess.UserUUID)
+	res, err := s.run(ctx, "session profile rebuild", scriptSetProfile, []string{s.sessionKey(sess.ID), s.versionKey(sess.UserUUID)}, raw, version, sess.UserUUID)
 	if err != nil {
 		return Profile{}, fmt.Errorf("session: saving the rebuilt profile of user %s: %w", sess.UserUUID, err)
 	}
@@ -355,7 +386,7 @@ func (s *ValkeyStore) rebuildProfile(ctx context.Context, sess *Session) (Profil
 	case int64(0):
 		return Profile{}, ErrNotFound
 	case int64(-1):
-		return Profile{}, fmt.Errorf("session: the authoritative store returned profile version %d of user %s, older than the cached one; refusing the stale copy", p.Version, sess.UserUUID)
+		return Profile{}, fmt.Errorf("session: the authoritative store returned profile version %d of user %s, older than the one already cached or propagated; refusing the stale copy", p.Version, sess.UserUUID)
 	}
 	return p, nil
 }
@@ -381,7 +412,13 @@ func (s *ValkeyStore) Rotate(ctx context.Context, token string, profile *Profile
 			return "", nil, err
 		}
 	}
-	res, err := s.run(ctx, "session rotate", scriptRotate, []string{s.sessionKey(oldID), s.sessionKey(newID)},
+	// The owner is known only inside the script, so the version marker is named by the user the token's session
+	// belongs to: read it first. A token with no session ends here as ErrNotFound.
+	owner, err := s.ownerOf(ctx, oldID)
+	if err != nil {
+		return "", nil, err
+	}
+	res, err := s.run(ctx, "session rotate", scriptRotate, []string{s.sessionKey(oldID), s.sessionKey(newID), s.versionKey(owner)},
 		s.cfg.KeyPrefix, oldID, newID, csrf, ms(s.cfg.IdleTTL), raw, version)
 	if err != nil {
 		return "", nil, fmt.Errorf("session: rotating the session token failed: %w", err)
@@ -407,12 +444,37 @@ func (s *ValkeyStore) Rotate(ctx context.Context, token string, profile *Profile
 	}
 	sess.Profile = p
 	if aerr := s.writeAudit(ctx, auth_audit.Event{Kind: auth_audit.SessionRotated, UserUUID: sess.UserUUID, SessionID: newID, Outcome: auth_audit.OutcomeOK, Detail: map[string]string{"previous_session_id": oldID}}); aerr != nil {
-		return newToken, sess, aerr
+		// As at login: no session lives without its audit record. The old token is already gone.
+		if _, derr := s.run(context.WithoutCancel(ctx), "session delete after a failed audit", scriptDelete, []string{s.sessionKey(newID)}, s.cfg.KeyPrefix, newID, ""); derr != nil {
+			return "", nil, errors.Join(fmt.Errorf("session: rotation refused: %w", aerr), fmt.Errorf("session: the unaudited session %s could not be deleted: %w", newID, derr))
+		}
+		return "", nil, fmt.Errorf("session: rotation refused, the session is ended: %w", aerr)
 	}
 	return newToken, sess, nil
 }
 
-// Logout deletes the session of a token. A token with no session is ErrNotFound.
+// ownerOf returns the user uuid of a session id, or ErrNotFound.
+func (s *ValkeyStore) ownerOf(ctx context.Context, id string) (string, error) {
+	var owner string
+	err := s.conn.Do(ctx, "session owner", func(c goredis.UniversalClient) error {
+		v, err := c.HGet(ctx, s.sessionKey(id), "u").Result()
+		if errors.Is(err, goredis.Nil) {
+			return nil
+		}
+		owner = v
+		return err
+	})
+	if err != nil {
+		return "", fmt.Errorf("session: reading the session failed: %w", err)
+	}
+	if owner == "" {
+		return "", ErrNotFound
+	}
+	return owner, nil
+}
+
+// Logout deletes the session of a token. A token with no session is ErrNotFound. When the audit record cannot be
+// written the session is still deleted and the audit error returned.
 func (s *ValkeyStore) Logout(ctx context.Context, token string) error {
 	id, err := SessionID(token)
 	if err != nil {
@@ -518,7 +580,7 @@ func (s *ValkeyStore) PropagateProfile(ctx context.Context, userUUID string, p P
 	}
 	octx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.cfg.OperationTimeout)
 	defer cancel()
-	res, err := s.run(octx, "session profile propagation", scriptPropagate, []string{s.indexKey(u)}, s.cfg.KeyPrefix, raw, version, u)
+	res, err := s.run(octx, "session profile propagation", scriptPropagate, []string{s.indexKey(u), s.versionKey(u)}, s.cfg.KeyPrefix, raw, version, u, ms(s.cfg.AbsoluteTTL))
 	if err == nil {
 		arr, _ := res.([]interface{})
 		if len(arr) == 3 {

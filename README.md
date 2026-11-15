@@ -43,7 +43,8 @@ to the user written into all of that user's sessions at once.
 - **Keys**: the session is a hash at `<KeyPrefix>s:<hex SHA-256 of the token>`, never the token itself; it
   holds the user uuid, auth method, CSRF token, creation time, absolute expiry and the profile (username,
   display name, status, photo reference and version, roles, permissions) with its version. Every session of
-  a user is listed in the set `<KeyPrefix>u:<user uuid>`. The service sets `KeyPrefix`.
+  a user is listed in the set `<KeyPrefix>u:<user uuid>`, and `<KeyPrefix>v:<user uuid>` keeps the highest
+  profile version propagated for the user. The service sets `KeyPrefix`.
 - **Expiry**: a sliding idle TTL (`IdleTTL`, default 15 minutes) that never runs past the absolute expiry
   (`AbsoluteTTL`, default 12 hours), both as Valkey TTLs. Times come from Valkey's own clock.
 - **Rotation**: `Rotate` gives a session a new token and CSRF token at a privilege change, keeping its creation
@@ -52,14 +53,16 @@ to the user written into all of that user's sessions at once.
   delete) end sessions.
 - **Propagation**: after the database commit of a change to a user (display name, status, photo, roles), the
   service calls `PropagateProfile`; one Lua script writes the profile into every session of the user. A copy
-  with a lower `Profile.Version` never replaces a higher one. When the write fails, every session of the user
+  with a lower `Profile.Version` never replaces a higher one, also for a login, rotation or rebuild that read the
+  profile just before the change: such a login takes the current profile from the `ProfileLoader`, or is refused
+  when there is none. When the write fails, every session of the user
   is deleted (fail closed), the cause logged and audited, and a `*PropagationError` returned; when even the
   delete fails (Valkey down), the error says so and carries both causes, and the service should retry
   `RevokeAll` once Valkey is back. The database stays the authority: `InvalidateProfiles` drops the cached
   copies and the next `Get` of each session rebuilds it through the service's `ProfileLoader`.
 - **Audit**: every login, refused login, logout, rotation, revocation and propagation goes to an
   `auth_audit.Sink` the service points at its own append-only store. A login whose audit record cannot be
-  written is refused and its session deleted. `auth_audit.Memory` is for tests.
+  written is refused and its session deleted; so is a rotation (its old token is already gone). `auth_audit.Memory` is for tests.
 - **Credentials**: the store connects through `credentials.RedisConnection`, a dxlib redis connection made
   with the credential a `credentials.Provider` returns, never with configuration values or the environment.
   It reconnects with the provider's newer credential when the current one is within `RenewBefore` of its
