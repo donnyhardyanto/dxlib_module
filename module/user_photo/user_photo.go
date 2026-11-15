@@ -38,7 +38,7 @@ const (
 	HighestMaxBytes             = 8 << 20
 	DefaultMaxPixels            = 16 << 20 // 16 777 216 pixels, 4096x4096
 	DefaultMaxSide              = 8192
-	DefaultMaxConcurrentDecodes = 2
+	DefaultMaxConcurrentDecodes = 1
 	DefaultPhotoPath            = "/users/{uuid}/photo"
 	DefaultCacheMaxAge          = 24 * time.Hour
 	DefaultOperationTimeout     = 10 * time.Second
@@ -53,8 +53,10 @@ type Config struct {
 	MaxPixels int64
 	// MaxSide refuses an image wider or taller than this. Default 8192.
 	MaxSide int
-	// MaxConcurrentDecodes bounds the decodes running at once; each can hold up to MaxPixels x 8 bytes (a 16-bit
-	// PNG). An upload waits for a slot until its context ends. Default 2.
+	// MaxConcurrentDecodes bounds the decodes running at once. Each holds its slot until the image is scaled, and
+	// can need up to about MaxPixels x 20 bytes meanwhile (a progressive four-component JPEG keeps 16 bytes of
+	// coefficients per pixel beside its 4-byte pixels; a 16-bit PNG needs 8): 320 MiB at the default MaxPixels.
+	// An upload waits for a slot until its context ends. Default 1.
 	MaxConcurrentDecodes int
 	// KeyPrefix starts every object key, for example "user-photo/". Letters, digits and / _ . - only, no "..".
 	KeyPrefix string

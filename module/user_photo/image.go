@@ -131,6 +131,17 @@ func (c Config) webpFrames(data []byte) error {
 	return nil
 }
 
+// sosMarker starts a JPEG scan. Go's decoder reads it as these two adjacent bytes (fill bytes before it are 0xFF
+// too), and inside entropy-coded data 0xFF is always followed by 0x00 or a restart marker, so counting the pair
+// over the whole file counts every scan the decoder can see, and at worst a few more found inside APPn or COM data.
+var sosMarker = []byte{0xFF, 0xDA}
+
+// maxJPEGScans bounds the scans of a JPEG. Each progressive scan walks every block of its components, and a scan
+// that only says "nothing here" costs a few bytes: a 2 MiB, 4000x4000 file holds 64 555 of them at about 6 ms each,
+// six minutes of one core. 64 scans cost about 0.4 s. Encoders write about ten scans for a progressive JPEG and one
+// to three for a baseline one; an embedded preview adds its own.
+const maxJPEGScans = 64
+
 // decodeConfig reads the declared dimensions with the decoder of the sniffed format only (no other registered
 // decoder, such as GIF or BMP, is ever reached) and checks them.
 func (c Config) decodeConfig(f format, data []byte) (image.Config, error) {
@@ -140,6 +151,9 @@ func (c Config) decodeConfig(f format, data []byte) (image.Config, error) {
 	case formatPNG:
 		cfg, err = png.DecodeConfig(bytes.NewReader(data))
 	case formatJPEG:
+		if n := bytes.Count(data, sosMarker); n > maxJPEGScans {
+			return cfg, fmt.Errorf("%w: the JPEG holds %d scan markers, more than %d", ErrDecode, n, maxJPEGScans)
+		}
 		cfg, err = jpeg.DecodeConfig(bytes.NewReader(data))
 	case formatWebP:
 		if err = c.webpFrames(data); err != nil {
@@ -189,8 +203,22 @@ func (m *Manager) reencode(ctx context.Context, data []byte) ([]byte, error) {
 	case <-ctx.Done():
 		return nil, fmt.Errorf("user_photo: waiting for a decode slot (%d in use): %w", cap(m.decodeSlots), ctx.Err())
 	}
+	dst, err := decodeAndScale(f, data, cfg)
+	<-m.decodeSlots // the full-size image is garbage from here; only the 256x256 copy is kept
+	if err != nil {
+		return nil, err
+	}
+	var out bytes.Buffer
+	if err := nativewebp.Encode(&out, dst, nil); err != nil {
+		return nil, fmt.Errorf("user_photo: encoding the %dx%d WebP failed: %w", Size, Size, err)
+	}
+	return out.Bytes(), nil
+}
+
+// decodeAndScale decodes the image and returns its centred square scaled to Size x Size. It runs while the caller
+// holds a decode slot, so the full-size image never outlives the slot.
+func decodeAndScale(f format, data []byte, cfg image.Config) (*image.RGBA, error) {
 	img, err := decode(f, data)
-	<-m.decodeSlots
 	if err != nil {
 		return nil, err
 	}
@@ -203,9 +231,5 @@ func (m *Manager) reencode(ctx context.Context, data []byte) ([]byte, error) {
 	y0 := b.Min.Y + (b.Dy()-side)/2
 	dst := image.NewRGBA(image.Rect(0, 0, Size, Size))
 	draw.CatmullRom.Scale(dst, dst.Bounds(), img, image.Rect(x0, y0, x0+side, y0+side), draw.Src, nil)
-	var out bytes.Buffer
-	if err := nativewebp.Encode(&out, dst, nil); err != nil {
-		return nil, fmt.Errorf("user_photo: encoding the %dx%d WebP failed: %w", Size, Size, err)
-	}
-	return out.Bytes(), nil
+	return dst, nil
 }

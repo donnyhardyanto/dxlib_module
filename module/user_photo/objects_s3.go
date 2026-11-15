@@ -39,7 +39,7 @@ type S3Config struct {
 
 var bucketPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9.\-]{1,61}[a-z0-9]$`)
 
-// S3Store is an ObjectStore on a bucket of an S3 API (SeaweedFS, MinIO, Garage...), through minio-go. Every request
+// S3Store is an ObjectStore on a bucket of an S3 API (tested against SeaweedFS), through minio-go. Every request
 // is signed with the provider's current credential; a request refused for its credential asks the provider again
 // and is tried once more, so a rotated key is picked up without a restart.
 type S3Store struct {

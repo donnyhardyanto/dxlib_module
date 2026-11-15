@@ -273,17 +273,21 @@ back, after the caller's right is checked.
 - **Pixel-bomb limit**: the dimensions are read from the header with that format's own decoder (no other
   registered decoder is ever reached) and refused over `Config.MaxPixels` (16 777 216, 4096x4096) or
   `Config.MaxSide` (8192) before any pixel is decoded. For WebP every frame header is checked as well as the
-  canvas, since the decoder allocates by the frame; an animated WebP is refused. At most
-  `Config.MaxConcurrentDecodes` (2) decodes run at once, each up to `MaxPixels` x 8 bytes (a 16-bit PNG); an
-  upload waits for a slot until its context ends. A decoded image whose size differs from its header is
-  refused.
+  canvas, since the decoder allocates by the frame; an animated WebP is refused. A JPEG with more than 64 scan
+  markers is refused too: each progressive scan is a pass over every block, and a scan that adds nothing costs
+  the file a dozen bytes, so 2 MiB of them kept Go's decoder busy for about six minutes (measured at 4000x4000).
+  At most `Config.MaxConcurrentDecodes` (default 1) decodes run at once, each holding its slot until the image is
+  scaled and needing up to about `MaxPixels` x 20 bytes meanwhile (320 MiB at the default; a progressive
+  four-component JPEG is the worst case); an upload waits for a slot until its context ends. A decoded image
+  whose size differs from its header is refused.
 - **Re-encoding**: a centred square is cut and scaled to 256x256 (Catmull-Rom), then encoded as lossless WebP
   (`github.com/HugoSmits86/nativewebp`) from the pixels alone: the stored file is RIFF, WEBP and one VP8L
   chunk, so no EXIF, GPS, ICC, XMP or comment survives. Transparency is kept. EXIF orientation is not applied,
   so a camera photo stored sideways with an orientation tag comes out sideways.
 - **Storage**: each photo goes under a new random key (`Config.KeyPrefix` + 64 hex digits + `.webp`, nothing
-  of the user in it) through the `ObjectStore` interface. `S3Store` speaks the S3 API (SeaweedFS, MinIO,
-  Garage) through `github.com/minio/minio-go/v7`, path-style; its access key and secret key are the
+  of the user in it) through the `ObjectStore` interface. `S3Store` speaks the S3 API (tested against
+  SeaweedFS; other S3 servers are untested) through `github.com/minio/minio-go/v7`, path-style; its access key
+  and secret key are the
   credential's `Username` and `Password` from the `credentials.Provider` (`S3Config.CredentialName`), asked
   for again 30 seconds before `ExpiresAt` and after any answer refusing the credential (`AccessDenied`,
   `InvalidAccessKeyId`, `SignatureDoesNotMatch`, `ExpiredToken`), which is then tried once more. `Check(ctx)`

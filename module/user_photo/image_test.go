@@ -259,3 +259,35 @@ func FuzzReencode(f *testing.F) {
 		checkOutput(t, out)
 	})
 }
+
+// manyScans returns a progressive JPEG header for w x h followed by n near-empty scans: each scan costs the decoder
+// a pass over every block while costing the file a dozen bytes.
+func manyScans(w, h uint16, n int) []byte {
+	out := []byte{0xFF, 0xD8, 0xFF, 0xC2, 0x00, 0x0B, 0x08, byte(h >> 8), byte(h), byte(w >> 8), byte(w), 0x01, 0x01, 0x11, 0x00}
+	for i := 0; i < n; i++ {
+		out = append(out, 0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x01, 0x3F, 0x00, 0x00)
+	}
+	return append(out, 0xFF, 0xD9)
+}
+
+func TestAJPEGWithTooManyScansIsRefusedBeforeDecoding(t *testing.T) {
+	m := mustManager(t, Config{})
+	start := time.Now()
+	_, err := m.reencode(bg, manyScans(4000, 4000, 150000))
+	if !errors.Is(err, ErrDecode) || !strings.Contains(err.Error(), "150000 scan markers") {
+		t.Fatalf("got %v, want ErrDecode naming the scan count", err)
+	}
+	if d := time.Since(start); d > 200*time.Millisecond {
+		t.Fatalf("refusal took %s; it must come before decoding", d)
+	}
+	// Fill bytes before a marker do not hide it.
+	filled := bytes.ReplaceAll(manyScans(64, 64, maxJPEGScans+1), []byte{0xFF, 0xDA}, []byte{0xFF, 0xFF, 0xFF, 0xDA})
+	if _, err := m.reencode(bg, filled); !errors.Is(err, ErrDecode) || !strings.Contains(err.Error(), "scan markers") {
+		t.Fatalf("scans behind fill bytes: %v", err)
+	}
+	// Up to the limit, the file reaches the decoder (which refuses these empty scans for its own reason).
+	_, err = m.reencode(bg, manyScans(64, 64, maxJPEGScans))
+	if err == nil || strings.Contains(err.Error(), "scan markers") {
+		t.Fatalf("%d scans: %v", maxJPEGScans, err)
+	}
+}
