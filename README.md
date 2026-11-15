@@ -167,6 +167,95 @@ schema, that table and a role with only those grants for each test:
 `tools/test-valkey.sh` runs the passkey tests that need Valkey. Without `DXLIB_MODULE_TEST_POSTGRES` or
 `DXLIB_MODULE_TEST_VALKEY` set, `go test ./...` skips them.
 
+## Passwords (`module/password`)
+
+Password login, change and reset. A password is hashed with Argon2id (`golang.org/x/crypto/argon2`), and the hash
+is then encrypted by a transit key in the secret store, so a copy of the table alone gives nothing to crack.
+
+- **Hash**: Argon2id with 64 MiB of memory, 3 passes and 4 lanes (RFC 9106, section 4, the second recommended
+  option), a 16-byte random salt and a 32-byte tag, kept as a PHC string (`$argon2id$v=19$m=65536,t=3,p=4$...`).
+  The password is put in Unicode NFKC first, so the same password typed on two keyboards hashes the same. At
+  most `Config.MaxConcurrentHashes` (default 4) hashes run at once, 64 MiB each; a login waits for a slot until
+  its context ends. A hash stored with other parameters is replaced at the user's next login.
+- **Transit**: the PHC string is encrypted through the `Transit` interface. `OpenBaoTransit` speaks the OpenBao
+  (or Vault) transit HTTP API; its token comes from the `credentials.Provider` (the credential's `Password`)
+  and is asked for again on HTTP 403, so a rotated token is picked up. `Check` at start-up refuses a key that is
+  not `aes256-gcm96`, or is exportable, allows a plaintext backup or is derived. `TestTransit` is an in-memory
+  key ring for tests only. Each row stores the key version that encrypted it.
+- **Bound to its user**: the encrypted value holds the user's uuid beside the hash, and a value read from
+  another user's row is refused, so copying your own row over the owner's does not log you in as the owner.
+- **Rotation**: after the key is rotated, `RewrapAll(ctx, batch)` re-encrypts every row of an older key version
+  with the newest one (transit `rewrap`: the hashes never leave the secret store). A row changed meanwhile is
+  left alone and counted. Once it returns no error, older versions may be trimmed (`min_decryption_version`).
+- **Policy** (`CheckPolicy` lets a page ask first): 15 to 128 characters (`Config.MinLength`, never below 15;
+  `Config.MaxLength`, at most 1024), counted as code points after NFKC; none of the user's context words
+  (`Accounts.ContextWords`: username, e-mail, name; words under four characters are ignored); not in the
+  `BreachedList`, checked as typed and after NFKC. `HashList` reads SHA-1 lists in the Pwned Passwords download
+  format; `RangeAPI` asks a k-anonymity range service (`PwnedPasswordsURL`, or a copy the service runs), sending
+  only the first five hex digits of the SHA-1 and asking for padded answers. A list that cannot answer refuses the
+  change with its real error, which does not wrap `ErrPolicy`.
+- **Login**: `Login(ctx, login, password, Client)` turns the login name into a user uuid through
+  `Accounts.FindUser`, asks the `Lockout` first (a locked account, or a lockout that cannot answer, is refused:
+  fail closed), checks the password, asks `Accounts.LoginProfile`, and starts the session through
+  `session.Store.Create` with the auth method `password`. An unknown user, or one without a password, costs one
+  Argon2id hash too. Every refusal is written to the `auth_audit.Sink` as `login_failed` with its real reason,
+  and a wrong password is also fed to the `Lockout` (`Failed`); a success resets it (`Succeeded`).
+- **Forced change**: a password set by someone else (`Set(..., mustChange=true)`, the reset-owner command) gives
+  `ErrMustChange` at login and no session. `ChangeAndLogin(ctx, login, current, next, Client)` checks the current
+  password as a login does, stores the new one, clears `must_change_password`, and starts the session.
+  `Change(ctx, userUUID, current, next, Client)` is the same for a logged-in user. Every change ends all of the
+  user's sessions (`RevokeAll`) and starts one new session for the caller; a change never overwrites a password
+  someone else set meanwhile (`ErrConflict`).
+- **Never the last way in**: `Remove` refuses (`ErrLastWayIn`) unless `Accounts.HasPasskey` says the user has a
+  passkey. Wire `Manager.Has` to `passkey.Accounts.HasPassword` for the other direction.
+- **Lockout**: the `Lockout` interface; `module/password/accountlockout` adapts `module/account_lockout` to it
+  with a resolver from user uuid to the numeric user id and login id. Run account_lockout with
+  `REDIS_FAIL_THEN_LOCK`: with `REDIS_FAIL_KEEP_UNLOCK` it answers "not locked" while Redis is down.
+- **Reset-owner host command**: `RunResetOwner(ctx, m, owner, args, stdout, stderr)` is run by the service from
+  its own binary on the server (`myservice reset-owner --confirm [--user <uuid>]`), after it has built the
+  Manager from its secret store. Without `--confirm` it changes nothing. It ends the account's lockout, sets a
+  random 24-character temporary password with `must_change_password`, ends the account's sessions, audits a
+  `credential_changed` record whose detail names the host command, and prints the temporary password alone on
+  stdout (everything else goes to stderr). The temporary password skips the breached list, so a reset works
+  while the list cannot be reached.
+- **Audit**: `credential_changed` (`Set`, changes, reset-owner; the actor's uuid when an administrator set it)
+  and `credential_removed`, refused ones with their real reason; failed logins as `login_failed`; a successful
+  login once, by the session store. No record holds a password.
+- **Errors**: a refused login or change wraps `ErrRefused` (and `ErrLocked` for a locked account), its text
+  holding the real reason; answer 401 without the detail and log the text. A refused new password wraps
+  `ErrPolicy` and one of `ErrTooShort`, `ErrTooLong`, `ErrBreached`, `ErrContextWord`, `ErrSameAsCurrent`,
+  `ErrNotUTF8`; that text is safe to show the user.
+
+The transit key and the token's policy (the service's token comes from its `credentials.Provider`):
+
+    bao secrets enable transit
+    bao write -f transit/keys/<key> type=aes256-gcm96 exportable=false
+    path "transit/encrypt/<key>" { capabilities = ["update"] }
+    path "transit/decrypt/<key>" { capabilities = ["update"] }
+    path "transit/rewrap/<key>"  { capabilities = ["update"] }
+    path "transit/keys/<key>"    { capabilities = ["read"] }
+
+Rotate with `bao write -f transit/keys/<key>/rotate`, run `RewrapAll`, then
+`bao write transit/keys/<key>/config min_decryption_version=<newest>`.
+
+`DBStore` keeps the passwords in a PostgreSQL table the service names, through dxlib, with fixed column names and
+every value bound as a parameter; it takes any `Database` with dxlib's `Tx`:
+
+    CREATE TABLE <schema>.<table> (
+        user_uuid            uuid PRIMARY KEY,
+        ciphertext           text NOT NULL,       -- transit ciphertext of the uuid and the Argon2id hash
+        key_version          integer NOT NULL,    -- transit key version of ciphertext
+        must_change_password boolean NOT NULL,
+        changed_at           timestamptz NOT NULL
+    );
+    CREATE INDEX ON <schema>.<table> (key_version);
+    GRANT SELECT, INSERT, UPDATE, DELETE ON <schema>.<table> TO <service role>;
+
+`MemoryStore` is for tests. `tools/test-postgres.sh` runs the `DBStore` tests against `postgres:18.7`, and
+`tools/test-openbao.sh` runs `OpenBaoTransit` against an `openbao/openbao:2.6.5` dev server (each test mounts its
+own transit engine, key, policy and token). Without `DXLIB_MODULE_TEST_POSTGRES` or `DXLIB_MODULE_TEST_OPENBAO`
+set, `go test ./...` skips them.
+
 ## Dependencies
 
 Every new or upgraded dependency is scanned and its licence checked before the change is committed.
