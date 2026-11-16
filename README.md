@@ -18,8 +18,9 @@ v2.0.0 adds, over v1.75.0: Valkey sessions that carry the user's profile (`modul
 (`module/passkey`), password login, change and reset (`module/password`), user photos (`module/user_photo`)
 and credentials from OpenBao with a PostgreSQL connection that follows them (`module/credentials`).
 
-v2.1.0 adds TLS to `credentials.RedisConnection` (Valkey over TLS, with an optional client certificate), on
-dxlib v1.135.0.
+v2.1.0 adds, over v2.0.0: TLS for `credentials.RedisConnection` (Valkey over TLS, with an optional client
+certificate), an append-only PostgreSQL audit sink (`module/auth_audit/pgsink`), dxlib v1.135.0 and every other
+dependency at its latest release (klauspost/compress past GO-2026-6865).
 
 ## Permission table
 
