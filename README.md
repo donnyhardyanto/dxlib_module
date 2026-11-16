@@ -445,7 +445,8 @@ They cover KV versions, one lease per name, renewal past the first TTL (a login 
 `max_ttl`, a transaction open across a rotation, a lease that ran out while idle, a revoked lease replaced once for
 eight transactions refused together, token renewal, a revoked token replaced from the `TokenSource` as a
 transaction begins, a token at its explicit max TTL replaced with its lease, a 403 on a path outside the policy
-leaving the token and its leases alone, 403s answered together taking one new token, and a Valkey password rotated
+leaving the token and its leases alone, 403s answered together taking one new token, a token that ended
+while the service was idle replaced on the next call, and a Valkey password rotated
 in KV with the data kept. Without `DXLIB_MODULE_TEST_OPENBAO` they are skipped.
 
 ## Dependencies

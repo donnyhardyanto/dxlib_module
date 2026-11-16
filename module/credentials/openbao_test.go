@@ -722,6 +722,32 @@ func TestOpenBaoKeepsATokenRefusedOnlyForAPath(t *testing.T) {
 	}
 }
 
+// A service idle past its token's end: the token and its lease are gone, renew-self is refused, and the next call
+// takes a new token from the TokenSource and a new lease.
+func TestOpenBaoRecoversAfterTheTokenEndedWhileIdle(t *testing.T) {
+	b := newBaoEnv(t)
+	r := newDBRole(t, b, "1m", "10m")
+	var asked atomic.Int32
+	p := newProvider(t, b, b.token(r.rules(), "2s"), map[string]OpenBaoSource{"pg": DatabaseRole(r.mount, r.role)}, OpenBaoOptions{
+		TokenSource: func(context.Context) (string, error) { asked.Add(1); return b.token(r.rules(), ""), nil },
+	})
+	ctx := context.Background()
+	first, err := p.Credential(ctx, "pg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(3 * time.Second) // idle: no call while the 2 s token ends, and its lease with it
+	next, err := p.Credential(ctx, "pg")
+	if n := asked.Load(); err != nil || n != 1 || next.Version == first.Version || until(next.ExpiresAt) < 50*time.Second {
+		t.Fatalf("after the token ended while idle: TokenSource asked %d times (want 1), lease %q (first %q) ending %s, %v; want a new lease of about 1 minute",
+			n, next.Version, first.Version, next.ExpiresAt, err)
+	}
+	c := r.connection(t, p, "pg")
+	if u := currentUser(t, c); u != next.Username {
+		t.Fatalf("connected as %q, want the new lease's %q", u, next.Username)
+	}
+}
+
 // ---- Valkey with KV credentials ----
 
 // The Valkey password rotated in OpenBao KV and on the server while data is stored: the connection is refused,

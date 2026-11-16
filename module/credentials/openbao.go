@@ -237,7 +237,7 @@ func (o *OpenBao) call(ctx context.Context, fn func() error) error {
 	}
 	replaced, terr := o.replaceToken(ctx, gen, true)
 	if terr != nil {
-		return fmt.Errorf("%w; taking a new token from the TokenSource after HTTP 403 failed too: %v", err, terr)
+		return fmt.Errorf("%w; after this HTTP 403, checking or replacing the provider's token failed too: %v", err, terr)
 	}
 	if !replaced {
 		return err // the token is still accepted: the path is outside its policy
