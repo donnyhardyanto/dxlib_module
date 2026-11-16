@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs the tests that need a real PostgreSQL (the DBStores of module/passkey, module/password and module/user_photo) against a throwaway PostgreSQL container.
+# Runs the tests that need a real PostgreSQL (the DBStores of module/passkey, module/password and module/user_photo, and module/auth_audit/pgsink) against a throwaway PostgreSQL container.
 #
 #   tools/test-postgres.sh [go test flags...]      e.g. tools/test-postgres.sh -v -run Postgres
 #
@@ -30,4 +30,4 @@ until $PODMAN exec -e PGPASSWORD="$ADMIN_PASSWORD" "$NAME" psql -h 127.0.0.1 -U 
 done
 
 DXLIB_MODULE_TEST_POSTGRES=127.0.0.1:$PORT DXLIB_MODULE_TEST_POSTGRES_ADMIN_PASSWORD=$ADMIN_PASSWORD \
-  go test -count=1 "$@" ./module/passkey/ ./module/password/ ./module/user_photo/
+  go test -count=1 "$@" ./module/passkey/ ./module/password/ ./module/user_photo/ ./module/auth_audit/pgsink/

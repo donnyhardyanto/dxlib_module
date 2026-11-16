@@ -78,7 +78,8 @@ to the user written into all of that user's sessions at once.
   copies and the next `Get` of each session rebuilds it through the service's `ProfileLoader`.
 - **Audit**: every login, refused login, logout, rotation, revocation and propagation goes to an
   `auth_audit.Sink` the service points at its own append-only store. A login whose audit record cannot be
-  written is refused and its session deleted; so is a rotation (its old token is already gone). `auth_audit.Memory` is for tests.
+  written is refused and its session deleted; so is a rotation (its old token is already gone). `auth_audit/pgsink`
+  writes to an append-only PostgreSQL table (below); `auth_audit.Memory` is for tests.
 - **Credentials**: the store connects through `credentials.RedisConnection`, a dxlib redis connection made
   with the credential a `credentials.Provider` returns, never with configuration values or the environment.
   It reconnects with the provider's newer credential when the current one is within `RenewBefore` of its
@@ -110,6 +111,55 @@ The tests that need Valkey start a throwaway container and make such an ACL user
     tools/test-valkey.sh -v             # PODMAN=... names the container command (default podman)
 
 Without `DXLIB_MODULE_TEST_VALKEY` set, `go test ./...` skips them.
+
+## Audit store in PostgreSQL (`module/auth_audit/pgsink`)
+
+`pgsink.DBSink` is an `auth_audit.Sink` that writes each event as one row of a table the service names. It is a
+package of its own, so `module/session` and the other writers of audit events do not import dxlib's database code.
+
+    db := credentials.NewPostgresConnection("audit", "audit-db.example.test:5432", "audit", "postgres/audit-writer", p)
+    db.ConnectionOptions = "sslmode=verify-full sslrootcert=/etc/ssl/db-ca.pem"
+    sink, err := pgsink.NewDBSink(db, "auth.auth_events")
+
+- **Append-only**: the sink only inserts, with no `RETURNING`, so the role it connects as holds `INSERT` and
+  nothing else. The table is owned by another role (an owner is not bound by grants). The writer cannot read,
+  change, delete, truncate, alter or drop the table; the tests check each of these is refused with SQLSTATE 42501.
+- **Parameterised**: every statement is an `INSERT` dxlib builds from fixed column names, every value bound as a
+  parameter. The table name is the only text that reaches the statement: `table` or `schema.table`, each a
+  lower-case letter or `_` followed by up to 62 lower-case letters, digits or `_`; anything else is refused by
+  `NewDBSink`. The tests put SQL, quoting, placeholder and JSON payloads into every field, `Detail`'s keys and
+  values included, and read them back unchanged.
+- **Every attempt is stored**: PostgreSQL refuses a NUL character, and bytes that are not UTF-8, in `text` and
+  `jsonb`. The sink stores U+FFFD in their place, so a login name holding one cannot make the audit record of that
+  attempt fail. Everything else is stored as given.
+- `Detail` is stored as a JSONB object of strings (`{}` when empty); a zero `Time` is stored as now. `Write`
+  returns once the row is committed, or with the database's own error, naming the table and the event's kind.
+- Credentials come from a `credentials.Provider` through `credentials.PostgresConnection`; a plain
+  `*databases.DXDatabase` also fits the `Database` interface.
+
+The table and its grants (the service picks the schema, table and role names):
+
+    CREATE TABLE <schema>.<table> (
+        id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        occurred_at timestamptz NOT NULL,
+        recorded_at timestamptz NOT NULL DEFAULT now(),
+        kind        text NOT NULL,
+        user_uuid   text NOT NULL,   -- empty for a refused login of an unknown name
+        actor_uuid  text NOT NULL,
+        session_id  text NOT NULL,
+        outcome     text NOT NULL,
+        reason      text NOT NULL,
+        detail      jsonb NOT NULL
+    );
+    -- Owned by a role other than <writer>.
+    REVOKE ALL ON <schema>.<table> FROM PUBLIC;
+    GRANT USAGE ON SCHEMA <schema> TO <writer>;
+    GRANT INSERT ON <schema>.<table> TO <writer>;
+
+The identity column needs no grant on its sequence. Readers of the trail get a separate role with `SELECT`. The
+tests run with the other PostgreSQL tests (`postgres:18.7`):
+
+    tools/test-postgres.sh -v           # PODMAN=... names the container command (default podman)
 
 ## Passkeys (`module/passkey`)
 
