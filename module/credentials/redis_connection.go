@@ -28,9 +28,9 @@ import (
 // library type is part of this package's API.
 //
 // Each new credential is first tried with a short-lived single connection (with the same TLS settings as the real
-// one) that is closed afterwards, and only a
-// credential the server accepts is handed to dxlib's Connect: dxlib keeps a client it failed to connect running
-// (with a health check that pings for the life of the process), so a failed Connect must not happen in a loop.
+// one) that is closed afterwards, and only a credential the server accepts is handed to dxlib's Connect: dxlib
+// keeps a client it failed to connect running (with a health check that pings for the life of the process), so a
+// failed Connect must not happen in a loop.
 // After a failed attempt the next one waits RetryMin, doubling per consecutive failure up to RetryMax; in between
 // the last error is returned at once.
 //
@@ -261,8 +261,10 @@ func (c *RedisConnection) probe(ctx context.Context, cred Credential, tlsConfig 
 	defer cancel()
 	cl := goredis.NewClient(&goredis.Options{Addr: c.Address, Username: cred.Username, Password: cred.Password, DB: c.DatabaseIndex,
 		TLSConfig: tlsConfig, PoolSize: 1, MaxRetries: -1, IdleCheckFrequency: -1})
-	defer func() { _ = cl.Close() }()
+	// Close before classifying the error: after a failed dial go-redis starts a background redial that sleeps 1 s
+	// between tries until the pool is closed, and any delay here lets it dial and outlive the probe.
 	err := cl.Ping(ctx).Err()
+	_ = cl.Close()
 	if err == nil || IsAuthError(err) {
 		return err
 	}

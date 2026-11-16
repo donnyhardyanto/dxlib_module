@@ -3,7 +3,8 @@
 #
 #   tools/test-valkey.sh [go test flags...]      e.g. tools/test-valkey.sh -v -run Valkey
 #
-# PODMAN overrides the container command (default: podman; it may be several words, such as "agentq podman").
+# PODMAN overrides the container command (it may be several words). By default it is "agentq podman" on macOS,
+# where containers run in agentq's Podman machine, and plain podman on Linux (a runner), where podman runs natively.
 # The container is removed afterwards.
 #
 # Valkey listens twice: plain TCP (the admin connection and most tests) and TLS only, with client certificates
@@ -13,7 +14,12 @@
 # machine shares.
 set -eu
 
-PODMAN=${PODMAN:-podman}
+if [ -z "${PODMAN:-}" ]; then
+  case $(uname -s) in
+    Darwin) PODMAN="agentq podman" ;;
+    *) PODMAN=podman ;;
+  esac
+fi
 IMAGE=docker.io/valkey/valkey:9.1.3
 NAME=dxlib-module-valkey-test-$$
 PORT=${VALKEY_TEST_PORT:-16379}
