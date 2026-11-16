@@ -2,8 +2,9 @@
 // through dxlib's databases package. It lives apart from auth_audit so that the packages writing audit events
 // (module/session and the others) do not import dxlib's database code.
 //
-// The table is append-only: the role the sink connects as holds INSERT on it and nothing else, and the table is
-// owned by another role (README, "Audit store in PostgreSQL"):
+// The table is append-only: the role the sink connects as holds INSERT on the columns the sink writes and nothing
+// else, so id and recorded_at always come from the database; the table is owned by another role (README, "Audit
+// store in PostgreSQL"):
 //
 //	CREATE TABLE <schema>.<table> (
 //	    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -19,7 +20,8 @@
 //	);
 //	REVOKE ALL ON <schema>.<table> FROM PUBLIC;
 //	GRANT USAGE ON SCHEMA <schema> TO <writer>;
-//	GRANT INSERT ON <schema>.<table> TO <writer>;
+//	GRANT INSERT (occurred_at, kind, user_uuid, actor_uuid, session_id, outcome, reason, detail)
+//	    ON <schema>.<table> TO <writer>;
 package pgsink
 
 import (

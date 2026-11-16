@@ -5,7 +5,7 @@ package pgsink
 //	DXLIB_MODULE_TEST_POSTGRES=127.0.0.1:15432 DXLIB_MODULE_TEST_POSTGRES_ADMIN_PASSWORD=... go test ./module/auth_audit/pgsink
 //
 // Each test makes its own schema and the table the package documents, owned by the administrator, and a writer
-// role holding INSERT on it and nothing else. The sink connects as the writer through credentials.PostgresConnection
+// role holding INSERT on the columns the sink writes and nothing else. The sink connects as the writer through credentials.PostgresConnection
 // with the credential from a credentials.Fixed provider. Without the variables they are skipped.
 
 import (
@@ -79,7 +79,7 @@ func newPG(t *testing.T) *pgEnv {
 		"REVOKE ALL ON " + table + " FROM PUBLIC",
 		"CREATE ROLE " + role + " LOGIN PASSWORD '" + pw + "'",
 		"GRANT USAGE ON SCHEMA " + schema + " TO " + role,
-		"GRANT INSERT ON " + table + " TO " + role,
+		"GRANT INSERT (occurred_at, kind, user_uuid, actor_uuid, session_id, outcome, reason, detail) ON " + table + " TO " + role,
 	}
 	for _, s := range ddl {
 		if _, err := admin.Connection.ExecContext(bg, s); err != nil {
@@ -196,11 +196,17 @@ func TestPostgresSinkStoresInjectionPayloadsInEveryFieldAsGiven(t *testing.T) {
 	if err := p.admin.Connection.QueryRowContext(bg, "SELECT count(*) FROM "+p.table).Scan(&n); err != nil || n != len(injectionPayloads) {
 		t.Fatalf("after the payloads: count %d, %v", n, err)
 	}
-	var privs string
+	var tablePrivs, colPrivs string
 	if err := p.admin.Connection.QueryRowContext(bg,
-		"SELECT string_agg(privilege_type, ',' ORDER BY privilege_type) FROM information_schema.role_table_grants WHERE grantee = $1",
-		p.writer).Scan(&privs); err != nil || privs != "INSERT" {
-		t.Fatalf("the writer holds %q (%v), want INSERT alone", privs, err)
+		"SELECT coalesce(string_agg(privilege_type, ','), '') FROM information_schema.role_table_grants WHERE grantee = $1",
+		p.writer).Scan(&tablePrivs); err != nil || tablePrivs != "" {
+		t.Fatalf("the writer holds table privileges %q (%v), want none", tablePrivs, err)
+	}
+	if err := p.admin.Connection.QueryRowContext(bg,
+		"SELECT coalesce(string_agg(privilege_type || ' ' || column_name, ',' ORDER BY column_name), '') FROM information_schema.column_privileges WHERE grantee = $1",
+		p.writer).Scan(&colPrivs); err != nil ||
+		colPrivs != "INSERT actor_uuid,INSERT detail,INSERT kind,INSERT occurred_at,INSERT outcome,INSERT reason,INSERT session_id,INSERT user_uuid" {
+		t.Fatalf("the writer holds column privileges %q (%v), want INSERT on the eight columns the sink writes", colPrivs, err)
 	}
 }
 
@@ -226,8 +232,8 @@ func TestPostgresSinkStoresNULAndInvalidUTF8(t *testing.T) {
 	}
 }
 
-// The writer appends and does nothing else: reading, changing, deleting and emptying the table are refused by
-// PostgreSQL (SQLSTATE 42501, insufficient privilege).
+// The writer appends and does nothing else: reading, changing, deleting and emptying the table, and setting id or
+// recorded_at, are refused by PostgreSQL (SQLSTATE 42501, insufficient privilege).
 func TestPostgresWriterCanOnlyInsert(t *testing.T) {
 	p := newPG(t)
 	s := p.sink(t, p.table)
@@ -240,6 +246,9 @@ func TestPostgresWriterCanOnlyInsert(t *testing.T) {
 		"UPDATE " + p.table + " SET reason = 'changed'",
 		"DELETE FROM " + p.table,
 		"TRUNCATE " + p.table,
+		// The writer cannot choose the id or the time the row arrived: both come from the database.
+		"INSERT INTO " + p.table + " (id, occurred_at, kind, user_uuid, actor_uuid, session_id, outcome, reason, detail) OVERRIDING SYSTEM VALUE VALUES (1, now(), 'x', '', '', '', '', '', '{}')",
+		"INSERT INTO " + p.table + " (recorded_at, occurred_at, kind, user_uuid, actor_uuid, session_id, outcome, reason, detail) VALUES ('2000-01-01', now(), 'x', '', '', '', '', '', '{}')",
 		"ALTER TABLE " + p.table + " DROP COLUMN reason",
 		"DROP TABLE " + p.table,
 	} {

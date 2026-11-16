@@ -121,9 +121,10 @@ package of its own, so `module/session` and the other writers of audit events do
     db.ConnectionOptions = "sslmode=verify-full sslrootcert=/etc/ssl/db-ca.pem"
     sink, err := pgsink.NewDBSink(db, "auth.auth_events")
 
-- **Append-only**: the sink only inserts, with no `RETURNING`, so the role it connects as holds `INSERT` and
-  nothing else. The table is owned by another role (an owner is not bound by grants). The writer cannot read,
-  change, delete, truncate, alter or drop the table; the tests check each of these is refused with SQLSTATE 42501.
+- **Append-only**: the sink only inserts, with no `RETURNING`, so the role it connects as holds `INSERT` on the
+  columns it writes and nothing else. The table is owned by another role (an owner is not bound by grants). The writer cannot read,
+  change, delete, truncate, alter or drop the table, nor set `id` or `recorded_at`; the tests check each of these
+  is refused with SQLSTATE 42501.
 - **Parameterised**: every statement is an `INSERT` dxlib builds from fixed column names, every value bound as a
   parameter. The table name is the only text that reaches the statement: `table` or `schema.table`, each a
   lower-case letter or `_` followed by up to 62 lower-case letters, digits or `_`; anything else is refused by
@@ -154,9 +155,12 @@ The table and its grants (the service picks the schema, table and role names):
     -- Owned by a role other than <writer>.
     REVOKE ALL ON <schema>.<table> FROM PUBLIC;
     GRANT USAGE ON SCHEMA <schema> TO <writer>;
-    GRANT INSERT ON <schema>.<table> TO <writer>;
+    GRANT INSERT (occurred_at, kind, user_uuid, actor_uuid, session_id, outcome, reason, detail)
+        ON <schema>.<table> TO <writer>;
 
-The identity column needs no grant on its sequence. Readers of the trail get a separate role with `SELECT`. The
+The grant names the columns, so the writer cannot set `id` (`OVERRIDING SYSTEM VALUE`) or `recorded_at`: both
+always come from the database, the server's own record of the order and time each row arrived. The identity
+column needs no grant on its sequence. Readers of the trail get a separate role with `SELECT`. The
 tests run with the other PostgreSQL tests (`postgres:18.7`):
 
     tools/test-postgres.sh -v           # PODMAN=... names the container command (default podman)
