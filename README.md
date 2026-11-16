@@ -379,9 +379,16 @@ names each credential once:
   credential calls `Invalidate` (the optional `credentials.Invalidator` interface) and gets a new lease.
 - **The provider's own token**: every lease is a child of it, and OpenBao revokes them all when it ends. The
   provider renews it (`auth/token/renew-self`) near its end, caps each `ExpiresAt` at its end, and asks the
-  optional `TokenSource` for a new token when OpenBao refuses the current one (HTTP 403) or it cannot be renewed.
-  Give the service a periodic token (or an auth method that issues one). The token handed to the vault client is
-  the service's bootstrap secret; it is the one value not read through the provider.
+  optional `TokenSource` for a new token when OpenBao refuses the current one or it cannot be renewed. A 403 alone
+  does not replace the token: OpenBao answers 403 for a path outside the token's policy too, so the provider asks
+  `auth/token/lookup-self` first and keeps a token OpenBao still accepts, with its leases. Give the service a
+  periodic token (or an auth method that issues one). The token handed to the vault client is the service's
+  bootstrap secret; it is the one value not read through the provider.
+- **Idle services need a `TokenSource`**: the token is renewed only inside a `Credential` call; there is no
+  background loop. A service that can go without a call (a transaction, a Valkey command) for longer than its
+  token has left, a periodic token's period or a one-hour AppRole or Kubernetes login overnight, loses the token
+  and every lease it issued while idle. With a `TokenSource` the next call takes a new token and new leases;
+  without one every call fails with OpenBao's 403 from then on.
 - **TLS**: an http:// address is refused (`AllowHTTP` is for a local test server only), and so is a client that
   does not verify the certificate (`VAULT_SKIP_VERIFY`, which dxlib's client reads from the environment). Give
   the CA with `VAULT_CACERT`. The namespace is the one in `OpenBaoOptions.Namespace`, never `VAULT_NAMESPACE`.
@@ -437,8 +444,9 @@ so OpenBao's database engine reaches PostgreSQL; each test mounts its own engine
 They cover KV versions, one lease per name, renewal past the first TTL (a login still works), a new lease at
 `max_ttl`, a transaction open across a rotation, a lease that ran out while idle, a revoked lease replaced once for
 eight transactions refused together, token renewal, a revoked token replaced from the `TokenSource` as a
-transaction begins, a token at its explicit max TTL replaced with its lease, and a Valkey password rotated in KV
-with the data kept. Without `DXLIB_MODULE_TEST_OPENBAO` they are skipped.
+transaction begins, a token at its explicit max TTL replaced with its lease, a 403 on a path outside the policy
+leaving the token and its leases alone, 403s answered together taking one new token, and a Valkey password rotated
+in KV with the data kept. Without `DXLIB_MODULE_TEST_OPENBAO` they are skipped.
 
 ## Dependencies
 

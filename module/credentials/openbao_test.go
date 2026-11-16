@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -656,6 +657,71 @@ func TestOpenBaoReplacesLeasesOfAReplacedToken(t *testing.T) {
 	}
 }
 
+// OpenBao answers 403 for a path outside the token's policy as it does for a dead token. A source outside the policy
+// leaves the TokenSource unasked and the database lease in place (lookup-self still accepts the token). Once the
+// token is revoked, eight calls refused together take one new token, and the lease that ended with it is replaced.
+func TestOpenBaoKeepsATokenRefusedOnlyForAPath(t *testing.T) {
+	b := newBaoEnv(t)
+	r := newDBRole(t, b, "1m", "10m")
+	mount := "kv" + tag()
+	b.call(b.root, "POST", "sys/mounts/"+mount, map[string]any{"type": "kv", "options": map[string]any{"version": "2"}})
+	t.Cleanup(func() { b.try(b.root, "DELETE", "sys/mounts/"+mount, nil) })
+	b.call(b.root, "POST", mount+"/data/good", map[string]any{"data": map[string]any{"username": "u", "password": "p"}})
+	b.call(b.root, "POST", mount+"/data/bad", map[string]any{"data": map[string]any{"username": "u", "password": "p"}})
+	rules := r.rules() + `path "` + mount + `/data/good" { capabilities = ["read"] }` + "\n"
+	tok := b.token(rules, "")
+	var asked atomic.Int32
+	p := newProvider(t, b, tok, map[string]OpenBaoSource{
+		"pg": DatabaseRole(r.mount, r.role), "good": KV(mount, "good"), "bad": KV(mount, "bad"),
+	}, OpenBaoOptions{TokenSource: func(context.Context) (string, error) { asked.Add(1); return b.token(rules, ""), nil }})
+	ctx := context.Background()
+	first, err := p.Credential(ctx, "pg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 3; i++ {
+		if _, err := p.Credential(ctx, "bad"); err == nil || !strings.Contains(err.Error(), "403") || !strings.Contains(err.Error(), "permission denied") {
+			t.Fatalf("source outside the policy: %v, want OpenBao's 403", err)
+		}
+	}
+	if err := p.Check(ctx); err == nil || !strings.Contains(err.Error(), "1 of 3 sources") {
+		t.Fatalf("Check with one source outside the policy: %v", err)
+	}
+	again, err := p.Credential(ctx, "pg")
+	if n := asked.Load(); err != nil || n != 0 || again.Version != first.Version || p.tokenGeneration() != 0 {
+		t.Fatalf("after 403s outside the policy: TokenSource asked %d times (want 0), lease %q (want %q), token generation %d (want 0), %v",
+			n, again.Version, first.Version, p.tokenGeneration(), err)
+	}
+	if n := r.users(t); n != 1 {
+		t.Fatalf("%d database users, want the one lease", n)
+	}
+
+	b.call(b.root, "POST", "auth/token/revoke", map[string]any{"token": tok})
+	var wg sync.WaitGroup
+	errs := make(chan error, 8)
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if c, err := p.Credential(ctx, "good"); err != nil || c.Password != "p" {
+				errs <- fmt.Errorf("%v %v", c, err)
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Errorf("KV read after the token was revoked: %v", err)
+	}
+	if n := asked.Load(); n != 1 || p.tokenGeneration() != 1 {
+		t.Fatalf("eight 403s on a revoked token: TokenSource asked %d times (want 1), token generation %d (want 1)", n, p.tokenGeneration())
+	}
+	next, err := p.Credential(ctx, "pg")
+	if err != nil || next.Version == first.Version {
+		t.Fatalf("after the token was replaced: lease %q (first %q), %v; want a new lease", next.Version, first.Version, err)
+	}
+}
+
 // ---- Valkey with KV credentials ----
 
 // The Valkey password rotated in OpenBao KV and on the server while data is stored: the connection is refused,
@@ -674,8 +740,7 @@ func TestOpenBaoKVRotationKeepsValkeyData(t *testing.T) {
 	p := newProvider(t, b, b.token(tokenSelfRules+`path "`+mount+`/data/valkey" { capabilities = ["read"] }`, ""),
 		map[string]OpenBaoSource{"valkey": KV(mount, "valkey")}, OpenBaoOptions{})
 	c := NewRedisConnection("sessions", addr, 0, "valkey", p)
-	c.CloseGrace = 10 * time.Millisecond
-	t.Cleanup(func() { _ = c.Close() })
+	t.Cleanup(func() { _ = c.Close() }) // the default CloseGrace: a 10 ms grace is BUG-003's likely cause
 
 	key := user + ":session"
 	if _, err := c.Command(ctx, "store", "SET", key, "open"); err != nil {

@@ -59,9 +59,12 @@ type OpenBaoOptions struct {
 	// Namespace is sent as X-Vault-Namespace. It replaces a VAULT_NAMESPACE the client read from the environment, so
 	// the namespace is always the one the service set.
 	Namespace string
-	// TokenSource returns a new OpenBao token for this provider (a fresh AppRole or Kubernetes login) when the
-	// current one is refused (HTTP 403) or can no longer be renewed. Optional: without it the token handed in with
-	// the client is the only one, and the provider stops working when it ends.
+	// TokenSource returns a new OpenBao token for this provider (a fresh AppRole or Kubernetes login) when OpenBao
+	// refuses the current one (an HTTP 403 that auth/token/lookup-self confirms) or it can no longer be renewed.
+	// Without it the token handed in with the client is the only one, and the provider stops working when it ends.
+	// The token is renewed only inside a Credential call, so a service that can sit idle for longer than the token
+	// has left (a periodic token's period, an AppRole or Kubernetes login's TTL) needs one: its token and every
+	// lease end while it is idle, and the next call takes a new token and new leases.
 	TokenSource func(ctx context.Context) (string, error)
 	// AllowHTTP permits an http:// address. For tests against a local dev server only: the token and the
 	// credentials would cross the network in clear.
@@ -78,13 +81,16 @@ type OpenBaoOptions struct {
 // Every lease is a child of the provider's token, and OpenBao revokes them all when the token ends. The provider
 // renews its token (auth/token/renew-self) when it is near its end, caps every ExpiresAt at the token's end, and
 // asks TokenSource for a new token when the current one is refused or cannot be renewed. Use a periodic token (or
-// an auth method that issues one) so renewal can go on for the life of the service.
+// an auth method that issues one) so renewal can go on for the life of the service. Renewal happens only inside a
+// Credential call; there is no background loop. A service that can go without a call for longer than its token has
+// left loses the token and its leases while idle, and recovers on the next call only through a TokenSource.
 type OpenBao struct {
 	vault *dxVault.DXHashicorpVault
 	opts  OpenBaoOptions
 
 	sources map[string]OpenBaoSource
 
+	replaceMu    sync.Mutex // serialises token replacement; taken before tokenMu
 	tokenMu      sync.Mutex
 	tokenKnown   bool
 	tokenExpires time.Time // zero: the token does not expire
@@ -220,28 +226,53 @@ func statusOf(err error) int {
 	return 0
 }
 
-// call runs fn; when OpenBao refuses the token (HTTP 403) and a TokenSource is set, it takes a new token and runs fn
-// once more.
+// call runs fn; when OpenBao answers HTTP 403 and a TokenSource is set, it checks whether the token itself was
+// refused, and only then takes a new token and runs fn once more. OpenBao answers 403 both for a dead token and for a
+// path outside the token's policy; the second leaves the token, and every lease it issued, alone.
 func (o *OpenBao) call(ctx context.Context, fn func() error) error {
+	gen := o.tokenGeneration()
 	err := fn()
 	if err == nil || statusOf(err) != http.StatusForbidden || o.opts.TokenSource == nil {
 		return err
 	}
-	if terr := o.replaceToken(ctx); terr != nil {
+	replaced, terr := o.replaceToken(ctx, gen, true)
+	if terr != nil {
 		return fmt.Errorf("%w; taking a new token from the TokenSource after HTTP 403 failed too: %v", err, terr)
+	}
+	if !replaced {
+		return err // the token is still accepted: the path is outside its policy
 	}
 	return fn()
 }
 
-// replaceToken takes a new token from the TokenSource and reads its lifetime. It does not retry: a new token that is
+// replaceToken takes a new token from the TokenSource and reads its lifetime, unless the token was already replaced
+// since generation gen (another call got there first; replaced is true then too). With confirm, it first asks
+// OpenBao about the current token (auth/token/lookup-self) and keeps a token OpenBao still accepts (replaced false).
+// Replacements are serialised, so 403s answered together take one new token. It does not retry: a new token that is
 // refused too is reported.
-func (o *OpenBao) replaceToken(ctx context.Context) error {
+func (o *OpenBao) replaceToken(ctx context.Context, gen uint64, confirm bool) (replaced bool, err error) {
+	o.replaceMu.Lock()
+	defer o.replaceMu.Unlock()
+	if o.tokenGeneration() != gen {
+		return true, nil
+	}
+	if confirm {
+		o.tokenMu.Lock()
+		lerr := o.lookupToken(ctx)
+		o.tokenMu.Unlock()
+		if lerr == nil {
+			return false, nil
+		}
+		if statusOf(lerr) != http.StatusForbidden {
+			return false, fmt.Errorf("checking whether OpenBao still accepts the token: %w", lerr)
+		}
+	}
 	tok, err := o.opts.TokenSource(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if tok == "" {
-		return errors.New("the TokenSource returned an empty token")
+		return false, errors.New("the TokenSource returned an empty token")
 	}
 	o.vault.Client.SetToken(tok)
 	o.vault.Token = tok
@@ -250,9 +281,9 @@ func (o *OpenBao) replaceToken(ctx context.Context) error {
 	o.tokenKnown = false
 	o.tokenGen++
 	if err := o.lookupToken(ctx); err != nil {
-		return fmt.Errorf("the new token from the TokenSource: %w", err)
+		return true, fmt.Errorf("the new token from the TokenSource: %w", err)
 	}
-	return nil
+	return true, nil
 }
 
 // lookupToken reads the token's lifetime (auth/token/lookup-self). Called with tokenMu held.
@@ -271,11 +302,12 @@ func (o *OpenBao) lookupToken(ctx context.Context) error {
 // refused, or cannot be renewed far enough, is replaced from the TokenSource when one is set.
 func (o *OpenBao) ensureToken(ctx context.Context) error {
 	o.tokenMu.Lock()
+	gen := o.tokenGen
 	if !o.tokenKnown {
 		if err := o.lookupToken(ctx); err != nil {
 			o.tokenMu.Unlock()
 			if statusOf(err) == http.StatusForbidden && o.opts.TokenSource != nil {
-				if terr := o.replaceToken(ctx); terr != nil {
+				if _, terr := o.replaceToken(ctx, gen, false); terr != nil {
 					return fmt.Errorf("%s: %v; taking a new token from the TokenSource failed: %w", o.describe(), err, terr)
 				}
 				return nil
@@ -310,7 +342,7 @@ func (o *OpenBao) ensureToken(ctx context.Context) error {
 	expires := o.tokenExpires
 	o.tokenMu.Unlock()
 	if o.opts.TokenSource != nil {
-		if err := o.replaceToken(ctx); err != nil {
+		if _, err := o.replaceToken(ctx, gen, false); err != nil {
 			return fmt.Errorf("%s: the provider's token ends at %s and could not be renewed (%v); taking a new one from the TokenSource failed: %w",
 				o.describe(), expires.Format(time.RFC3339), renewErr, err)
 		}
