@@ -2,13 +2,20 @@
 
 - Tag: `v2.1.0`
 - Commit scanned: `b1d75d7c2a7042ac66b64fe10d4fda3c4e367b55`
-- Date: 2026-11-16 16:07 UTC
-- Result: not scanned
+- Date: 2026-11-16 16:16 UTC
+- Result: clean
 
-SBOM: none was made. Not scanned in full: syft dir:. -o cyclonedx-json did not run (~/.local/bin/heavy-lock dxlib-module:sbom -- /bin/sh -c <the scan>: exit none, or not within 1800 s, ); osv-scanner scan source -r . did not run (~/.local/bin/heavy-lock dxlib-module:sbom -- /bin/sh -c <the scan>: exit none, or not within 1800 s, ); `trivy fs --scanners vuln --exit-code 1 .` did not run (~/.local/bin/heavy-lock dxlib-module:sbom -- /bin/sh -c <the scan>: exit none, or not within 1800 s).
+SBOM: dxlib-module-2.1.0.cdx.json (CycloneDX, 125 components). Scan (syft 1.57.1, grype 0.121.3, osv-scanner 2.7.1, govulncheck v1.9.0, `trivy fs --scanners vuln --exit-code 1 .`): clean.
 
 ## Files
+- `dxlib-module-2.1.0.cdx.json`: CycloneDX JSON, from syft
+- `dxlib-module-2.1.0.spdx.json`: SPDX JSON, from the same syft run
+- `reports/grype.json`: grype sbom:dxlib-module-2.1.0.cdx.json -o json
+- `reports/osv-scanner.json`: osv-scanner scan source -r --allow-no-lockfiles --no-call-analysis=go --format json .
+- `reports/osv-scanner.stderr.txt`: what osv-scanner wrote to stderr
 - `reports/govulncheck-0.json`: govulncheck -format json ./... in .
+- `reports/scanner-0.txt`: trivy fs --scanners vuln --exit-code 1 .
+- `reports/scanner-0.stderr.txt`: what scanner-0 wrote to stderr
 - `tools.json`: the tools and their versions, each step's command and exit status
 - `allowlist-applied.json`: the .dependency-allowlist.json entries that applied, with their reasons
 
@@ -19,11 +26,9 @@ SBOM: none was made. Not scanned in full: syft dir:. -o cyclonedx-json did not r
 - `references`
 - `sbom` (the records of the earlier scans)
 
-## Not scanned in full
+## Reused from the scan cache
 
-- syft dir:. -o cyclonedx-json did not run (~/.local/bin/heavy-lock dxlib-module:sbom -- /bin/sh -c <the scan>: exit none, or not within 1800 s, )
-- osv-scanner scan source -r . did not run (~/.local/bin/heavy-lock dxlib-module:sbom -- /bin/sh -c <the scan>: exit none, or not within 1800 s, )
-- `trivy fs --scanners vuln --exit-code 1 .` did not run (~/.local/bin/heavy-lock dxlib-module:sbom -- /bin/sh -c <the scan>: exit none, or not within 1800 s)
+- govulncheck-0 reused (key b4d27489f494, made 23:07 for dxlib-module 2.1.0 (b1d75d7c2))
 
 ## Run it again
 

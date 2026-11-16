@@ -5,17 +5,20 @@
   "steps" : [
     {
       "command" : "syft dir:. -o cyclonedx-json -o spdx-json",
-      "exit" : null,
+      "exit" : 0,
       "step" : "syft"
     },
     {
       "command" : "grype sbom:dxlib-module-2.1.0.cdx.json -o json",
-      "exit" : null,
+      "exit" : 0,
+      "report" : "reports/grype.json",
       "step" : "grype"
     },
     {
       "command" : "osv-scanner scan source -r --allow-no-lockfiles --no-call-analysis=go --format json .",
-      "exit" : null,
+      "exit" : 0,
+      "report" : "reports/osv-scanner.json",
+      "stderr" : "reports/osv-scanner.stderr.txt",
       "step" : "osv-scanner"
     },
     {
@@ -26,7 +29,9 @@
     },
     {
       "command" : "trivy fs --scanners vuln --exit-code 1 .",
-      "exit" : null,
+      "exit" : 0,
+      "report" : "reports/scanner-0.txt",
+      "stderr" : "reports/scanner-0.stderr.txt",
       "step" : "scanner-0"
     }
   ],
