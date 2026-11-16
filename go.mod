@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	firebase.google.com/go/v4 v4.22.0
 	github.com/HugoSmits86/nativewebp v1.3.0
-	github.com/donnyhardyanto/dxlib v1.133.0
+	github.com/donnyhardyanto/dxlib v1.134.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-webauthn/webauthn v0.18.2
 	github.com/google/uuid v1.6.0
@@ -81,7 +81,7 @@ require (
 	github.com/jackc/pgx/v5 v5.11.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.3 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
-	github.com/klauspost/compress v1.20.1 // indirect
+	github.com/klauspost/compress v1.20.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/microsoft/go-mssqldb v1.11.2 // indirect
