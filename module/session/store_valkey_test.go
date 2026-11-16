@@ -14,11 +14,13 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/donnyhardyanto/dxlib/utils"
 	goredis "github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 
@@ -743,5 +745,37 @@ func TestValkeyLoginAuditCarriesTheCallersDetailButNotOverItsOwn(t *testing.T) {
 	d := ev[0].Detail
 	if d["passkey_id"] != "abc" || d["auth_method"] != "passkey" || d["client_address"] != "192.0.2.9" {
 		t.Fatalf("audit detail %v", d)
+	}
+}
+
+// The store works over TLS with its prefix-limited ACL user, against the TLS-only listener of tools/test-valkey.sh
+// (client certificates required).
+func TestValkeyStoreOverTLS(t *testing.T) {
+	tlsAddr, dir := os.Getenv("DXLIB_MODULE_TEST_VALKEY_TLS"), os.Getenv("DXLIB_MODULE_TEST_VALKEY_TLS_DIR")
+	if tlsAddr == "" || dir == "" {
+		t.Skip("DXLIB_MODULE_TEST_VALKEY_TLS and DXLIB_MODULE_TEST_VALKEY_TLS_DIR are not set; run tools/test-valkey.sh")
+	}
+	e := newValkeyEnv(t)
+	conn := e.conn(t, tlsAddr)
+	if err := conn.SetTLSFromBlock(utils.JSON{"tls-policy": "intermediate", "ca-trust": "custom",
+		"ca-files": []any{filepath.Join(dir, "ca.crt")}, "cert-file": filepath.Join(dir, "client.crt"),
+		"key-file": filepath.Join(dir, "client.key"), "server-name": "valkey.test"}); err != nil {
+		t.Fatal(err)
+	}
+	s, err := NewValkeyStore(conn, Config{KeyPrefix: e.prefix}, &auth_audit.Memory{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	user := uuid.NewString()
+	tok, sess := login(t, s, user, "u")
+	if got, err := s.Get(ctx, tok); err != nil || got.ID != sess.ID {
+		t.Fatalf("Get over TLS: %+v, %v", got, err)
+	}
+	if res, err := s.PropagateProfile(ctx, user, Profile{Username: "u", DisplayName: "U", Status: "active", Version: 2}); err != nil || res.Updated != 1 {
+		t.Fatalf("PropagateProfile over TLS: %+v, %v", res, err)
+	}
+	if n, err := e.admin.Exists(ctx, e.prefix+"s:"+sess.ID).Result(); err != nil || n != 1 {
+		t.Fatalf("the session written over TLS, seen on the plain port: %d, %v", n, err)
 	}
 }

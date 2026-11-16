@@ -3,6 +3,7 @@ package credentials
 import (
 	"context"
 	"crypto/sha1"
+	"crypto/tls"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/core"
 	dxRedis "github.com/donnyhardyanto/dxlib/redis"
+	"github.com/donnyhardyanto/dxlib/utils"
+	utilsTLS "github.com/donnyhardyanto/dxlib/utils/tls"
 	goredis "github.com/go-redis/redis/v8"
 )
 
@@ -24,15 +27,18 @@ import (
 // Its methods take and return plain Go values (RESP replies as string, int64, []interface{} or nil), so no client
 // library type is part of this package's API.
 //
-// Each new credential is first tried with a short-lived single connection that is closed afterwards, and only a
+// Each new credential is first tried with a short-lived single connection (with the same TLS settings as the real
+// one) that is closed afterwards, and only a
 // credential the server accepts is handed to dxlib's Connect: dxlib keeps a client it failed to connect running
 // (with a health check that pings for the life of the process), so a failed Connect must not happen in a loop.
 // After a failed attempt the next one waits RetryMin, doubling per consecutive failure up to RetryMax; in between
 // the last error is returned at once.
 //
 // dxlib's redis package connects to one node (or a Sentinel-managed primary); Valkey Cluster is not supported.
-// It has no TLS option today, so the connection is plain TCP: keep Valkey on a private network until dxlib
-// offers TLS.
+//
+// TLS is off (plain TCP) unless TLSConfig is set, directly or from a tls block through SetTLSFromBlock. The trial
+// connection and the real one are made with the very same tls.Config, so a credential is never accepted over a
+// path the real connection does not take.
 type RedisConnection struct {
 	NameId         string
 	Address        string
@@ -47,6 +53,13 @@ type RedisConnection struct {
 	RetryMin, RetryMax time.Duration
 	// ProbeTimeout bounds the trial connection of a new credential. Default 5 s.
 	ProbeTimeout time.Duration
+	// TLSConfig turns TLS on: nil means plain TCP. A MinVersion below TLS 1.2 is raised to TLS 1.2 (on a copy).
+	// An empty ServerName is taken from the host of Address, so a certificate that names only a DNS name needs
+	// ServerName when Address is an IP. Set it before the first call; it is read on each new connection.
+	TLSConfig *tls.Config
+	// TLS is the parsed tls block behind TLSConfig when SetTLSFromBlock set it, nil otherwise; dxlib logs its
+	// summary when it connects.
+	TLS *utilsTLS.DXClientTLS
 
 	mu       sync.Mutex
 	current  *dxRedis.DXRedis
@@ -66,6 +79,54 @@ func NewRedisConnection(nameId, address string, databaseIndex int, credentialNam
 		DatabaseIndex:  databaseIndex,
 		CredentialName: credentialName,
 		Provider:       provider,
+	}
+}
+
+// SetTLSFromBlock sets TLSConfig and TLS from a tls block in dxlib's client vocabulary (utils/tls), the same keys
+// as the "tls" block of a dxlib redis configuration: "tls-policy" and "ca-trust" ("system", or "custom" with
+// "ca-files") are required; "cert-file" and "key-file" give a client certificate, "server-name" the name the
+// server's certificate is checked against. A block with "enabled": false is checked and leaves TLS off. The files
+// are read now, so a missing or unreadable one is an error here, not on the first connection.
+func (c *RedisConnection) SetTLSFromBlock(kv utils.JSON) error {
+	t, err := utilsTLS.NewClientTLS(kv)
+	if err != nil {
+		return fmt.Errorf("%s: TLS settings: %w", c.Describe(), err)
+	}
+	c.TLS, c.TLSConfig = t, t.Config // Config is nil under enabled=false
+	if c.TLSConfig == nil {
+		c.TLS = nil
+	}
+	return nil
+}
+
+// effectiveTLSConfig is TLSConfig with its floor raised to TLS 1.2, as dxlib raises it; one value is handed to
+// both the trial connection and dxlib, so both connect alike.
+func (c *RedisConnection) effectiveTLSConfig() *tls.Config {
+	if c.TLSConfig == nil || c.TLSConfig.MinVersion >= tls.VersionTLS12 {
+		return c.TLSConfig
+	}
+	t := c.TLSConfig.Clone()
+	t.MinVersion = tls.VersionTLS12
+	if t.MaxVersion != 0 && t.MaxVersion < tls.VersionTLS12 {
+		t.MaxVersion = tls.VersionTLS12
+	}
+	return t
+}
+
+// tlsSummary is the TLS posture for error messages.
+func (c *RedisConnection) tlsSummary() string {
+	switch {
+	case c.TLSConfig == nil:
+		return "TLS off"
+	case c.TLS != nil:
+		return "TLS on (" + c.TLS.Summary() + ")"
+	default:
+		t := c.effectiveTLSConfig()
+		name := t.ServerName
+		if name == "" {
+			name = "the host of " + c.Address
+		}
+		return fmt.Sprintf("TLS on (server name %s, min version %s, insecure-skip-verify %t)", name, tls.VersionName(t.MinVersion), t.InsecureSkipVerify)
 	}
 }
 
@@ -158,7 +219,8 @@ func (c *RedisConnection) client(ctx context.Context, mode connectMode, used uin
 		return c.current.Connection, c.gen, nil
 	}
 	c.attempts++
-	if err := c.probe(ctx, cred); err != nil {
+	tlsConfig := c.effectiveTLSConfig()
+	if err := c.probe(ctx, cred, tlsConfig); err != nil {
 		return nil, 0, c.fail(ctx, fmt.Errorf("%s: connecting as %q (credential version %q): %w", c.Describe(), cred.Username, cred.Version, err))
 	}
 	r := &dxRedis.DXRedis{
@@ -170,6 +232,8 @@ func (c *RedisConnection) client(ctx context.Context, mode connectMode, used uin
 		Password:      cred.Password,
 		HasPassword:   cred.Password != "",
 		DatabaseIndex: c.DatabaseIndex,
+		TLSConfig:     tlsConfig, // the probe's own: already at TLS 1.2 or above, so dxlib uses it as given
+		TLS:           c.TLS,
 		MustConnected: false, // true would end the process on a failed connect
 		Context:       core.RootContext,
 	}
@@ -189,15 +253,25 @@ func (c *RedisConnection) client(ctx context.Context, mode connectMode, used uin
 	return r.Connection, c.gen, nil
 }
 
-// probe tries a credential on one plain connection, closed afterwards, so a refused or unreachable server leaves
-// nothing running.
-func (c *RedisConnection) probe(ctx context.Context, cred Credential) error {
+// probe tries a credential on one connection, with the TLS config the real connection will use, closed afterwards,
+// so a refused or unreachable server leaves nothing running. A failed TLS handshake is named as such, with the
+// TLS settings and what to check.
+func (c *RedisConnection) probe(ctx context.Context, cred Credential, tlsConfig *tls.Config) error {
 	ctx, cancel := context.WithTimeout(ctx, orDefault(c.ProbeTimeout, 5*time.Second))
 	defer cancel()
 	cl := goredis.NewClient(&goredis.Options{Addr: c.Address, Username: cred.Username, Password: cred.Password, DB: c.DatabaseIndex,
-		PoolSize: 1, MaxRetries: -1, IdleCheckFrequency: -1})
+		TLSConfig: tlsConfig, PoolSize: 1, MaxRetries: -1, IdleCheckFrequency: -1})
 	defer func() { _ = cl.Close() }()
-	return cl.Ping(ctx).Err()
+	err := cl.Ping(ctx).Err()
+	if err == nil || IsAuthError(err) {
+		return err
+	}
+	if tlsConfig != nil {
+		if class, advice := utilsTLS.ClassifyHandshakeError(err); class != "" && class != utilsTLS.HandshakeClassOther {
+			return fmt.Errorf("TLS handshake with %s failed (%s; %s): %w; %s", c.Address, class, c.tlsSummary(), err, advice)
+		}
+	}
+	return fmt.Errorf("%w (%s)", err, c.tlsSummary())
 }
 
 // do runs fn on the live client. When the server refuses the credential, do fetches a new one, reconnects and runs

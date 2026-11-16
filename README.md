@@ -7,7 +7,7 @@ Released under the MIT License; see [LICENSE](LICENSE).
 From v2.0.0 the module path is `github.com/donnyhardyanto/dxlib_module/v2`, as Go requires for a major
 version above 1. Take it with
 
-    go get github.com/donnyhardyanto/dxlib_module/v2@v2.0.0
+    go get github.com/donnyhardyanto/dxlib_module/v2@v2.1.0
 
 and import its packages under that path, for example
 `github.com/donnyhardyanto/dxlib_module/v2/module/session`. A consumer moving from v1.x changes every import
@@ -17,6 +17,9 @@ replaces the v1 line in its `go.mod`. v1.75.0 is the last v1 release.
 v2.0.0 adds, over v1.75.0: Valkey sessions that carry the user's profile (`module/session`, with `module/auth_audit`), passkeys
 (`module/passkey`), password login, change and reset (`module/password`), user photos (`module/user_photo`)
 and credentials from OpenBao with a PostgreSQL connection that follows them (`module/credentials`).
+
+v2.1.0 adds TLS to `credentials.RedisConnection` (Valkey over TLS, with an optional client certificate), on
+dxlib v1.135.0.
 
 ## Permission table
 
@@ -85,8 +88,8 @@ to the user written into all of that user's sessions at once.
   It reconnects with the provider's newer credential when the current one is within `RenewBefore` of its
   expiry, when Valkey refuses it (`WRONGPASS`, `NOAUTH`), or on `Refresh`; the sessions stay in Valkey across
   it. Calls refused at the same moment reconnect once between them, and a credential the provider still returns
-  after Valkey refused it is not tried again. Each new credential is first tried on one plain connection that is
-  closed afterwards, and only an accepted one goes to dxlib's `Connect` (a failed `Connect` leaves its client
+  after Valkey refused it is not tried again. Each new credential is first tried on one connection, with the
+  same TLS settings as the real one, that is closed afterwards, and only an accepted one goes to dxlib's `Connect` (a failed `Connect` leaves its client
   running); after a failed attempt the next waits `RetryMin` (1 s), doubling up to `RetryMax` (30 s), and calls
   in between get the last error at once. Its methods (`Eval`, `HGet`, `Command`) and the store's `Connection`
   interface take and return plain Go values, so no Redis client type is part of the API.
@@ -98,8 +101,24 @@ Valkey:
   `AUTH <user> <password>`; Valkey accepts both. The tests run against `valkey/valkey:9.1.3`.
 - One node or a Sentinel-managed primary. Valkey Cluster is not supported: the scripts reach sessions through the
   per-user set.
-- dxlib's redis package has no TLS option yet, so the connection is plain TCP: keep Valkey on a private network
-  until it has one.
+- TLS is off (plain TCP) unless the connection is given TLS settings, either a `*tls.Config` in
+  `RedisConnection.TLSConfig` or a tls block through `SetTLSFromBlock`, in dxlib's client vocabulary (the keys
+  of the `tls` block of a dxlib redis configuration):
+
+      conn := credentials.NewRedisConnection("sessions", "valkey.internal:6380", 0, "valkey/sessions", provider)
+      err := conn.SetTLSFromBlock(utils.JSON{
+          "tls-policy":  "intermediate",
+          "ca-trust":    "custom",                        // or "system" for the system roots
+          "ca-files":    []any{"/etc/valkey-tls/ca.crt"},
+          "cert-file":   "/etc/valkey-tls/client.crt",    // optional: a client certificate
+          "key-file":    "/etc/valkey-tls/client.key",
+          "server-name": "valkey.internal",               // optional: when the address's host is not on the certificate
+      })
+
+  The files are read by `SetTLSFromBlock`, so a missing one is an error there. TLS 1.2 is the floor. The trial
+  connection and the real one use the very same `tls.Config`, so a credential is never accepted over a path the
+  real connection does not take. A failed handshake is reported with its class (`TRUST`, `NAME`,
+  `VALIDITY_WINDOW`, ...), the TLS settings and what to check. Without TLS, keep Valkey on a private network.
 - Run Valkey with `maxmemory-policy noeviction`, so sessions are never dropped silently.
 - An ACL user limited to the prefix is enough:
 
@@ -110,7 +129,11 @@ The tests that need Valkey start a throwaway container and make such an ACL user
 
     tools/test-valkey.sh -v             # PODMAN=... names the container command (default podman)
 
-Without `DXLIB_MODULE_TEST_VALKEY` set, `go test ./...` skips them.
+The container listens on plain TCP and on a TLS-only port that requires a client certificate; the script makes a
+one-day CA, a server certificate for `valkey.test` and a client certificate with `openssl`. The TLS tests run the
+session store and `RedisConnection` with a prefix-limited user over it, and check that a wrong CA, a missing client
+certificate, a missing server name or plain TCP all fail at the trial connection. Without
+`DXLIB_MODULE_TEST_VALKEY` (and `DXLIB_MODULE_TEST_VALKEY_TLS` for the TLS tests) set, `go test ./...` skips them.
 
 ## Audit store in PostgreSQL (`module/auth_audit/pgsink`)
 
