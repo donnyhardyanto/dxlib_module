@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Go library, module `github.com/donnyhardyanto/dxlib_module`, built on `github.com/donnyhardyanto/dxlib`.
+Go library, module `github.com/donnyhardyanto/dxlib_module/v2`, built on `github.com/donnyhardyanto/dxlib`.
 The umbrella `../../CLAUDE.md` and `~/.claude/CLAUDE.md` apply as well; this file adds only what is
 specific to this repo.
 

@@ -10,8 +10,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/donnyhardyanto/dxlib_module/module/auth_audit"
-	"github.com/donnyhardyanto/dxlib_module/module/session"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/auth_audit"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/session"
 )
 
 // Manager sets, checks and changes passwords.

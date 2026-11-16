@@ -55,7 +55,7 @@ Use this template to generate `cmd/tool-{project-name}-reset/main.go`:
 package main
 
 import (
-    resetdb "github.com/donnyhardyanto/dxlib_module/tools/reset-databases"
+    resetdb "github.com/donnyhardyanto/dxlib_module/v2/tools/reset-databases"
     "{{.AssetsPackage}}"
     "{{.InfrastructurePackage}}"
     "{{.ModelPackage}}"

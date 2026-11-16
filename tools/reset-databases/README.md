@@ -11,7 +11,7 @@ A reusable library for creating database reset tools in dxlib-based projects.
 package main
 
 import (
-    resetdb "github.com/donnyhardyanto/dxlib_module/tools/reset-databases"
+    resetdb "github.com/donnyhardyanto/dxlib_module/v2/tools/reset-databases"
     // Import your project packages
 )
 

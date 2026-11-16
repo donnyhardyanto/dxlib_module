@@ -12,8 +12,8 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/api"
 
-	"github.com/donnyhardyanto/dxlib_module/module/account_lockout"
-	"github.com/donnyhardyanto/dxlib_module/module/password"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/account_lockout"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/password"
 )
 
 // Resolver returns the service's numeric user id and login id of a user uuid.

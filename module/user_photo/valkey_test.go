@@ -20,9 +20,9 @@ import (
 	goredis "github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 
-	"github.com/donnyhardyanto/dxlib_module/module/auth_audit"
-	"github.com/donnyhardyanto/dxlib_module/module/credentials"
-	"github.com/donnyhardyanto/dxlib_module/module/session"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/auth_audit"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/credentials"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/session"
 )
 
 // The session store's command list, as in module/session's tests and README.

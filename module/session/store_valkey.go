@@ -10,7 +10,7 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/log"
 
-	"github.com/donnyhardyanto/dxlib_module/module/auth_audit"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/auth_audit"
 )
 
 // Connection runs the store's commands on Valkey. credentials.RedisConnection implements it: a dxlib redis

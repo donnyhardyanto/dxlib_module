@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/donnyhardyanto/dxlib_module/module/auth_audit"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/auth_audit"
 )
 
 var bg = context.Background()

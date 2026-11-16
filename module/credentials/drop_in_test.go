@@ -1,10 +1,10 @@
 package credentials_test
 
 import (
-	"github.com/donnyhardyanto/dxlib_module/module/credentials"
-	"github.com/donnyhardyanto/dxlib_module/module/passkey"
-	"github.com/donnyhardyanto/dxlib_module/module/password"
-	"github.com/donnyhardyanto/dxlib_module/module/user_photo"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/credentials"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/passkey"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/password"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/user_photo"
 )
 
 // PostgresConnection drops in wherever a DBStore takes a database.

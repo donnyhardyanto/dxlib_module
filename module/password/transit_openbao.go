@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/donnyhardyanto/dxlib_module/module/credentials"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/credentials"
 )
 
 // OpenBaoConfig names the transit key. The token comes from the credential provider, never from here.

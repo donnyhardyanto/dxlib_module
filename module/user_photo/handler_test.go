@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/donnyhardyanto/dxlib_module/module/session"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/session"
 )
 
 // serve runs one request through a mux holding the handler, as a service mounts it.

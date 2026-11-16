@@ -16,7 +16,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/types"
 	"github.com/donnyhardyanto/dxlib/utils"
 	"github.com/donnyhardyanto/dxlib/utils/string_template"
-	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/push_notification"
 )
 
 // UserMessageChannelTypeIdFCM is the user_message_channel_type_id for FCM (= 1, matching

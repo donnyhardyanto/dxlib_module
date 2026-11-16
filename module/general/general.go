@@ -9,7 +9,7 @@ import (
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
 	"github.com/donnyhardyanto/dxlib/tables"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/donnyhardyanto/dxlib_module/lib"
+	"github.com/donnyhardyanto/dxlib_module/v2/lib"
 )
 
 type DxmGeneral struct {

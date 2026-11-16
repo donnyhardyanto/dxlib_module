@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donnyhardyanto/dxlib_module/module/session"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/session"
 )
 
 // Handler serves GET and HEAD of the photo route. Mount it on a pattern with {uuid}, matching Config.PhotoPath:

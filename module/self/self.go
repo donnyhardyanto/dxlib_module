@@ -26,7 +26,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/errors"
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/redis"
-	"github.com/donnyhardyanto/dxlib_module/module/push_notification"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/push_notification"
 
 	"github.com/donnyhardyanto/dxlib/api"
 	dxlibModule "github.com/donnyhardyanto/dxlib/module"
@@ -35,9 +35,9 @@ import (
 	"github.com/donnyhardyanto/dxlib/utils/crypto/x25519"
 	utilsJSON "github.com/donnyhardyanto/dxlib/utils/json"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
-	"github.com/donnyhardyanto/dxlib_module/base"
-	"github.com/donnyhardyanto/dxlib_module/lib"
-	"github.com/donnyhardyanto/dxlib_module/module/user_management"
+	"github.com/donnyhardyanto/dxlib_module/v2/base"
+	"github.com/donnyhardyanto/dxlib_module/v2/lib"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/user_management"
 	"github.com/google/uuid"
 )
 

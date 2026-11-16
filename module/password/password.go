@@ -34,8 +34,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/donnyhardyanto/dxlib_module/module/auth_audit"
-	"github.com/donnyhardyanto/dxlib_module/module/session"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/auth_audit"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/session"
 )
 
 // AuthMethod is the session's auth method after a password login.

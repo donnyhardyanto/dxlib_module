@@ -18,9 +18,9 @@ import (
 	goredis "github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 
-	"github.com/donnyhardyanto/dxlib_module/module/auth_audit"
-	"github.com/donnyhardyanto/dxlib_module/module/credentials"
-	"github.com/donnyhardyanto/dxlib_module/module/session"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/auth_audit"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/credentials"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/session"
 )
 
 // The commands the passkey challenge user needs; README's passkey section repeats this list.

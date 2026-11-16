@@ -8,7 +8,7 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/log"
-	"github.com/donnyhardyanto/dxlib_module/base"
+	"github.com/donnyhardyanto/dxlib_module/v2/base"
 )
 
 // A missing application or token comes back from the public methods, through

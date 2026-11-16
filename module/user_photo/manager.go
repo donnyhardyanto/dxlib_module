@@ -12,8 +12,8 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/log"
 
-	"github.com/donnyhardyanto/dxlib_module/module/auth_audit"
-	"github.com/donnyhardyanto/dxlib_module/module/session"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/auth_audit"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/session"
 )
 
 // Profiles composes the session profile: the service's own loader gives everything but the photo, and the

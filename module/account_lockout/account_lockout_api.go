@@ -6,7 +6,7 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/api"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/donnyhardyanto/dxlib_module/module/user_management"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/user_management"
 )
 
 // This file contains ALL API handler logic (FIXED/HOW) separated from API configuration (FLUID/WHAT)

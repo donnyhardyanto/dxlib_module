@@ -24,7 +24,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/donnyhardyanto/dxlib_module/module/session"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/session"
 )
 
 // ContentType is the type of every stored photo.

@@ -33,7 +33,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/donnyhardyanto/dxlib_module/module/session"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/session"
 )
 
 // AuthMethod is the session's auth method after a passkey login.

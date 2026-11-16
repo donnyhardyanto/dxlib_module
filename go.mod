@@ -1,4 +1,4 @@
-module github.com/donnyhardyanto/dxlib_module
+module github.com/donnyhardyanto/dxlib_module/v2
 
 go 1.27.3
 

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donnyhardyanto/dxlib_module/module/account_lockout"
-	"github.com/donnyhardyanto/dxlib_module/module/password"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/account_lockout"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/password"
 )
 
 func TestNewRefusesAnUninitialisedLockout(t *testing.T) {

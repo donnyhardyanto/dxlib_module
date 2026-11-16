@@ -20,7 +20,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/donnyhardyanto/dxlib_module/module/credentials"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/credentials"
 )
 
 type baoAdmin struct {

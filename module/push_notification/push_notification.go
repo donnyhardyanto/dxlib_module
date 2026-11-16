@@ -26,7 +26,7 @@ import (
 	"github.com/donnyhardyanto/dxlib/tables"
 	"github.com/donnyhardyanto/dxlib/types"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/donnyhardyanto/dxlib_module/base"
+	"github.com/donnyhardyanto/dxlib_module/v2/base"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -51,7 +51,7 @@ var (
 
 // TracerName names the OpenTelemetry tracer of the FCM send spans. A consumer that
 // needs another name for its dashboards sets it before the first send.
-var TracerName = "github.com/donnyhardyanto/dxlib_module/module/push_notification"
+var TracerName = "github.com/donnyhardyanto/dxlib_module/v2/module/push_notification"
 
 var (
 	FCMMessageMaxRetryAttemptCount        int64 = 10    // Maximum number of retry attempts

@@ -15,7 +15,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	miniocreds "github.com/minio/minio-go/v7/pkg/credentials"
 
-	"github.com/donnyhardyanto/dxlib_module/module/credentials"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/credentials"
 )
 
 // S3Config names the bucket. The credentials come from a credentials.Provider, never from here.

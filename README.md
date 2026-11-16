@@ -2,6 +2,22 @@
 
 Released under the MIT License; see [LICENSE](LICENSE).
 
+## Module path and versions
+
+From v2.0.0 the module path is `github.com/donnyhardyanto/dxlib_module/v2`, as Go requires for a major
+version above 1. Take it with
+
+    go get github.com/donnyhardyanto/dxlib_module/v2@v2.0.0
+
+and import its packages under that path, for example
+`github.com/donnyhardyanto/dxlib_module/v2/module/session`. A consumer moving from v1.x changes every import
+of `github.com/donnyhardyanto/dxlib_module/...` to `github.com/donnyhardyanto/dxlib_module/v2/...` and
+replaces the v1 line in its `go.mod`. v1.75.0 is the last v1 release.
+
+v2.0.0 adds, over v1.75.0: Valkey sessions that carry the user's profile (`module/session`, with `module/auth_audit`), passkeys
+(`module/passkey`), password login, change and reset (`module/password`), user photos (`module/user_photo`)
+and credentials from OpenBao with a PostgreSQL connection that follows them (`module/credentials`).
+
 ## Permission table
 
 `module/permission_table` prints the grants the module's permission check reads, as the permission table

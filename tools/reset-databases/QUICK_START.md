@@ -10,7 +10,7 @@ Create `src/cmd/tool-{your-project}-reset/main.go`:
 package main
 
 import (
-    resetdb "github.com/donnyhardyanto/dxlib_module/tools/reset-databases"
+    resetdb "github.com/donnyhardyanto/dxlib_module/v2/tools/reset-databases"
     "your-project/assets"
     "your-project/infrastructure"
     "your-project/models"

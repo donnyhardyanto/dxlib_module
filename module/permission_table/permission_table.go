@@ -33,7 +33,7 @@ import (
 
 	"github.com/donnyhardyanto/dxlib/log"
 	"github.com/donnyhardyanto/dxlib/utils"
-	"github.com/donnyhardyanto/dxlib_module/module/user_management"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/user_management"
 )
 
 // Grant is one role and one privilege it grants, by their name ids.

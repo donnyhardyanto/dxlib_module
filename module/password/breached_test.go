@@ -16,7 +16,7 @@ import (
 
 	"golang.org/x/crypto/argon2"
 
-	"github.com/donnyhardyanto/dxlib_module/module/credentials"
+	"github.com/donnyhardyanto/dxlib_module/v2/module/credentials"
 )
 
 func argonTag(pw string, salt []byte, passes, memory uint32, lanes uint8) []byte {

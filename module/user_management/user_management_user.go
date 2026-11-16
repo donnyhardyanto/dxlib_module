@@ -23,7 +23,7 @@ import (
 	utilsJson "github.com/donnyhardyanto/dxlib/utils/json"
 	"github.com/donnyhardyanto/dxlib/utils/lv"
 	security "github.com/donnyhardyanto/dxlib/utils/security"
-	"github.com/donnyhardyanto/dxlib_module/base"
+	"github.com/donnyhardyanto/dxlib_module/v2/base"
 	"github.com/tealeg/xlsx"
 )
 
